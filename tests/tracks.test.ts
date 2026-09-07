@@ -27,3 +27,15 @@ test("mountain has elevation, obstacles and a driveable shortcut preserving cano
   assert.ok(n.distance < 1);
   assert.ok(Math.abs(n.t - p.t) < 0.005);
 });
+test("career routes have nine different real layouts with progressively narrower expert roads", () => {
+  assert.equal(tracks.TRACKS.length, 9);
+  const fingerprints = new Set(
+    tracks.TRACKS.map((t) =>
+      JSON.stringify(t.points.map((p) => [Math.round(p.x), Math.round(p.z)])),
+    ),
+  );
+  assert.equal(fingerprints.size, 9);
+  assert.ok(
+    tracks.getTrack("mountain-summit").width < tracks.getTrack("coast").width,
+  );
+});

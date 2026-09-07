@@ -24,7 +24,7 @@ const server = new Server({
       next();
     });
     app.get("/api/health", (_req, res) =>
-      res.json({ ok: true, mode: "simulation", version: "0.1.0" }),
+      res.json({ ok: true, mode: "simulation", version: "0.2.0" }),
     );
     app.get("/api/pool", (_req, res) => res.json(economy.pool()));
     app.post("/api/account", (_req, res) => {

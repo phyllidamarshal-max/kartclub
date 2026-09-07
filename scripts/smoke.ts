@@ -6,6 +6,11 @@ import assert from "node:assert/strict";
 import { Client, type Room } from "@colyseus/sdk";
 import type { Snapshot, Account, Pool } from "../shared/protocol.ts";
 import { pilot } from "./pilot.ts";
+import { getTrack } from "../shared/track.ts";
+import { aiInput } from "../shared/ai.ts";
+const trackId = process.env.SMOKE_TRACK || "tide-coast-v1",
+  raceMode = process.env.SMOKE_MODE || "race",
+  laps = Number(process.env.SMOKE_LAPS || 1);
 const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const port = 2582,
   base = `http://127.0.0.1:${port}`;
@@ -37,6 +42,9 @@ try {
   const r1 = await new Client(base).create("kart", {
     token: users[0].token,
     name: "Smoke Alpha",
+    trackId,
+    mode: raceMode,
+    laps,
   });
   rooms.push(r1);
   const snapshots: (Snapshot | undefined)[] = [];
@@ -58,14 +66,19 @@ try {
         const s = snapshots[i],
           c = s?.cars.find((c) => c.id === r.sessionId);
         if (c && s?.phase === "racing")
-          r.send("input", { ...pilot(c), seq: ++seq[i] });
+          r.send("input", {
+            ...(trackId === "tide-coast-v1"
+              ? pilot(c)
+              : aiInput(c, getTrack(trackId), "normal", s.elapsed)),
+            seq: ++seq[i],
+          });
       }),
     1000 / 30,
   );
   const start = Date.now();
   let reported = 0;
   while (snapshots[0]?.phase !== "finished") {
-    if (Date.now() - start > 95000)
+    if (Date.now() - start > laps * 110000)
       throw Error("Full race timed out: " + JSON.stringify(snapshots[0]));
     if (Date.now() - start - reported > 10000) {
       reported = Date.now() - start;
@@ -82,6 +95,13 @@ try {
   clearInterval(timer);
   timer = null;
   await pause(100);
+  assert.equal(snapshots[0]!.trackId, trackId);
+  assert.equal(snapshots[0]!.raceMode, raceMode);
+  assert.equal(snapshots[0]!.laps, laps);
+  if (raceMode === "items")
+    assert.ok(
+      Object.values(snapshots[0]!.items!.players).some((p) => p.uses > 0),
+    );
   const results = snapshots[0]!.results;
   assert.equal(results.filter((r) => r.rank > 0).length, 2);
   assert.deepEqual(snapshots[1]!.results, results);

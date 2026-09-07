@@ -58,3 +58,16 @@ test("ghost interpolation follows stored pose and malformed recordings are rejec
   assert.equal(ghostAt(g, 0.5)?.x, 5);
   assert.ok(!validGhost({ ...g, frames: [[0, NaN, 0, 0]] }, "coast"));
 });
+import { matchForSelection } from "../shared/gameplay.ts";
+test("four-lap solo career selection becomes a valid advertised online match", () => {
+  const q = CHALLENGES.find((q) => q.id === "mountain-time")!;
+  const selected = { trackId: q.trackId, raceMode: q.mode, laps: q.laps };
+  const match = matchForSelection(selected);
+  assert.deepEqual(match, { trackId: q.trackId, mode: "race", laps: 3 });
+  assert.deepEqual(validateMatch({ ...match }), match);
+  assert.equal(selected.laps, 4);
+  assert.deepEqual(
+    matchForSelection({ trackId: "city", raceMode: "items", laps: 2 }),
+    { trackId: "city", mode: "items", laps: 2 },
+  );
+});

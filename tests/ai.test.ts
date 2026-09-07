@@ -30,7 +30,7 @@ test("four AI race with actual collisions and all item mechanics on every circui
     while (now < 360 && cars.some((c) => !c.finished)) {
       now += 1 / 60;
       const inputs = Object.fromEntries(
-        cars.map((c) => [c.id, aiInput(c, t, "normal", now)]),
+        cars.map((c) => [c.id, aiInput(c, t, "normal", now, cars)]),
       );
       for (const c of cars) {
         stepCar(c, inputs[c.id], 1 / 60, t);
@@ -53,4 +53,46 @@ test("four AI race with actual collisions and all item mechanics on every circui
       Object.values(w.players).map((p) => p.uses),
     );
   }
+});
+test("AI reacts to a nearby rival with an overtaking lane and safe closing speed", () => {
+  const t = TRACKS[0],
+    c = spawnCar(1, "chaser", t),
+    front = spawnCar(1, "leader", t);
+  c.speed = 30;
+  c.vx = Math.sin(c.heading) * 30;
+  c.vz = Math.cos(c.heading) * 30;
+  front.x = c.x + Math.sin(c.heading) * 4;
+  front.z = c.z + Math.cos(c.heading) * 4;
+  front.speed = 20;
+  const clear = aiInput(c, t, "hard", 10),
+    traffic = aiInput(c, t, "hard", 10, [c, front]);
+  assert.notEqual(traffic.steer, clear.steer);
+  assert.ok(traffic.throttle < 0);
+});
+test("eight expert AI complete the narrow summit final with overtaking, contacts and items", () => {
+  const t = TRACKS.find((t) => t.id === "mountain-summit")!,
+    cars = Array.from({ length: 8 }, (_, i) => spawnCar(i, "final" + i, t)),
+    w = createItems(
+      cars.map((c) => c.id),
+      t,
+    );
+  let now = 0;
+  while (now < 360 && cars.some((c) => !c.finished)) {
+    now += 1 / 60;
+    const inputs = Object.fromEntries(
+      cars.map((c) => [c.id, aiInput(c, t, "hard", now, cars)]),
+    );
+    for (const c of cars) {
+      stepCar(c, inputs[c.id], 1 / 60, t);
+      if (c.lap >= 3) c.finished = true;
+    }
+    separateCars(cars, t);
+    stepItems(w, cars, inputs, 1 / 60, t);
+  }
+  assert.equal(
+    cars.filter((c) => c.finished).length,
+    8,
+    `final positions ${cars.map((c) => c.progress)}`,
+  );
+  console.log("eight-car summit final", now.toFixed(1));
 });

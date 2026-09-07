@@ -1,3 +1,4 @@
+import { EXTRA_ROUTES } from "./route-data.ts";
 export const ROAD_WIDTH = 16;
 export const TRACK_ID = "tide-coast-v1";
 export interface Point {
@@ -81,7 +82,12 @@ function create(
     points.push({
       x: raw[j].x + (raw[j + 1].x - raw[j].x) * f,
       z: raw[j].z + (raw[j + 1].z - raw[j].z) * f,
-      y: theme === "mountain" ? 10 * (1 - Math.cos(t * Math.PI * 4)) : 0,
+      y:
+        theme === "mountain"
+          ? 10 * (1 - Math.cos(t * Math.PI * 4))
+          : id === "city-nightshift"
+            ? 5 * (1 - Math.cos(t * Math.PI * 2))
+            : 0,
       t,
       heading: 0,
     });
@@ -163,6 +169,10 @@ const assembledTracks = [
     12,
   ),
 ];
+for (const r of EXTRA_ROUTES)
+  assembledTracks.push(
+    create(r.id, r.name, r.subtitle, r.theme, r.anchors, r.scale, r.width),
+  );
 export const TRACKS: readonly Track[] = assembledTracks;
 export function getTrack(id: string): Track {
   const t = id === TRACK_ID ? DEFAULT_TRACK : TRACKS.find((t) => t.id === id);
@@ -207,6 +217,22 @@ for (const [t, side] of [
     radius: 1.5,
   });
 }
+for (const track of assembledTracks.filter(
+  (t) => t.id === "city-factory" || t.id === "mountain-summit",
+))
+  for (const [t, side] of [
+    [0.22, 1],
+    [0.44, -1],
+    [0.76, 1],
+  ]) {
+    const p = trackPoint(t, track),
+      offset = side * (track.width / 2 - 2);
+    track.obstacles.push({
+      x: p.x + Math.cos(p.heading) * offset,
+      z: p.z - Math.sin(p.heading) * offset,
+      radius: 1.1,
+    });
+  }
 // Freeze only after all branches and obstacles are assembled, before indexing.
 // Callers may still construct independent custom tracks using clones/spreads.
 for (const track of [DEFAULT_TRACK, ...TRACKS]) {

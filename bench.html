@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="zh-CN">
+  <meta charset="utf-8" /><meta
+    name="viewport"
+    content="width=device-width,initial-scale=1"
+  /><title>PONS 0.2 性能实测</title
+  ><style>
+    body {
+      margin: 0;
+      background: #112c35;
+      color: #edf3e7;
+      font: 14px system-ui;
+    }
+    canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+    section {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      max-width: 720px;
+      padding: 18px;
+      background: #122e39e8;
+      border-radius: 12px;
+    }
+    button {
+      padding: 12px;
+      background: #c0ff59;
+      border: 0;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    pre {
+      white-space: pre-wrap;
+      font-size: 12px;
+      max-height: 65vh;
+      overflow: auto;
+    }
+    a {
+      color: #c0ff59;
+    }</style
+  ><canvas id="bench-scene"></canvas>
+  <section>
+    <b>0.2 渲染基准 · 八车道具场景 · 流畅档</b>
+    <p>
+      独立测试场景，不读取账户，不计入成绩。请保持此页可见约 32
+      秒；后台限速会标记为无效采样。
+    </p>
+    <button id="run">开始四赛道测试</button> <a href="/">返回游戏</a>
+    <pre id="result">等待开始</pre>
+  </section>
+  <script type="module" src="/client/benchmark.ts"></script>
+</html>

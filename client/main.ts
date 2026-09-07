@@ -31,10 +31,11 @@ import {
   DIFFICULTY_NAMES,
   starsFor,
   isUnlocked,
+  matchForSelection,
   type RaceMode,
   type Difficulty,
 } from "../shared/gameplay.ts";
-import { aiInput } from "../shared/ai.ts";
+import { aiInput, AI_NAMES } from "../shared/ai.ts";
 import {
   createItems,
   stepItems,
@@ -54,6 +55,7 @@ let selection = {
   raceMode: "race" as RaceMode,
   difficulty: "normal" as Difficulty,
   laps: 3,
+  opponents: 5,
 };
 let soloCars: Car[] = [],
   itemWorld: ItemWorld | null = null;
@@ -91,7 +93,7 @@ function setupMarkup(online = false) {
         .map((p) => p.x + "," + p.z)
         .join(
           " ",
-        )}"/></svg><b>${t.name}</b><small>${(t.length / 1000).toFixed(2)} km · ${t.theme === "coast" ? "宽阔 / 入门" : t.theme === "city" ? "连续弯 / 进阶" : "坡道与近道 / 专家"}</small></button>`,
+        )}"/></svg><b>${t.name}</b><small>${(t.length / 1000).toFixed(2)} km · ${`${t.width} 米路宽 · ${t.theme === "coast" ? "海岸" : t.theme === "city" ? "连续弯" : t.shortcut.length ? "坡道 / 近道" : "坡道 / 发卡弯"}`}</small></button>`,
   ).join(
     "",
   )}</div><div class="selection-grid"><label>比赛模式<select id="mode-select" data-config="raceMode">${(online ? ["race", "items"] : ["race", "items", "time", "practice"]).map((m) => `<option value="${m}" ${selection.raceMode === m ? "selected" : ""}>${MODE_NAMES[m as RaceMode]}</option>`).join("")}</select></label>${
@@ -105,7 +107,7 @@ function setupMarkup(online = false) {
               `<option value="${v}" ${selection.difficulty === v ? "selected" : ""}>${n}</option>`,
           )
           .join("")}</select></label>`
-  }<label>比赛圈数<select id="laps-select" data-config="laps">${[1, 2, 3].map((n) => `<option value="${n}" ${selection.laps === n ? "selected" : ""}>${n} 圈${n === 3 ? " · 标准赛事" : ""}</option>`).join("")}</select></label></div><p class="form-note">${online ? "多人比赛仅实际玩家参赛，全部准备后扣票。" : "竞速 / 道具模式有三名 AI；计时模式记录每圈最佳影子；自由练习没有对手。所有单人玩法免费。"}</p>${online ? "" : '<button class="button primary full" data-action="start-custom">开始比赛 →</button>'}`;
+  }${online ? "" : `<label>AI 对手<select id="opponents-select" data-config="opponents">${[3, 5, 7].map((n) => `<option value="${n}" ${selection.opponents === n ? "selected" : ""}>${n} 名 AI · ${n + 1} 车赛</option>`).join("")}</select></label>`}<label>比赛圈数<select id="laps-select" data-config="laps">${[1, 2, 3].map((n) => `<option value="${n}" ${selection.laps === n ? "selected" : ""}>${n} 圈${n === 3 ? " · 标准赛事" : ""}</option>`).join("")}</select></label></div><p class="form-note">${online ? "多人比赛仅实际玩家参赛，全部准备后扣票。" : "竞速 / 道具模式可选 3–7 名 AI；计时模式记录每圈最佳影子；自由练习没有对手。所有单人玩法免费。"}</p>${online ? "" : '<button class="button primary full" data-action="start-custom">开始比赛 →</button>'}`;
 }
 
 type Page = "home" | "career" | "online" | "vault";
@@ -213,7 +215,7 @@ function lobby() {
   roomStamp = "";
 }
 function home() {
-  return `<section class="hero"><div class="eyebrow"><span class="season">SEASON 00</span><span>THE COAST IS CALLING</span></div><h1>逐浪而行<span>弯道，由你定义。</span></h1><p class="hero-copy">把海风甩在身后。<br>漂移、蓄能、冲线，下一位领跑者就是你。</p><div class="hero-buttons"><button class="button primary" data-action="practice">即刻试驾 <span>↗</span></button><button class="button outline" data-page="online">与好友竞速 <span>→</span></button></div><div class="hero-meta"><span><b>03</b> 多主题赛道</span><span><b>04</b> 同场竞技席位</span><span><b>∞</b> 漂移可能</span></div></section><aside class="track-tag"><span class="live-pill"><i></i> CIRCUIT 001</span><h2>${escape(activeTrack.name)}</h2><p>${escape(activeTrack.subtitle)}</p><div><span>↝ ${(activeTrack.length / 1000).toFixed(2)} km</span><span>☀ 晴朗</span><span>技术型</span></div></aside><section class="mode-grid"><button class="mode-card practice" data-action="practice"><span class="card-index">01 / FREE DRIVE</span><div class="card-row"><h3>自由试驾</h3><span class="card-arrow">↗</span></div><p>熟悉每一个弯，找到你的节奏。</p><div class="card-bottom"><span class="badge">免费体验</span><span>随时出发 →</span></div></button><button class="mode-card challenge" data-page="career"><span class="card-index">02 / SOLO CHALLENGE</span><div class="card-row"><h3>单人挑战</h3><span class="card-arrow">↗</span></div><p>从第一圈，到属于你的最佳纪录。</p><div class="card-bottom"><span class="badge">${Object.keys(careerProgress).filter((k) => careerProgress[k].stars > 0).length} / 9 生涯已完成${classicRecords(progress).length ? ` · 经典 ${classicRecords(progress).length} / 3` : ""}</span><span>查看挑战 →</span></div></button><button class="mode-card multiplayer" data-page="online"><span class="card-index">03 / MULTIPLAYER</span><div class="card-row"><h3>多人竞速</h3><span class="card-arrow">↗</span></div><p>邀请好友，用实力争夺领奖台。</p><div class="card-bottom"><span class="badge">2–4 人实时联机</span><span>进入房间 →</span></div></button><button class="pool-card" data-page="vault"><span class="card-index">SIMULATED PRIZE POOL</span><div class="pool-value">${net.pool ? money(net.pool.available) : "—"} <small>$PONS</small></div><p><i></i> 模拟交易税 2% · 可用奖池</p><span class="pool-link">探索奖励金库 ↗</span></button></section>`;
+  return `<section class="hero"><div class="eyebrow"><span class="season">SEASON 00</span><span>THE COAST IS CALLING</span></div><h1>逐浪而行<span>弯道，由你定义。</span></h1><p class="hero-copy">把海风甩在身后。<br>漂移、蓄能、冲线，下一位领跑者就是你。</p><div class="hero-buttons"><button class="button primary" data-action="practice">即刻试驾 <span>↗</span></button><button class="button outline" data-page="online">与好友竞速 <span>→</span></button></div><div class="hero-meta"><span><b>09</b> 独立路线</span><span><b>04</b> 真人联机席位</span><span><b>∞</b> 漂移可能</span></div></section><aside class="track-tag"><span class="live-pill"><i></i> CIRCUIT 001</span><h2>${escape(activeTrack.name)}</h2><p>${escape(activeTrack.subtitle)}</p><div><span>↝ ${(activeTrack.length / 1000).toFixed(2)} km</span><span>☀ 晴朗</span><span>技术型</span></div></aside><section class="mode-grid"><button class="mode-card practice" data-action="practice"><span class="card-index">01 / FREE DRIVE</span><div class="card-row"><h3>自由试驾</h3><span class="card-arrow">↗</span></div><p>熟悉每一个弯，找到你的节奏。</p><div class="card-bottom"><span class="badge">免费体验</span><span>随时出发 →</span></div></button><button class="mode-card challenge" data-page="career"><span class="card-index">02 / SOLO CHALLENGE</span><div class="card-row"><h3>单人挑战</h3><span class="card-arrow">↗</span></div><p>从第一圈，到属于你的最佳纪录。</p><div class="card-bottom"><span class="badge">${Object.keys(careerProgress).filter((k) => careerProgress[k].stars > 0).length} / 9 生涯已完成${classicRecords(progress).length ? ` · 经典 ${classicRecords(progress).length} / 3` : ""}</span><span>查看挑战 →</span></div></button><button class="mode-card multiplayer" data-page="online"><span class="card-index">03 / MULTIPLAYER</span><div class="card-row"><h3>多人竞速</h3><span class="card-arrow">↗</span></div><p>邀请好友，用实力争夺领奖台。</p><div class="card-bottom"><span class="badge">2–4 人实时联机</span><span>进入房间 →</span></div></button><button class="pool-card" data-page="vault"><span class="card-index">SIMULATED PRIZE POOL</span><div class="pool-value">${net.pool ? money(net.pool.available) : "—"} <small>$PONS</small></div><p><i></i> 模拟交易税 2% · 可用奖池</p><span class="pool-link">探索奖励金库 ↗</span></button></section>`;
 }
 function career() {
   return `<section class="page-heading compact"><span class="eyebrow">CAREER / 3 CHAPTERS · 9 CHALLENGES</span><h1>从海岸出发，向山巅进阶。</h1><p>赢取星级解锁下一关。自由比赛可提前练习所有赛道。</p><button class="button outline" data-action="practice">自由比赛与练习 ↗</button></section><section class="challenge-grid">${CHALLENGES.map(
@@ -225,7 +227,8 @@ function career() {
   ).join("")}</section>${classicHistoryMarkup(progress)}`;
 }
 function online() {
-  return `<section class="page-heading"><span class="eyebrow">REAL-TIME MULTIPLAYER / 02</span><h1>一起出发，<br>各凭本事领跑。</h1><p>真实玩家，实时较量。创建房间，把房间码分享给好友。</p></section><section class="online-layout"><div class="glass form-panel"><label for="nickname">你的车手名</label><input id="nickname" maxlength="16" value="${escape(nickname)}" placeholder="输入车手名"><div class="two-col"><div><h3>发起一场比赛</h3><p>2–4 位车手 · 可选赛道与模式</p><button class="button outline" data-action="room-config">赛事设置</button><p>${getTrack(selection.trackId).name} · ${MODE_NAMES[selection.raceMode]} · ${selection.laps} 圈</p><button class="button primary" data-action="create">创建房间 <span>＋</span></button></div><div><h3>加入好友的房间</h3><input id="room-code" placeholder="输入房间码" maxlength="32" autocomplete="off"><button class="button outline" data-action="join">加入房间 <span>→</span></button></div></div><p class="form-note">本机可用两个独立标签页联机；同一局域网设备需能访问赛事服务器。</p></div><aside class="glass race-rules"><span class="eyebrow">RACE BRIEF</span><h2>这一场，为荣誉。</h2><div><span>每人门票</span><b>10 TICKET</b></div><div><span>本场奖金</span><b>100 $PONS</b></div><div><span>4 人场前三名</span><b>60 / 30 / 10%</b></div><p>凑齐至少 2 人并全部准备后才扣票。开赛前取消退票。奖金仅分配给有效完赛车手。</p>${simulated()}</aside></section>`;
+  const match = matchForSelection(selection);
+  return `<section class="page-heading"><span class="eyebrow">REAL-TIME MULTIPLAYER / 02</span><h1>一起出发，<br>各凭本事领跑。</h1><p>真实玩家，实时较量。创建房间，把房间码分享给好友。</p></section><section class="online-layout"><div class="glass form-panel"><label for="nickname">你的车手名</label><input id="nickname" maxlength="16" value="${escape(nickname)}" placeholder="输入车手名"><div class="two-col"><div><h3>发起一场比赛</h3><p>2–4 位车手 · 可选赛道与模式</p><button class="button outline" data-action="room-config">赛事设置</button><p>${getTrack(selection.trackId).name} · ${MODE_NAMES[match.mode]} · ${match.laps} 圈</p><button class="button primary" data-action="create">创建房间 <span>＋</span></button></div><div><h3>加入好友的房间</h3><input id="room-code" placeholder="输入房间码" maxlength="32" autocomplete="off"><button class="button outline" data-action="join">加入房间 <span>→</span></button></div></div><p class="form-note">本机可用两个独立标签页联机；同一局域网设备需能访问赛事服务器。</p></div><aside class="glass race-rules"><span class="eyebrow">RACE BRIEF</span><h2>这一场，为荣誉。</h2><div><span>每人门票</span><b>10 TICKET</b></div><div><span>本场奖金</span><b>100 $PONS</b></div><div><span>4 人场前三名</span><b>60 / 30 / 10%</b></div><p>凑齐至少 2 人并全部准备后才扣票。开赛前取消退票。奖金仅分配给有效完赛车手。</p>${simulated()}</aside></section>`;
 }
 function vault() {
   const p = net.pool;
@@ -242,6 +245,10 @@ function claims() {
     : '<div class="empty-state"><span>⚑</span><p>你的领奖台，虚位以待。</p><small>在多人竞速中完赛，奖励会出现在这里。</small></div>';
 }
 function showModal(kind: string) {
+  if (kind === "setup" || kind === "room-config") {
+    if (![3, 5, 7].includes(selection.opponents)) selection.opponents = 5;
+    if (![1, 2, 3].includes(selection.laps)) selection.laps = 3;
+  }
   modal = kind;
   if (mode === "solo") paused = true;
   const root = $("#modal-root");
@@ -306,6 +313,7 @@ function beginSolo(index: number) {
       raceMode: q.mode,
       difficulty: q.difficulty,
       laps: q.laps,
+      opponents: q.opponents,
     };
   activateTrack(selection.trackId);
   startAudio();
@@ -315,7 +323,7 @@ function beginSolo(index: number) {
   localCar = spawnCar(0, "local", activeTrack);
   soloCars = [localCar];
   if (selection.raceMode === "race" || selection.raceMode === "items")
-    for (let i = 1; i < 4; i++)
+    for (let i = 1; i <= selection.opponents; i++)
       soloCars.push(spawnCar(i, "AI-" + i, activeTrack));
   itemWorld =
     selection.raceMode === "items"
@@ -381,7 +389,7 @@ function soloResult() {
   }
   modal = "result";
   $("#modal-root").innerHTML =
-    `<div class="modal-backdrop"><section class="modal result-modal"><span class="eyebrow">RACE COMPLETE / ${MODE_NAMES[selection.raceMode]}</span><div class="result-emblem">${stars ? "⚑" : "↻"}</div><h2>${stars ? "冲线，继续向前！" : "差一点，再挑战一次。"}</h2>${q ? `<div class="stars">${"★".repeat(stars)}${"☆".repeat(3 - stars)}</div><p>${stars ? (challengeIndex < 8 ? "下一关已解锁，可在生涯中继续。" : "九关已完成，继续挑战全金星！") : q.description}</p>` : ""}<div class="result-stats"><div><span>比赛用时</span><b>${time(elapsed)}</b></div><div><span>排名 / 道具使用</span><b>${rank}<small> / ${uses} 次</small></b></div></div>${soloCars.length > 1 ? `<div class="classification">${sorted.map((c, i) => `<div class="${c.id === "local" ? "you" : ""}"><b>${i + 1}</b><span>${c.id === "local" ? "你" : c.id}</span><span>${c.finished ? time(c.time) : "尚未完赛"}</span></div>`).join("")}</div>` : ""}${selection.raceMode === "time" && bestGhost ? `<p>赛道最佳单圈：${time(bestGhost.time)}</p>` : ""}<p class="form-note">单人模式免费 · 不发放代币奖励</p><div class="hero-buttons"><button class="button primary" data-action="retry">再跑一次 ↗</button><button class="button outline" data-action="exit">返回大厅</button></div></section></div>`;
+    `<div class="modal-backdrop"><section class="modal result-modal"><span class="eyebrow">RACE COMPLETE / ${MODE_NAMES[selection.raceMode]}</span><div class="result-emblem">${stars ? "⚑" : "↻"}</div><h2>${stars ? "冲线，继续向前！" : "差一点，再挑战一次。"}</h2>${q ? `<div class="stars">${"★".repeat(stars)}${"☆".repeat(3 - stars)}</div><p>${stars ? (challengeIndex < 8 ? "下一关已解锁，可在生涯中继续。" : "九关已完成，继续挑战全金星！") : q.description}</p>` : ""}<div class="result-stats"><div><span>比赛用时</span><b>${time(elapsed)}</b></div><div><span>排名 / 道具使用</span><b>${rank}<small> / ${uses} 次</small></b></div></div>${soloCars.length > 1 ? `<div class="classification">${sorted.map((c, i) => `<div class="${c.id === "local" ? "you" : ""}"><b>${i + 1}</b><span>${c.id === "local" ? "你" : AI_NAMES[c.slot - 1] || c.id}</span><span>${c.finished ? time(c.time) : "尚未完赛"}</span></div>`).join("")}</div>` : ""}${selection.raceMode === "time" && bestGhost ? `<p>赛道最佳单圈：${time(bestGhost.time)}</p>` : ""}<p class="form-note">单人模式免费 · 不发放代币奖励</p><div class="hero-buttons"><button class="button primary" data-action="retry">再跑一次 ↗</button><button class="button outline" data-action="exit">返回大厅</button></div></section></div>`;
   audio.beep(true);
 }
 
@@ -530,11 +538,7 @@ async function act(action: string) {
       toast("正在连接赛事服务器…");
       startAudio();
       latest = null;
-      await net.join(nickname, roomId, {
-        trackId: selection.trackId,
-        mode: selection.raceMode === "items" ? "items" : "race",
-        laps: selection.laps,
-      });
+      await net.join(nickname, roomId, matchForSelection(selection));
       showModal("room");
     }
     if (action === "tax") {
@@ -583,7 +587,8 @@ document.addEventListener("input", (event) => {
   const el = event.target as HTMLInputElement;
   if (el.dataset.config) {
     const k = el.dataset.config;
-    if (k === "trackId") selection.trackId = el.value;
+    if (k === "opponents") selection.opponents = Number(el.value);
+    else if (k === "trackId") selection.trackId = el.value;
     else if (k === "raceMode") selection.raceMode = el.value as RaceMode;
     else if (k === "difficulty") selection.difficulty = el.value as Difficulty;
     else if (k === "laps") selection.laps = Number(el.value);
@@ -741,7 +746,8 @@ function hud() {
   const q =
     mode === "solo" && challengeIndex >= 0 ? CHALLENGES[challengeIndex] : null;
   $("#objective").textContent = q
-    ? q.description
+    ? q.description +
+      ` 当前集气 ${Math.floor(c.driftTotal)}/${q.drift}；道具 ${itemWorld?.players[c.id]?.uses || 0}/${q.uses}`
     : selection.raceMode === "time" && mode === "solo"
       ? bestGhost
         ? "最佳单圈 " + bestGhost.time.toFixed(2) + " s"
@@ -785,6 +791,7 @@ function frame(ms: number) {
               activeTrack,
               selection.difficulty,
               elapsed,
+              soloCars,
             );
           stepCar(c, commands[c.id], 1 / 60, activeTrack);
           if (c.lap >= targetLaps() && !c.finished) {

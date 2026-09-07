@@ -686,7 +686,7 @@ export class World {
         );
       }
     }
-    if (!city)
+    if (this.track.points.some((p) => p.y > 2))
       for (let i = 0; i < 60; i++) {
         const p = trackPoint(i / 60, this.track);
         if (p.y > 2)
