@@ -1,0 +1,39 @@
+{
+  "version": "tide-coast-v1",
+  "trackName": "晴湾海岸",
+  "subtitle": "TIDE COAST CIRCUIT",
+  "kartName": "浪潮 · MK I",
+  "palette": ["#bbfb50", "#ff79b0", "#7c9eff", "#ffcc63"],
+  "ocean": "#328d9b",
+  "grass": "#a4cfa0",
+  "characterModel": null,
+  "sceneModel": null,
+  "musicUrl": null,
+  "modelScale": 1,
+  "challenges": [
+    {
+      "id": "tour",
+      "title": "初见晴湾",
+      "description": "完成 1 圈，熟悉海岸的每一个弯。",
+      "laps": 1,
+      "limit": 0,
+      "drift": 0
+    },
+    {
+      "id": "time",
+      "title": "追赶海风",
+      "description": "在 55 秒内完成 1 圈。",
+      "laps": 1,
+      "limit": 55,
+      "drift": 0
+    },
+    {
+      "id": "drift",
+      "title": "弯道艺术家",
+      "description": "完成 1 圈，累计获得 150 点漂移能量。",
+      "laps": 1,
+      "limit": 0,
+      "drift": 150
+    }
+  ]
+}
