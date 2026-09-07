@@ -1,6 +1,7 @@
 import { Client, type Room } from "@colyseus/sdk";
 import type { Snapshot, Account, Pool } from "../shared/protocol.ts";
 import type { Input } from "../shared/race.ts";
+import { reconnectDeadline } from "./lifecycle.ts";
 export class Network {
   token = sessionStorage.getItem("pons-token") || "";
   account: Account | null = null;
@@ -16,6 +17,7 @@ export class Network {
   onNotice: (s: string) => void = () => {};
   onTerminal: (snapshot: Snapshot | null) => void = () => {};
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private reconnectDeadlineAt: number | null = null;
   async request<T>(path: string, method = "GET"): Promise<T> {
     const r = await fetch("/api/" + path, {
       method,
@@ -71,6 +73,7 @@ export class Network {
     const clearReconnectTimer = () => {
       if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
+      this.reconnectDeadlineAt = null;
     };
     const endConnection = () => {
       if (this.room !== currentRoom) return;
@@ -101,8 +104,16 @@ export class Network {
       this.connected = false;
       this.connectionState = "reconnecting";
       this.onNotice("连接中断，正在尝试重连（30 秒）");
-      clearReconnectTimer();
-      this.reconnectTimer = setTimeout(endConnection, 30_000);
+      const now = Date.now();
+      this.reconnectDeadlineAt = reconnectDeadline(
+        this.reconnectDeadlineAt,
+        now,
+      );
+      if (!this.reconnectTimer)
+        this.reconnectTimer = setTimeout(
+          endConnection,
+          Math.max(0, this.reconnectDeadlineAt - now),
+        );
     });
     this.room.onReconnect(() => {
       if (this.room !== currentRoom) {
@@ -141,6 +152,7 @@ export class Network {
     this.snapshot = null;
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
     this.reconnectTimer = null;
+    this.reconnectDeadlineAt = null;
     this.connected = false;
     this.connectionState = "ended";
     if (r) {
