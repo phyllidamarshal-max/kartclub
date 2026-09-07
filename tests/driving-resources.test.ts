@@ -92,14 +92,65 @@ test("finish cancels eligibility and queued input without consuming resources", 
     finished: true,
     storedNitro: 2,
     energy: 80,
+    boostTime: 2,
     miniWindow: 0.4,
     nitroBuffer: 0.1,
   });
   stepCar(c, { ...EMPTY_INPUT, boost: true, throttle: 1 }, dt);
   assert.equal(c.miniWindow, 0);
   assert.equal(c.nitroBuffer, 0);
+  assert.equal(c.boostTime, 0);
   assert.equal(c.storedNitro, 2);
+  assert.equal(c.energy, 80);
   assert.equal(c.time, 0);
+});
+
+test("AC04 holding drift after real recovery cannot postpone or renew the mini window", () => {
+  const c = spawnCar(),
+    track = { ...DEFAULT_TRACK, width: 2000, obstacles: [] };
+  Object.assign(c, {
+    speed: 35,
+    vx: Math.sin(c.heading) * 35,
+    vz: Math.cos(c.heading) * 35,
+  });
+  for (let i = 0; i < 25; i++)
+    stepCar(
+      c,
+      { ...EMPTY_INPUT, throttle: 1, drift: true, steer: 1 },
+      dt,
+      track,
+    );
+  assert.ok(c.driftDuration >= 0.25);
+  let recoveredAt = -1;
+  for (let i = 0; i < 120; i++) {
+    stepCar(
+      c,
+      { ...EMPTY_INPUT, throttle: 1, drift: true, steer: 0.16 },
+      dt,
+      track,
+    );
+    if (recoveredAt < 0 && Math.abs(c.slipAngle) <= (8 * Math.PI) / 180) {
+      recoveredAt = c.time;
+      assert.equal(
+        c.miniWindow,
+        0.5,
+        "actual recovery opens the window while drift remains held",
+      );
+      assert.equal(c.driftDuration, 0, "the qualifying drift is consumed once");
+    }
+  }
+  assert.ok(recoveredAt > 0 && c.time - recoveredAt > 0.5);
+  assert.equal(c.impact, 0);
+  assert.equal(c.miniWindow, 0);
+  stepCar(c, { ...EMPTY_INPUT, throttle: 1 }, dt, track);
+  assert.equal(
+    c.miniWindow,
+    0,
+    "releasing drift cannot renew an expired window",
+  );
+  stepCar(c, EMPTY_INPUT, dt, track);
+  stepCar(c, { ...EMPTY_INPUT, throttle: 1 }, dt, track);
+  assert.equal(c.miniUses, 0);
 });
 
 test("AC04/05 a real drift recovers once and needs a new throttle press", () => {

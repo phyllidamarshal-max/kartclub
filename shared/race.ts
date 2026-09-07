@@ -180,6 +180,7 @@ function signedDelta(t: number, previous: number) {
 }
 export function stepCar(c: Car, raw: Input, dt: number, track = DEFAULT_TRACK) {
   if (c.finished) {
+    c.boostTime = 0;
     cancelEligibility(c);
     return;
   }
@@ -374,7 +375,7 @@ export function stepCar(c: Car, raw: Input, dt: number, track = DEFAULT_TRACK) {
     c.energy = Math.min(CFG.energy.capacity, c.energy + gain);
     c.driftTotal += gain;
     convertEnergy(c);
-  } else if (!requestedDrift && angle <= CFG.drift.recoverAngle) {
+  } else if (angle <= CFG.drift.recoverAngle) {
     if (c.driftDuration + 1e-9 >= CFG.drift.eligibility)
       c.miniWindow = CFG.mini.window;
     c.driftDuration = 0;

@@ -46,3 +46,21 @@ AC02模拟30/60/120fps渲染调度相同60Hz输入记录，位置/速度/时间�
 - collisionCount记录具有明显法向冲击的新接触，持续压墙不逐tick刷计数；阈值是诊断原型，未声称精确对应真人感知撞击次数。
 - 首次设置finished后，应再调用stepCar清理临时资格（其时间/库存冻结），或由主任务结束流程同步清理。上层比赛必须使用lastLapTime记录终点，而不是收到消息时刻。
 - 本报告仅共享驾驶范围，不代表浏览器帧性能、真实互联网多端、完整教学/奖励系统已由本子任务验收；交由主任务验证。全部AI都是本地可重复模拟，不冒充真人客户端或真人试玩。
+
+## 独立复核后的修复（2026-09-07）
+
+针对 `DRIVING_REVIEW.md` 的 R1/P1、R2/P2，以及主任务追加的完赛氮气清理缺口，补充如下修复；此前 AC04/AC13 的“通过”结论以这轮新增边界回归为准。
+
+- R1：原连续投影只限制30世界单位窗口，仍可在窗口内跳到更近的回程路，从而绕过本路墙体。现在从 `lastT` 所在路段开始，沿前后相接的路段追踪局部距离最小值；距离一旦增加就停止该方向搜索，共享端点距离相等时允许接续。保留30单位最大搜索范围、近路分支锁定及度量换算。道路碰撞和进度计算共用该投影，未改碰撞法线和冲量求解器。
+- 新增 `tests/adjacent-road.test.ts`：相邻路距4、连接回程沿线差20，分别验证同高度与20单位高架情况下投影保持左路、中心受1.95边界限制、产生真实碰撞、无跳进度和能量；另保护沿连接弯前进和倒退的合法投影。
+- R2：恢复判断移除 `!requestedDrift` 附加条件。真实侧滑首次恢复到8度以内即消费合格漂移时长并开启500ms小喷窗口；持漂移键不能储存时长，超窗后松键也不能重新开窗。回归用25步强漂移、120步持键0.16转向真实驾驶，检查首次拉正时开窗、时长归零、500ms后到期以及后续油门新按不再触发小喷。
+- 完赛：`stepCar` 的 finished 早退清理同时归零 `boostTime`；库存和能量保留，时间仍冻结。回归断言2秒剩余氮气归零、2瓶与80能量不变。主任务在标记 finished 后调用 `stepCar(c, EMPTY_INPUT, 0)` 的接口保持兼容，解决最终状态中氮气HUD/尾焰永久显示释放中的来源。
+- 无新增Car字段，无参数调整，无正式路线/AI/客户端/服务器/`output/` 修改。仍为原平面物理，不声称新增3D腾空动力学。
+
+本轮实际红绿验证：
+
+1. 写回归后、修改产品代码前执行 `npx tsx --test tests/adjacent-road.test.ts tests/driving-resources.test.ts`：18项中14通过、4失败，退出码1。两种高度均错误投到x=4（期望0）；拉正时 miniWindow=0（期望0.5）；完赛 boostTime=2（期望0）。连接弯保护测试此时已通过。
+2. 单独修正R2与finished后执行 `npx tsx --test tests/driving-resources.test.ts`：15/15通过，退出码0。
+3. 修正R1后执行 `npx tsx --test tests/adjacent-road.test.ts tests/driving-resources.test.ts tests/tracks.test.ts`：22/22通过，退出码0。
+4. 执行 `npx tsx --test tests/adjacent-road.test.ts tests/driving-resources.test.ts tests/race.test.ts tests/lap.test.ts tests/collision.test.ts tests/ai.test.ts tests/tracks.test.ts`：57/57通过，0失败，退出码0，约5.16秒。九路线×三难度三圈范围109.8–223.4模拟秒；九图四车碰撞道具比赛全部完赛；八车专家山顶决赛全部完赛，191.9模拟秒。原合法山地近路、倒车、圈末插值及碰撞断言未放宽。
+5. `npx tsc --noEmit`：退出码0。提交前对本轮四个TS文件执行Prettier，随后再次运行相同57项与类型检查作为最终验证。

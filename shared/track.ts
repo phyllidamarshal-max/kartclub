@@ -290,9 +290,10 @@ export function nearestTrack(
 export const TRACK_LENGTH = DEFAULT_TRACK.length;
 export const TRACK_POINTS = DEFAULT_TRACK.points;
 
-// Project only onto connected nearby directed segments. Height crossings and
-// distant hairpins cannot steal a kart from its current route. Shortcut t values
-// map their connected branch back onto canonical race progress.
+// Follow the local distance minimum from the previously occupied segment.
+// The search cannot cross a farther connecting bend to reach a closer parallel
+// road, even inside the progress window. Shortcut t values map their connected
+// branch back onto canonical race progress.
 export function continuousTrack(
   x: number,
   z: number,
@@ -323,11 +324,11 @@ export function continuousTrack(
     let delta = t - lastT;
     if (delta > 0.5) delta--;
     if (delta < -0.5) delta++;
-    if (Math.abs(delta) > window) return;
+    if (Math.abs(delta) > window) return Infinity;
     const px = a.x + dx * f,
       pz = a.z + dz * f,
       d = (x - px) ** 2 + (z - pz) ** 2;
-    if (d >= best) return;
+    if (d >= best) return d;
     best = d;
     const heading = a.heading + angleDiff(b.heading, a.heading) * f;
     result = {
@@ -349,17 +350,45 @@ export function continuousTrack(
               (Math.sqrt(len2) || 1),
         ),
     };
+    return d;
   };
-  const n = track.points.length,
-    centre = Math.floor(lastT * n),
-    radius = Math.ceil(window * n) + 2;
-  if (branch !== "shortcut")
-    for (let k = -radius; k <= radius; k++) {
-      const i = (((centre + k) % n) + n) % n;
-      consider(track.points[i], track.points[(i + 1) % n], track.width);
+  const follow = (
+    points: readonly Point[],
+    centre: number,
+    width: number,
+    closed: boolean,
+  ) => {
+    const count = closed ? points.length : points.length - 1;
+    if (count < 1) return;
+    const project = (i: number) =>
+      consider(points[i], points[(i + 1) % points.length], width);
+    const initial = project(centre);
+    if (!Number.isFinite(initial)) return;
+    for (const direction of [-1, 1]) {
+      let previous = initial;
+      for (let step = 1; step < count; step++) {
+        const index = centre + direction * step;
+        if (!closed && (index < 0 || index >= count)) break;
+        const distance = project((index + count) % count);
+        // Equal distances allow a shared endpoint to pass to its adjacent
+        // segment; an increase ends this connected walk before another leg.
+        if (distance > previous + 1e-9) break;
+        previous = distance;
+      }
     }
-  if (branch !== "main")
-    for (let i = 0; i < track.shortcut.length - 1; i++)
-      consider(track.shortcut[i], track.shortcut[i + 1], 7);
+  };
+  const normalizedT = ((lastT % 1) + 1) % 1;
+  if (branch !== "shortcut")
+    follow(
+      track.points,
+      Math.floor(normalizedT * track.points.length),
+      track.width,
+      true,
+    );
+  if (branch !== "main" && track.shortcut.length > 1) {
+    const next = track.shortcut.findIndex((p) => p.t > normalizedT);
+    const centre = next < 0 ? track.shortcut.length - 2 : Math.max(0, next - 1);
+    follow(track.shortcut, centre, 7, false);
+  }
   return result;
 }
