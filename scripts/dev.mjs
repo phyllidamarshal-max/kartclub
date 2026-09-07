@@ -2,12 +2,12 @@ import { spawn } from "node:child_process";
 const children = [
   spawn(process.execPath, ["--import", "tsx", "server/index.ts"], {
     stdio: "inherit",
-    env: { ...process.env, PORT: process.env.PONS_PORT || "2567" },
+    env: { ...process.env, PORT: "2567", NODE_ENV: "development" },
   }),
   spawn(
     process.execPath,
     ["node_modules/vite/bin/vite.js", "--host", "0.0.0.0"],
-    { stdio: "inherit" },
+    { stdio: "inherit", env: { ...process.env, NODE_ENV: "development" } },
   ),
 ];
 let closing = false;

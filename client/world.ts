@@ -67,6 +67,9 @@ function label(text: string, bg: string, fg: string, w = 512, h = 128) {
   ctx.fillRect(0, 0, w, h);
   ctx.fillStyle = fg;
   ctx.font = `900 ${h * 0.56}px Arial`;
+  const textWidth = ctx.measureText(text).width;
+  if (textWidth > w * 0.9)
+    ctx.font = `900 ${(h * 0.56 * w * 0.9) / textWidth}px Arial`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText(text, w / 2, h * 0.54);

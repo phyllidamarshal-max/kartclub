@@ -70,6 +70,31 @@ test(
       r2.onMessage("notice", (s) => (log += "notice: " + s));
       await until(() => s1?.players.length === 2 && s2?.players.length === 2);
       assert.equal(s1?.phase, "waiting");
+      // All four advertised seats accept distinct accounts; a fifth cannot enter.
+      const extras = await Promise.all([account(), account(), account()]);
+      const rExtra1 = await new Client(base).joinById(r1.roomId, {
+        token: extras[0].token,
+        name: "Gamma",
+      });
+      rooms.push(rExtra1);
+      rExtra1.onMessage("snapshot", () => {});
+      const rExtra2 = await new Client(base).joinById(r1.roomId, {
+        token: extras[1].token,
+        name: "Delta",
+      });
+      rooms.push(rExtra2);
+      rExtra2.onMessage("snapshot", () => {});
+      await until(() => s1?.players.length === 4);
+      assert.equal(new Set(s1!.players.map((p) => p.slot)).size, 4);
+      await assert.rejects(() =>
+        new Client(base).joinById(r1.roomId, {
+          token: extras[2].token,
+          name: "Fifth",
+        }),
+      );
+      await Promise.all([rExtra1.leave(), rExtra2.leave()]);
+      rooms.splice(2, 2);
+      await until(() => s1?.players.length === 2);
       r1.send("ready", true);
       r2.send("ready", true);
       await until(() => s1?.phase === "countdown");
