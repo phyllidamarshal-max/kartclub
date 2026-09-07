@@ -422,7 +422,7 @@ export class World {
     box(gate, dark, 0, 9, 0, 22, 2, 1.5, 0.3);
     mesh(
       new THREE.PlaneGeometry(18, 1.6),
-      label("PONS  /  START", "#283944", "#c5ff66"),
+      label("KART CLUB  /  START", "#283944", "#c5ff66"),
       gate,
       0,
       9,
@@ -598,7 +598,7 @@ export class World {
       mesh(
         new THREE.PlaneGeometry(9, 3.2),
         label(
-          ["TAKE THE LEAD", "FEEL THE TIDE", "STAY IN FLOW", "PONS KART"][i],
+          ["TAKE THE LEAD", "FEEL THE TIDE", "STAY IN FLOW", "KART CLUB"][i],
           i % 2 ? "#c7ff68" : "#e9aac3",
           "#223b41",
         ),

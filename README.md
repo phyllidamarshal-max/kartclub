@@ -1,4 +1,4 @@
-# PONS KART · 逐浪车手
+# KART CLUB
 
 0.3 浏览器3D赛车：三个主题、九条独立赛道、九关星级生涯、竞速 / 道具 / 计时影子 / 自由练习、三档AI、普通免费2–8人联机和模拟门票2–4人赛事。
 
@@ -97,3 +97,5 @@ http://localhost:5173/bench.html 提供四条代表赛道八车基准，固定19
 [项目审计](docs/kart-optimization/PROJECT_AUDIT.md)、[实施计划](docs/kart-optimization/IMPLEMENTATION_PLAN.md)、[调参记录](docs/kart-optimization/TUNING_LOG.md)、[验证与验收矩阵](docs/kart-optimization/VALIDATION_REPORT.md)。历史0.2实测在`docs/v02-verification.md`。
 
 这是原创浏览器游戏，当前驾驶为附着道路的2.5D物理，无空中自由飞行。没有声称达到商业版跑跑卡丁车的全部玩法或美术规模。当前机器的基准和本机SDK验证仍需真实玩家手感测试、公网和多设备验证；团队赛事、新道具、商城及真实钱包/合约属于后续范围。
+
+品牌Logo位于`public/brand/kart-club-logo.png`，使用用户提供的透明PNG原图；大厅、比赛HUD、加载页和浏览器图标共用此文件。

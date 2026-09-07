@@ -115,26 +115,12 @@ p {
   letter-spacing: 1.2px;
 }
 .brand-mark {
-  width: 42px;
-  height: 44px;
-  border-radius: 10px 3px 10px 3px;
-  background: var(--lime);
-  color: #17332e;
-  font-family: Arial, sans-serif;
-  font-weight: 900;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 31px;
-  font-style: italic;
-  letter-spacing: -6px;
-  padding-right: 5px;
-  transform: skew(-6deg);
-}
-.brand-mark span {
-  font-size: 23px;
-  align-self: flex-start;
-  margin-top: 4px;
+  display: block;
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
+  flex-shrink: 0;
+  margin: -8px;
 }
 .brand-light {
   font-weight: 500;
@@ -1012,9 +998,9 @@ kbd {
   color: #afc7ba;
 }
 .loading .brand-mark {
-  width: 64px;
-  height: 64px;
-  font-size: 40px;
+  width: 96px;
+  height: 96px;
+  margin: 0;
 }
 #toast {
   position: fixed;
@@ -1063,6 +1049,19 @@ kbd {
   display: flex;
   justify-content: space-between;
   align-items: start;
+}
+.race-brand {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.race-brand > img {
+  display: block;
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  flex-shrink: 0;
+  margin-left: -7px;
 }
 .race-brand b {
   font-family: "Barlow Condensed", sans-serif;
@@ -1532,9 +1531,9 @@ kbd {
     font-size: 23px;
   }
   .brand-mark {
-    width: 36px;
-    height: 37px;
-    font-size: 27px;
+    width: 52px;
+    height: 52px;
+    margin: -7px;
   }
   .header nav {
     gap: 12px;
@@ -1638,8 +1637,9 @@ kbd {
     font-size: 21px;
   }
   .brand-mark {
-    width: 32px;
-    height: 34px;
+    width: 48px;
+    height: 48px;
+    margin: -7px;
   }
   .header nav {
     order: 3;
@@ -1772,6 +1772,10 @@ kbd {
     left: 15px;
     right: 15px;
     top: 18px;
+  }
+  .race-brand > img {
+    width: 36px;
+    height: 36px;
   }
   .race-brand b {
     font-size: 18px;
@@ -2089,7 +2093,26 @@ kbd {
     font-size: 10px;
   }
 }
-#driving-debug {position:fixed;left:12px;top:150px;background:#102c35de;padding:10px;color:#d8ffb9;z-index:30;font:12px monospace;pointer-events:none}
-.legacy-records {padding:24px;margin-top:24px}
-#objective {display:block;max-width:320px;line-height:1.55}
-.nitro-box {min-width:240px}
+#driving-debug {
+  position: fixed;
+  left: 12px;
+  top: 150px;
+  background: #102c35de;
+  padding: 10px;
+  color: #d8ffb9;
+  z-index: 30;
+  font: 12px monospace;
+  pointer-events: none;
+}
+.legacy-records {
+  padding: 24px;
+  margin-top: 24px;
+}
+#objective {
+  display: block;
+  max-width: 320px;
+  line-height: 1.55;
+}
+.nitro-box {
+  min-width: 240px;
+}
