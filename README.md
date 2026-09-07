@@ -98,4 +98,4 @@ http://localhost:5173/bench.html 提供四条代表赛道八车基准，固定19
 
 这是原创浏览器游戏，当前驾驶为附着道路的2.5D物理，无空中自由飞行。没有声称达到商业版跑跑卡丁车的全部玩法或美术规模。当前机器的基准和本机SDK验证仍需真实玩家手感测试、公网和多设备验证；团队赛事、新道具、商城及真实钱包/合约属于后续范围。
 
-品牌Logo位于`public/brand/kart-club-logo.png`，使用用户提供的透明PNG原图；大厅、比赛HUD、加载页和浏览器图标共用此文件。
+品牌Logo原图位于`public/brand/kart-club-logo.png`；`kart-club-logo.svg`使用新版原图的透明通道保留赛道和棋盘镂空。大厅、比赛HUD和加载页通过CSS遮罩直接使用`--lime`（#C0FA67），浏览器图标使用同色SVG。

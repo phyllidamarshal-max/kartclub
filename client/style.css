@@ -8,8 +8,6 @@
   --muted: #aebdba;
   --border: #e5eee51c;
   --dark: #13232c;
-  --logo-filter: brightness(3.4) saturate(1.15) hue-rotate(-20deg)
-    drop-shadow(0 1px 2px #061b26a6);
 }
 * {
   box-sizing: border-box;
@@ -116,9 +114,12 @@ p {
   line-height: 0.92;
   letter-spacing: 1.2px;
 }
-.brand-mark,
-.race-brand > img {
-  filter: var(--logo-filter);
+.club-logo {
+  display: block;
+  background-color: var(--lime);
+  -webkit-mask: url("/brand/kart-club-logo.svg") center / contain no-repeat;
+  mask: url("/brand/kart-club-logo.svg") center / contain no-repeat;
+  mask-mode: alpha;
 }
 .brand-mark {
   display: block;
@@ -1061,7 +1062,7 @@ kbd {
   align-items: center;
   gap: 4px;
 }
-.race-brand > img {
+.race-brand > .race-logo {
   display: block;
   width: 48px;
   height: 48px;
@@ -1075,7 +1076,7 @@ kbd {
   font-size: 25px;
   letter-spacing: 1px;
 }
-.race-brand span {
+.race-brand > div > span {
   display: block;
   font-size: 10px;
   color: #e0eddf;
@@ -1779,7 +1780,7 @@ kbd {
     right: 15px;
     top: 18px;
   }
-  .race-brand > img {
+  .race-brand > .race-logo {
     width: 36px;
     height: 36px;
   }
