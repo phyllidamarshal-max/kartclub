@@ -245,3 +245,40 @@ test("custom road widths and the mountain shortcut constrain car centres", () =>
   stepCar(c, EMPTY_INPUT, 0, mountain);
   assert.ok(tracks.nearestTrack(c.x, c.z, mountain).distance <= 2.45 + 1e-6);
 });
+
+for (const penetration of [0, 1e-12]) {
+  for (const direction of ["tangent", "outward"] as const) {
+    test(`obstacle boundary allows ${direction} movement with ${penetration} penetration`, () => {
+      const p = tracks.trackPoint(0);
+      const track = {
+        ...tracks.DEFAULT_TRACK,
+        obstacles: [{ x: p.x, z: p.z, radius: 2 }],
+      };
+      const c = spawnCar();
+      Object.assign(c, {
+        x: p.x + 3.05 - penetration,
+        z: p.z,
+        heading: direction === "tangent" ? 0 : Math.PI / 2,
+        vx: direction === "tangent" ? 0 : 20,
+        vz: direction === "tangent" ? 20 : 0,
+        speed: 20,
+      });
+      const startX = c.x,
+        startZ = c.z;
+      stepCar(c, { ...EMPTY_INPUT, throttle: 1 }, 1 / 60, track);
+      assert.ok(
+        Math.hypot(c.x - startX, c.z - startZ) > 0.3,
+        "first frame must retain its movement",
+      );
+      for (let frame = 1; frame < 60; frame++) {
+        stepCar(c, { ...EMPTY_INPUT, throttle: 1 }, 1 / 60, track);
+        assert.ok(Math.hypot(c.x - p.x, c.z - p.z) >= 3.05 - 1e-7);
+      }
+      assert.ok(
+        Math.hypot(c.x - startX, c.z - startZ) > 3,
+        "car must escape the initial contact after 60 frames",
+      );
+      finite(c);
+    });
+  }
+}

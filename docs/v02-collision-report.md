@@ -25,3 +25,13 @@ Implemented in `shared/race.ts`; regression coverage is in `tests/collision.test
 ## Limits and integration notes
 
 The simulation remains an arcade planar circle model rather than rigid-body angular physics. Vehicle contacts are solved at sampled positions; obstacle contacts additionally sweep the full movement segment. The projection solver has a fixed iteration budget to bound CPU work. Tests cover the supported four-car pileup, and do not claim convergence for arbitrarily dense impossible arrangements or overlapping map obstacles. No new dependencies, economy rules, progress rules or client/server files were changed by this task.
+
+## Follow-up: obstacle tangent lock resolved
+
+Physics review identified a real boundary-contact defect: a car exactly tangent to an expanded obstacle retained velocity but was repeatedly placed back at the start by the sweep's zero-time tangent root. A start microscopically inside the circle also entered the penetration recovery branch and lost that frame's escape movement.
+
+Added four regression cases covering tangent/outward movement from exact contact and from `1e-12` metres penetration. Each asserts movement on the first frame, obstacle clearance throughout 60 throttle frames, and departure from the contact point. Before the fix, the collision suite returned **13 pass / 3 failures**; exact outward movement was already correct, while exact tangent and both microscopic penetration cases failed.
+
+The fix treats penetration less than `1e-7` metres as boundary contact, and accepts sweep roots only for inward movement with a strictly positive discriminant. This excludes stationary/tangent contact roots while retaining actual inward and full-obstacle crossing interception. The existing centre-overlap recovery and high-speed sweep regressions still pass.
+
+Final follow-up verification: `node --import tsx --test tests/collision.test.ts tests/race.test.ts tests/lap.test.ts` returned **28 tests, 28 pass, 0 fail, exit 0**. The physics reviewer reported no other concrete findings; their real mountain-obstacle two-car wall test was legal and separated.

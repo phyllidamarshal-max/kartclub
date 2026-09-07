@@ -199,7 +199,9 @@ function constrainEnvironment(
     let hitX = c.x - obstacle.x,
       hitZ = c.z - obstacle.z;
     let hit = Math.hypot(hitX, hitZ) < radius;
-    if (Math.hypot(ox, oz) < radius) {
+    // A projected contact can round a few ulps inside the circle. Treat that
+    // as boundary contact so tangent/outward travel is not pulled back.
+    if (Math.hypot(ox, oz) < radius - 1e-7) {
       hit = true;
       hitX = ox;
       hitZ = oz;
@@ -207,7 +209,8 @@ function constrainEnvironment(
       const b = ox * dx + oz * dz;
       const discriminant =
         b * b - travel2 * (ox * ox + oz * oz - radius * radius);
-      if (discriminant >= 0) {
+      // Sweep only into the circle. A tangent root at t=0 is not an impact.
+      if (b < -1e-9 && discriminant > 0) {
         const time = (-b - Math.sqrt(discriminant)) / travel2;
         if (time >= 0 && time <= 1) {
           hit = true;
