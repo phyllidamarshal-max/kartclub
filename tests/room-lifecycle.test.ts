@@ -4,6 +4,7 @@ import { KartRoom } from "../server/room.ts";
 import { Economy } from "../server/economy.ts";
 import { spawnCar, EMPTY_INPUT } from "../shared/race.ts";
 import { InputInbox } from "../shared/rules.ts";
+import { getTrack, trackPoint } from "../shared/track.ts";
 function fixture() {
   const r = new KartRoom();
   r.roomId = "test";
@@ -45,6 +46,53 @@ test("ready timeout cancels with a reason; countdown never moves or charges a ka
   const before = JSON.stringify(c);
   for (let i = 0; i < 100; i++) (t as any).tick(1 / 60);
   assert.equal(JSON.stringify(c), before);
+});
+
+test("room results use the authoritative arrival timestamp for tied DNF progress", () => {
+  const r = fixture(),
+    a = r.seats.get("a")!;
+  a.car.progress = 0.6;
+  a.car.time = 300;
+  a.progressAt = 200;
+  const z = {
+    ...a,
+    info: { ...a.info, id: "z", name: "Z" },
+    account: "z",
+    car: { ...a.car, id: "z" },
+    progressAt: 100,
+  };
+  r.seats.set("z", z);
+  (r as any).finish();
+  assert.deepEqual(
+    r.results.map((x) => [x.id, x.rank]),
+    [
+      ["z", 0],
+      ["a", 0],
+    ],
+  );
+});
+
+test("reversing updates the arrival time of the current legal progress", () => {
+  const r = fixture(),
+    seat = r.seats.get("a")!,
+    p = trackPoint(0.1, getTrack("coast"));
+  Object.assign(seat.car, {
+    x: p.x,
+    z: p.z,
+    lastX: p.x,
+    lastZ: p.z,
+    lastT: p.t,
+    progress: p.t,
+    heading: p.heading,
+    speed: -10,
+    vx: -Math.sin(p.heading) * 10,
+    vz: -Math.cos(p.heading) * 10,
+  });
+  r.elapsed = 20;
+  seat.progressAt = 5;
+  (r as any).tick(1 / 60);
+  assert.ok(seat.car.progress < p.t);
+  assert.equal(seat.progressAt, r.elapsed);
 });
 test("hard limit DNF freezes result once and excludes uncompleted progress from awards", () => {
   const r = fixture();

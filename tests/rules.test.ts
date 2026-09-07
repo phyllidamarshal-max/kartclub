@@ -8,6 +8,42 @@ import {
   recordKey,
 } from "../shared/rules.ts";
 import { spawnCar, EMPTY_INPUT } from "../shared/race.ts";
+import * as rules from "../shared/rules.ts";
+
+test("DNF equal progress uses current-progress arrival time, independent of player ID or total time", () => {
+  const a = spawnCar(0, "A"),
+    z = spawnCar(1, "Z");
+  a.progress = z.progress = 0.6;
+  a.time = z.time = 300;
+  assert.deepEqual(
+    classify([a, z], { A: 200, Z: 100 }).map((r) => [r.car.id, r.rank]),
+    [
+      ["Z", 0],
+      ["A", 0],
+    ],
+  );
+});
+
+test("race deadline closes twenty seconds after AI finish and never passes the hard cap", () => {
+  assert.equal(typeof rules.raceDeadline, "function");
+  const local = spawnCar(0, "local"),
+    ai = spawnCar(1, "AI");
+  ai.finished = true;
+  ai.time = 100;
+  assert.equal(rules.raceDeadline([local, ai]), 120);
+  assert.ok(
+    125 > rules.raceDeadline([local, ai]),
+    "local arrival after the window is too late",
+  );
+  ai.time = 295;
+  assert.equal(rules.raceDeadline([local, ai]), 300);
+  ai.time = 100;
+  assert.equal(
+    rules.raceDeadline([local, ai], false),
+    300,
+    "training/time/practice ignore the first finisher",
+  );
+});
 test("unresolvable finishes tie, DNF stays ineligible and the deadline respects the hard cap", () => {
   const a = spawnCar(0, "a"),
     b = spawnCar(1, "b"),

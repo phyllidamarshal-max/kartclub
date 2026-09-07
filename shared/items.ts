@@ -1,6 +1,13 @@
 import type { Car, Input } from "./race.ts";
 import { DEFAULT_TRACK, trackPoint, type Track } from "./track.ts";
 export type Item = "boost" | "shield" | "missile" | "trap";
+const HIT_EFFECT = Object.freeze({
+  slow: 1.5,
+  recoveryProtection: 1,
+  shieldProtection: 0.35,
+  minimumSpeed: 12,
+  speedFactor: 0.45,
+});
 export const ITEM_NAMES: Record<Item, string> = {
   boost: "极速推进",
   shield: "能量护盾",
@@ -19,6 +26,7 @@ export interface ItemState {
   held: Item | null;
   shield: number;
   slow: number;
+  hitProtection: number;
   pressed: boolean;
   uses: number;
   hits: number;
@@ -52,6 +60,7 @@ export function createItems(
       held: null,
       shield: 0,
       slow: 0,
+      hitProtection: 0,
       pressed: false,
       uses: 0,
       hits: 0,
@@ -86,16 +95,31 @@ export function stepItems(
   };
   const hit = (c: Car, owner: string) => {
     const p = w.players[c.id];
-    if (c.finished || c.ghostTime > 0) return;
+    if (
+      !p ||
+      c.finished ||
+      c.resetTime > 0 ||
+      c.ghostTime > 0 ||
+      p.hitProtection > 0
+    )
+      return;
     if (p.shield > 0) {
       p.shield = 0;
+      p.hitProtection = HIT_EFFECT.shieldProtection;
       notice(p, "护盾抵挡了攻击");
       return;
     }
-    p.slow = 1.5;
-    c.speed *= 0.45;
-    c.vx *= 0.45;
-    c.vz *= 0.45;
+    p.slow = HIT_EFFECT.slow;
+    p.hitProtection = HIT_EFFECT.slow + HIT_EFFECT.recoveryProtection;
+    const speed = Math.max(Math.abs(c.speed), Math.hypot(c.vx, c.vz));
+    // Apply one bounded impulse. The floor never speeds up a slower car.
+    const factor = Math.max(
+      HIT_EFFECT.speedFactor,
+      Math.min(1, HIT_EFFECT.minimumSpeed / (speed || 1)),
+    );
+    c.speed *= factor;
+    c.vx *= factor;
+    c.vz *= factor;
     c.impact = 1;
     notice(p, "受到攻击 · 正在恢复");
     if (w.players[owner]) w.players[owner].hits++;
@@ -105,8 +129,14 @@ export function stepItems(
     if (!p) continue;
     p.shield = Math.max(0, p.shield - dt);
     p.slow = Math.max(0, p.slow - dt);
+    p.hitProtection = Math.max(0, p.hitProtection - dt);
     p.noticeTime = Math.max(0, p.noticeTime - dt);
-    if (p.slow > 0 && c.speed > 20) c.speed = 20;
+    if (p.slow > 0 && c.speed > 20) {
+      const factor = 20 / c.speed;
+      c.vx *= factor;
+      c.vz *= factor;
+      c.speed = 20;
+    }
     const pressed = inputs[c.id]?.item === true;
     const forward =
       p.lastProgress !== null &&
@@ -138,6 +168,8 @@ export function stepItems(
             (o) =>
               o.id !== c.id &&
               !o.finished &&
+              o.resetTime <= 0 &&
+              o.ghostTime <= 0 &&
               o.progress > c.progress &&
               Math.abs(
                 trackPoint(o.lastT, track).y - trackPoint(c.lastT, track).y,
@@ -160,7 +192,7 @@ export function stepItems(
     if (!p.held && forward && c.ghostTime <= 0)
       for (const b of w.boxes)
         if (
-          p.pickedLaps[b.band] !== Math.floor(c.progress) &&
+          p.pickedLaps[b.band] < Math.floor(c.progress) &&
           b.readyAt <= w.time &&
           Math.abs(trackPoint(c.lastT, track).y - b.y) < 3 &&
           Math.hypot(c.x - b.x, c.z - b.z) < 2.5
@@ -177,7 +209,13 @@ export function stepItems(
   }
   for (const m of w.missiles) {
     m.ttl -= dt;
-    const target = cars.find((c) => c.id === m.target && !c.finished);
+    const target = cars.find(
+      (c) =>
+        c.id === m.target &&
+        !c.finished &&
+        c.resetTime <= 0 &&
+        c.ghostTime <= 0,
+    );
     if (!target) {
       m.ttl = 0;
       continue;
@@ -200,6 +238,7 @@ export function stepItems(
     const victim = cars.find(
       (c) =>
         !c.finished &&
+        c.resetTime <= 0 &&
         c.ghostTime <= 0 &&
         Math.hypot(c.x - t.x, c.z - t.z) < 2.5,
     );

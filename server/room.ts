@@ -20,7 +20,13 @@ import { randomBytes } from "node:crypto";
 import { getTrack } from "../shared/track.ts";
 import { validateMatch, type MatchConfig } from "../shared/gameplay.ts";
 import { createItems, stepItems, type ItemWorld } from "../shared/items.ts";
-import { VERSIONS, RACE_RULES, classify, InputInbox } from "../shared/rules.ts";
+import {
+  VERSIONS,
+  RACE_RULES,
+  classify,
+  InputInbox,
+  raceDeadline,
+} from "../shared/rules.ts";
 import type { RaceRecords } from "./race-records.ts";
 interface Seat {
   inbox: InputInbox;
@@ -228,7 +234,9 @@ export class KartRoom extends Room {
         stepCar(s.car, input, dt, getTrack(this.config.trackId));
         if (!s.info.connected && s.car.speed < 2)
           s.car.ghostTime = Math.max(s.car.ghostTime, 0.1);
-        if (s.car.progress > before) s.progressAt = this.elapsed;
+        // Timestamp arrival at the current position, including a reverse/reset
+        // arrival; stopping retains that timestamp for a tied DNF comparison.
+        if (s.car.progress !== before) s.progressAt = this.elapsed;
         if (s.car.checkpoint !== oldCp)
           this.log("checkpoint", {
             playerId: s.account,
@@ -240,14 +248,16 @@ export class KartRoom extends Room {
           s.car.time = s.car.lastLapTime || this.elapsed;
           stepCar(s.car, EMPTY_INPUT, 0, getTrack(this.config.trackId));
           this.log("finish", { playerId: s.account, time: s.car.time });
-          if (!this.firstFinish) {
-            this.firstFinish = true;
-            this.finishDeadline = Math.min(
-              RACE_RULES.hardLimit,
-              s.car.time + RACE_RULES.finishWindow,
-            );
-          }
         }
+      }
+      if (
+        !this.firstFinish &&
+        [...this.seats.values()].some((s) => s.car.finished)
+      ) {
+        this.firstFinish = true;
+        this.finishDeadline = raceDeadline(
+          [...this.seats.values()].map((s) => s.car),
+        );
       }
       const activeSeats = [...this.seats.values()].filter((s) => !s.info.dnf);
       separateCars(
@@ -278,7 +288,10 @@ export class KartRoom extends Room {
   private finish() {
     if (this.phase !== "racing") return;
     const seats = [...this.seats.values()];
-    const ranked = classify(seats.map((s) => s.car));
+    const ranked = classify(
+      seats.map((s) => s.car),
+      Object.fromEntries(seats.map((s) => [s.car.id, s.progressAt])),
+    );
     const finishers = ranked.filter((r) => r.car.finished);
     try {
       if (!this.config.free)

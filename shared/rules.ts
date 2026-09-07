@@ -31,7 +31,22 @@ export function recordKey(
     v.assistClass,
   ].join(":");
 }
-export function classify(cars: readonly Car[]) {
+// Finished times are immutable, so subsequent finishers cannot extend the window.
+// Training, time trials and practice retain the hard cap without a finish window.
+export function raceDeadline(cars: readonly Car[], competitive = true) {
+  return competitive
+    ? Math.min(
+        RACE_RULES.hardLimit,
+        ...cars
+          .filter((c) => c.finished)
+          .map((c) => c.time + RACE_RULES.finishWindow),
+      )
+    : RACE_RULES.hardLimit;
+}
+export function classify(
+  cars: readonly Car[],
+  progressAt: Readonly<Record<string, number>> = {},
+) {
   const bucket = (c: Car) => Math.round(c.time / RACE_RULES.timeResolution);
   const sorted = [...cars].sort((a, b) =>
     a.finished !== b.finished
@@ -41,7 +56,7 @@ export function classify(cars: readonly Car[]) {
       : a.finished
         ? bucket(a) - bucket(b) || a.id.localeCompare(b.id)
         : b.progress - a.progress ||
-          a.time - b.time ||
+          (progressAt[a.id] ?? a.time) - (progressAt[b.id] ?? b.time) ||
           a.id.localeCompare(b.id),
   );
   let rank = 0,

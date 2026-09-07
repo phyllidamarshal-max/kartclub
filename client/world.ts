@@ -999,7 +999,9 @@ export class World {
       seen.add(c.id);
       let g = this.cars.get(c.id);
       if (!g) {
-        g = this.kart(this.content.palette[c.slot % 4]);
+        g = this.kart(
+          this.content.palette[c.slot % this.content.palette.length],
+        );
         if (c.id === "ghost")
           g.traverse((o) => {
             if (o instanceof THREE.Mesh) {
