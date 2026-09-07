@@ -17,6 +17,9 @@ export interface RaceResult {
   award: number;
 }
 export interface Snapshot {
+  trackId: string;
+  raceMode: "race" | "items";
+  items: import("./items.ts").ItemWorld | null;
   roomId: string;
   phase: Phase;
   players: PlayerInfo[];

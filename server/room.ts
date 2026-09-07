@@ -17,6 +17,9 @@ import type {
 import type { Economy } from "./economy.ts";
 import type { Auth } from "./auth.ts";
 import { randomBytes } from "node:crypto";
+import { getTrack } from "../shared/track.ts";
+import { validateMatch, type MatchConfig } from "../shared/gameplay.ts";
+import { createItems, stepItems, type ItemWorld } from "../shared/items.ts";
 interface Seat {
   info: PlayerInfo;
   account: string;
@@ -39,7 +42,11 @@ export class KartRoom extends Room {
   reason = "";
   private snapshotTicks = 0;
   private finishDeadline = 180;
-  onCreate() {
+  config: MatchConfig = validateMatch();
+  items: ItemWorld | null = null;
+  onCreate(options: Record<string, unknown> = {}) {
+    this.config = validateMatch(options);
+    this.finishDeadline = this.config.laps * 180;
     this.roomId = randomBytes(4).toString("hex").toUpperCase();
     this.maxMessagesPerSecond = 90;
     this.onMessage("ready", (client, value) => {
@@ -108,7 +115,7 @@ export class KartRoom extends Room {
         dnf: false,
       },
       account,
-      car: spawnCar(slot, client.sessionId),
+      car: spawnCar(slot, client.sessionId, getTrack(this.config.trackId)),
       input: { ...EMPTY_INPUT },
       seq: 0,
       lastInput: 0,
@@ -129,6 +136,11 @@ export class KartRoom extends Room {
         this.roomId,
         seats.map((s) => s.account),
       );
+      if (this.config.mode === "items")
+        this.items = createItems(
+          seats.map((s) => s.info.id),
+          getTrack(this.config.trackId),
+        );
       this.phase = "countdown";
       this.lock();
       this.countdown = 3;
@@ -153,9 +165,9 @@ export class KartRoom extends Room {
           Date.now() - s.lastInput < 250 && s.info.connected
             ? s.input
             : EMPTY_INPUT;
-        stepCar(s.car, input, dt);
+        stepCar(s.car, input, dt, getTrack(this.config.trackId));
         s.car.ack = s.seq;
-        if (s.car.lap >= 1) {
+        if (s.car.lap >= this.config.laps) {
           s.car.finished = true;
           s.car.time = this.elapsed;
           this.finishDeadline = Math.min(
@@ -164,7 +176,26 @@ export class KartRoom extends Room {
           );
         }
       }
-      separateCars([...this.seats.values()].map((s) => s.car));
+      const activeSeats = [...this.seats.values()].filter((s) => !s.info.dnf);
+      separateCars(
+        activeSeats.map((s) => s.car),
+        getTrack(this.config.trackId),
+      );
+      if (this.items)
+        stepItems(
+          this.items,
+          activeSeats.map((s) => s.car),
+          Object.fromEntries(
+            activeSeats.map((s) => [
+              s.info.id,
+              Date.now() - s.lastInput < 250 && s.info.connected
+                ? s.input
+                : EMPTY_INPUT,
+            ]),
+          ),
+          dt,
+          getTrack(this.config.trackId),
+        );
       if (
         this.elapsed >= this.finishDeadline ||
         [...this.seats.values()].every((s) => s.car.finished || s.info.dnf)
@@ -269,7 +300,10 @@ export class KartRoom extends Room {
       cars: [...this.seats.values()].map((s) => s.car),
       countdown: this.countdown,
       elapsed: this.elapsed,
-      laps: 1,
+      laps: this.config.laps,
+      trackId: this.config.trackId,
+      raceMode: this.config.mode,
+      items: this.items,
       results: this.results,
       reason: this.reason,
     };

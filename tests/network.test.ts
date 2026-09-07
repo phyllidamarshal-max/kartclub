@@ -49,8 +49,25 @@ test(
       await assert.rejects(() =>
         cl.create("kart", { token: "forged", name: "bad" }),
       );
+      await assert.rejects(() =>
+        cl.create("kart", { token: a.token, trackId: "fake" }),
+      );
+      await assert.rejects(() =>
+        cl.create("kart", {
+          token: a.token,
+          trackId: "coast",
+          mode: "items",
+          laps: 99,
+        }),
+      );
       stage = "create valid players";
-      const r1 = await cl.create("kart", { token: a.token, name: "Alpha" });
+      const r1 = await cl.create("kart", {
+        token: a.token,
+        name: "Alpha",
+        trackId: "city",
+        mode: "items",
+        laps: 3,
+      });
       rooms.push(r1);
       let s1: Snapshot | undefined, s2: Snapshot | undefined;
       r1.onMessage("snapshot", (s: Snapshot) => {
@@ -70,6 +87,9 @@ test(
       r2.onMessage("notice", (s) => (log += "notice: " + s));
       await until(() => s1?.players.length === 2 && s2?.players.length === 2);
       assert.equal(s1?.phase, "waiting");
+      assert.equal(s1?.trackId, "city");
+      assert.equal(s2?.raceMode, "items");
+      assert.equal(s2?.laps, 3);
       // All four advertised seats accept distinct accounts; a fifth cannot enter.
       const extras = await Promise.all([account(), account(), account()]);
       const rExtra1 = await new Client(base).joinById(r1.roomId, {
@@ -115,7 +135,13 @@ test(
       await r1.leave();
       rooms.length = 0;
       // Second room makes a real server-owned movement run.
-      const r3 = await cl.create("kart", { token: a.token, name: "Alpha" });
+      const r3 = await cl.create("kart", {
+        token: a.token,
+        name: "Alpha",
+        trackId: "city",
+        mode: "items",
+        laps: 3,
+      });
       rooms.push(r3);
       let snap: Snapshot | undefined;
       r3.onMessage("snapshot", (s: Snapshot) => {
@@ -147,6 +173,9 @@ test(
           x: 999999,
           lap: 100,
           finished: true,
+          held: "missile",
+          shield: 999,
+          item: true,
         });
         await delay(30);
       }
@@ -156,6 +185,8 @@ test(
       assert.ok(moved.speed > 5);
       assert.equal(moved.lap, 0);
       assert.equal(moved.finished, false);
+      assert.equal(snap!.items!.players[r3.sessionId].held, null);
+      assert.equal(snap!.items!.players[r3.sessionId].shield, 0);
       assert.ok(Math.abs(moved.x) < 200);
       // An interrupted transport must retain the same paid seat and recover.
       let reconnected = false;

@@ -1,8 +1,11 @@
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
+import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import {
-  TRACK_POINTS,
+  DEFAULT_TRACK,
+  nearestTrack,
+  type Track,
   trackPoint,
   ROAD_WIDTH,
   angleDiff,
@@ -92,6 +95,7 @@ export class World {
   private target = new THREE.Vector3();
   private perfStart = performance.now();
   private perfFrames = 0;
+  private frameIntervals: number[] = [];
   private seeded = 531;
   private propellers: THREE.Group[] = [];
   private customDriver: THREE.Object3D | null = null;
@@ -103,6 +107,7 @@ export class World {
   constructor(
     public canvas: HTMLCanvasElement,
     public content: Content,
+    public track: Track = DEFAULT_TRACK,
   ) {
     this.renderer = new THREE.WebGLRenderer({
       canvas,
@@ -144,7 +149,12 @@ export class World {
     );
     this.water.rotation.x = -Math.PI / 2;
     mesh(
-      new THREE.CylinderGeometry(156, 140, 12, 80),
+      new THREE.CylinderGeometry(
+        this.track.radius,
+        this.track.radius - 12,
+        12,
+        64,
+      ),
       mat("#d9c9a6"),
       this.scene,
       0,
@@ -152,7 +162,12 @@ export class World {
       0,
     );
     mesh(
-      new THREE.CylinderGeometry(153, 154, 2, 80),
+      new THREE.CylinderGeometry(
+        this.track.radius - 3,
+        this.track.radius - 2,
+        2,
+        64,
+      ),
       mat(content.grass),
       this.scene,
       0,
@@ -160,7 +175,9 @@ export class World {
       0,
     );
     this.buildTrack();
-    this.decorate();
+    if (this.track.theme === "coast") this.decorate();
+    else this.decorateTheme();
+    this.batchStatic();
     this.skids = new THREE.InstancedMesh(
       new THREE.PlaneGeometry(0.22, 1.15),
       new THREE.MeshBasicMaterial({
@@ -180,7 +197,7 @@ export class World {
     }
     this.scene.add(this.skids);
     this.resize();
-    window.addEventListener("resize", () => this.resize());
+    window.addEventListener("resize", this.onResize);
   }
   async loadAssets() {
     const loader = new GLTFLoader();
@@ -232,11 +249,11 @@ export class World {
       const vertices: number[] = [];
       for (let i = 0; i < 720; i++) {
         if (segmentFilter && !segmentFilter(i)) continue;
-        const p = TRACK_POINTS[i],
-          q = TRACK_POINTS[(i + 1) % 720];
+        const p = this.track.points[i],
+          q = this.track.points[(i + 1) % 720];
         const v = (a: typeof p, d: number) => [
           a.x + Math.cos(a.heading) * d,
-          y,
+          y + a.y,
           a.z - Math.sin(a.heading) * d,
         ];
         vertices.push(
@@ -255,21 +272,31 @@ export class World {
       o.material.side = THREE.DoubleSide;
       return o;
     };
-    makeStrip(-ROAD_WIDTH / 2, ROAD_WIDTH / 2, roadMat, 0.03);
+    makeStrip(-this.track.width / 2, this.track.width / 2, roadMat, 0.03);
     for (const side of [-1, 1]) {
-      makeStrip(side * 8, side * 8.9, curbA, 0.05);
       makeStrip(
-        side * 8,
-        side * 8.9,
+        side * (this.track.width / 2),
+        side * (this.track.width / 2 + 0.9),
+        curbA,
+        0.05,
+      );
+      makeStrip(
+        side * (this.track.width / 2),
+        side * (this.track.width / 2 + 0.9),
         curbB,
         0.065,
         (i) => Math.floor(i / 4) % 2 === 0,
       );
-      makeStrip(side * 7.2, side * 7.35, mat("#d2dad0"), 0.055);
+      makeStrip(
+        side * (this.track.width / 2 - 0.8),
+        side * (this.track.width / 2 - 0.65),
+        mat("#d2dad0"),
+        0.055,
+      );
     }
     makeStrip(-0.075, 0.075, mat("#adbbb4"), 0.06, (i) => i % 12 < 5);
     const rail = new THREE.InstancedMesh(
-        new THREE.BoxGeometry(0.45, 1.1, 3.9),
+        new THREE.BoxGeometry(0.45, 1.1, this.track.length / 180 + 0.4),
         mat("#e7dfca"),
         360,
       ),
@@ -277,11 +304,11 @@ export class World {
     let k = 0;
     for (let i = 0; i < 720; i += 4)
       for (const side of [-1, 1]) {
-        const p = TRACK_POINTS[i];
+        const p = this.track.points[i];
         dummy.position.set(
-          p.x + Math.cos(p.heading) * 9.3,
-          0.55,
-          p.z - Math.sin(p.heading) * 9.3,
+          p.x + Math.cos(p.heading) * (this.track.width / 2 + 1.3),
+          p.y + 0.55,
+          p.z - Math.sin(p.heading) * (this.track.width / 2 + 1.3),
         );
         dummy.rotation.set(0, p.heading, 0);
         dummy.updateMatrix();
@@ -290,9 +317,59 @@ export class World {
     rail.castShadow = true;
     rail.receiveShadow = true;
     this.scene.add(rail);
-    const start = trackPoint(0),
+    if (this.track.shortcut.length) {
+      const vertices: number[] = [];
+      for (let i = 0; i < this.track.shortcut.length - 1; i++) {
+        const a = this.track.shortcut[i],
+          b = this.track.shortcut[i + 1];
+        const v = (p: typeof a, d: number) => [
+          p.x + Math.cos(p.heading) * d,
+          p.y + 0.08,
+          p.z - Math.sin(p.heading) * d,
+        ];
+        vertices.push(
+          ...v(a, -3.5),
+          ...v(b, -3.5),
+          ...v(a, 3.5),
+          ...v(b, -3.5),
+          ...v(b, 3.5),
+          ...v(a, 3.5),
+        );
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute(
+        "position",
+        new THREE.Float32BufferAttribute(vertices, 3),
+      );
+      geo.computeVertexNormals();
+      const material = mat("#d6a058");
+      material.side = THREE.DoubleSide;
+      mesh(geo, material, this.scene);
+      const p = this.track.shortcut[0];
+      const sign = mesh(
+        new THREE.PlaneGeometry(7, 2),
+        label("SHORTCUT / RISK", "#e3ad4f", "#29383c"),
+        this.scene,
+        p.x,
+        p.y + 4,
+        p.z,
+      );
+      sign.rotation.y = p.heading;
+    }
+    for (const o of this.track.obstacles) {
+      const p = nearestTrack(o.x, o.z, this.track);
+      mesh(
+        new THREE.CylinderGeometry(o.radius * 0.8, o.radius, o.radius * 2, 8),
+        mat("#ed8a62"),
+        this.scene,
+        o.x,
+        p.y + o.radius,
+        o.z,
+      );
+    }
+    const start = trackPoint(0, this.track),
       gate = new THREE.Group();
-    gate.position.set(start.x, 0, start.z);
+    gate.position.set(start.x, start.y, start.z);
     gate.rotation.y = start.heading;
     this.scene.add(gate);
     const white = mat("#ecf1d9"),
@@ -325,9 +402,9 @@ export class World {
         flag.castShadow = false;
       }
     for (let i = 1; i < 12; i++) {
-      const p = trackPoint(i / 12),
+      const p = trackPoint(i / 12, this.track),
         g = new THREE.Group();
-      g.position.set(p.x, 0, p.z);
+      g.position.set(p.x, p.y, p.z);
       g.rotation.y = p.heading;
       this.scene.add(g);
       for (const s of [-1, 1]) {
@@ -353,7 +430,7 @@ export class World {
         z = (this.random() - 0.5) * 260;
       if (
         Math.hypot(x, z) > 146 ||
-        TRACK_POINTS.some((p) => Math.hypot(p.x - x, p.z - z) < 15)
+        this.track.points.some((p) => Math.hypot(p.x - x, p.z - z) < 15)
       )
         continue;
       const g = new THREE.Group();
@@ -467,7 +544,7 @@ export class World {
       this.propellers.push(p);
     }
     for (let i = 0; i < 4; i++) {
-      const p = trackPoint(0.14 + i * 0.22),
+      const p = trackPoint(0.14 + i * 0.22, this.track),
         g = new THREE.Group();
       g.position.set(
         p.x + Math.cos(p.heading) * 16,
@@ -528,6 +605,204 @@ export class World {
           0,
         ).scale.set(1.3, 0.5, 1);
       this.scene.add(cloud);
+    }
+  }
+  private decorateTheme() {
+    const city = this.track.theme === "city";
+    this.scene.background = new THREE.Color(city ? "#495879" : "#b7cbd6");
+    this.scene.fog = new THREE.Fog(city ? "#495879" : "#b7cbd6", 200, 850);
+    const colors = city
+      ? ["#536680", "#778fa0", "#b5c9c3"]
+      : ["#668279", "#8b9d89", "#b5b5a1"];
+    for (let i = 0; i < 100; i++) {
+      const p = trackPoint(i / 100, this.track),
+        side = i % 2 ? -1 : 1,
+        offset = 25 + this.random() * 30;
+      const x = p.x + Math.cos(p.heading) * offset,
+        z = p.z - Math.sin(p.heading) * offset;
+      if (nearestTrack(x, z, this.track).distance < 18) continue;
+      const h = city ? 12 + this.random() * 40 : 8 + this.random() * 24;
+      if (city) {
+        box(this.scene, mat(colors[i % 3]), x, h / 2, z, 10, h, 12);
+        for (let y = 4; y < h; y += 6)
+          box(
+            this.scene,
+            mat(i % 2 ? "#db9be0" : "#9fe5df"),
+            x,
+            y,
+            z + 6.05,
+            7,
+            0.8,
+            0.15,
+          );
+      } else {
+        mesh(
+          new THREE.ConeGeometry(6 + this.random() * 8, h, 7),
+          mat(colors[i % 3]),
+          this.scene,
+          x,
+          h / 2 - 1,
+          z,
+        );
+      }
+    }
+    if (!city)
+      for (let i = 0; i < 60; i++) {
+        const p = trackPoint(i / 60, this.track);
+        if (p.y > 2)
+          mesh(
+            new THREE.CylinderGeometry(1.2, 1.8, p.y, 7),
+            mat("#87978b"),
+            this.scene,
+            p.x,
+            p.y / 2,
+            p.z,
+          );
+      }
+  }
+  private batchStatic() {
+    this.scene.updateMatrixWorld(true);
+    const groups = new Map<
+      string,
+      {
+        material: THREE.Material;
+        geos: THREE.BufferGeometry[];
+        objects: THREE.Mesh[];
+      }
+    >();
+    this.scene.traverse((o) => {
+      if (
+        !(o instanceof THREE.Mesh) ||
+        o instanceof THREE.InstancedMesh ||
+        Array.isArray(o.material)
+      )
+        return;
+      for (let p: THREE.Object3D | null = o; p; p = p.parent)
+        if (this.propellers.includes(p as THREE.Group)) return;
+      const m = o.material as THREE.MeshStandardMaterial;
+      const key = [
+        m.type,
+        m.color?.getHexString(),
+        m.roughness,
+        m.opacity,
+        m.side,
+        m.map?.uuid,
+        Math.floor(o.matrixWorld.elements[12] / 100),
+        Math.floor(o.matrixWorld.elements[14] / 100),
+      ].join("/");
+      const g = o.geometry.index
+        ? o.geometry.toNonIndexed()
+        : o.geometry.clone();
+      if (!m.map) g.deleteAttribute("uv");
+      g.applyMatrix4(o.matrixWorld);
+      const b = groups.get(key) || {
+        material: o.material,
+        geos: [] as THREE.BufferGeometry[],
+        objects: [] as THREE.Mesh[],
+      };
+      b.geos.push(g);
+      b.objects.push(o);
+      groups.set(key, b);
+    });
+    const oldGeo = new Set<THREE.BufferGeometry>();
+    for (const b of groups.values()) {
+      const merged = mergeGeometries(b.geos);
+      if (!merged) {
+        b.geos.forEach((g) => g.dispose());
+        continue;
+      }
+      const o = new THREE.Mesh(merged, b.material);
+      o.castShadow = true;
+      o.receiveShadow = true;
+      this.scene.add(o);
+      for (const old of b.objects) {
+        old.removeFromParent();
+        oldGeo.add(old.geometry);
+      }
+      b.geos.forEach((g) => g.dispose());
+    }
+    oldGeo.forEach((g) => g.dispose());
+  }
+  dispose() {
+    window.removeEventListener("resize", this.onResize);
+    const geometries = new Set<THREE.BufferGeometry>(),
+      materials = new Set<THREE.Material>(),
+      textures = new Set<THREE.Texture>();
+    this.scene.traverse((o) => {
+      if (o instanceof THREE.Mesh) {
+        geometries.add(o.geometry);
+        for (const m of Array.isArray(o.material) ? o.material : [o.material])
+          materials.add(m);
+      }
+    });
+    materials.forEach((m) => {
+      for (const v of Object.values(m))
+        if (v instanceof THREE.Texture) textures.add(v);
+      m.dispose();
+    });
+    textures.forEach((t) => t.dispose());
+    geometries.forEach((g) => g.dispose());
+    this.renderer.dispose();
+  }
+  private onResize = () => this.resize();
+  private itemMeshes = new Map<string, THREE.InstancedMesh>();
+  renderItems(w: import("../shared/items.ts").ItemWorld | null) {
+    const types = ["box", "trap", "missile", "shield"];
+    for (const type of types) {
+      let mesh = this.itemMeshes.get(type);
+      if (!mesh) {
+        const geo =
+          type === "box"
+            ? new THREE.OctahedronGeometry(1.1)
+            : type === "trap"
+              ? new THREE.ConeGeometry(1.4, 0.5, 3)
+              : type === "shield"
+                ? new THREE.SphereGeometry(2.1, 12, 8)
+                : new THREE.SphereGeometry(0.5, 8, 6);
+        const material = new THREE.MeshBasicMaterial({
+          color: (
+            {
+              box: "#f7cf62",
+              trap: "#ff7284",
+              missile: "#f7a259",
+              shield: "#87e7ff",
+            } as Record<string, string>
+          )[type],
+          transparent: true,
+          opacity: type === "shield" ? 0.23 : 0.9,
+          wireframe: type === "box",
+        });
+        mesh = new THREE.InstancedMesh(geo, material, 64);
+        mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+        mesh.frustumCulled = false;
+        this.scene.add(mesh);
+        this.itemMeshes.set(type, mesh);
+      }
+      const positions = w
+        ? type === "box"
+          ? w.boxes.filter((b) => b.readyAt <= w.time)
+          : type === "trap"
+            ? w.traps
+            : type === "missile"
+              ? w.missiles
+              : [...this.cars]
+                  .filter(([id]) => (w.players[id]?.shield || 0) > 0)
+                  .map(([, g]) => ({ x: g.position.x, z: g.position.z }))
+        : [];
+      mesh.count = Math.min(positions.length, 64);
+      mesh.visible = mesh.count > 0;
+      positions.slice(0, 64).forEach((p, i) => {
+        this.scratch.position.set(
+          p.x,
+          nearestTrack(p.x, p.z, this.track).y + (type === "trap" ? 0.3 : 1.4),
+          p.z,
+        );
+        this.scratch.rotation.set(0, type === "box" ? this.elapsed : 0, 0);
+        this.scratch.scale.setScalar(1);
+        this.scratch.updateMatrix();
+        mesh!.setMatrixAt(i, this.scratch.matrix);
+      });
+      mesh.instanceMatrix.needsUpdate = true;
     }
   }
   private kart(color: string) {
@@ -647,7 +922,13 @@ export class World {
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
   }
-  render(cars: Car[], localId: string, dt: number, preview: boolean) {
+  render(
+    cars: Car[],
+    localId: string,
+    dt: number,
+    preview: boolean,
+    measuredMs = dt * 1000,
+  ) {
     this.elapsed += dt;
     const seen = new Set<string>();
     for (let i = 0; i < cars.length; i++) {
@@ -656,15 +937,30 @@ export class World {
       let g = this.cars.get(c.id);
       if (!g) {
         g = this.kart(this.content.palette[c.slot % 4]);
+        if (c.id === "ghost")
+          g.traverse((o) => {
+            if (o instanceof THREE.Mesh) {
+              o.material = (o.material as THREE.Material).clone();
+              const m = o.material as THREE.Material;
+              m.transparent = true;
+              m.opacity = 0.28;
+              o.castShadow = false;
+            }
+          });
         this.cars.set(c.id, g);
         this.scene.add(g);
       }
       g.position.set(
         c.x,
-        Math.sin(this.elapsed * 22) *
-          Math.min(0.035, Math.abs(c.speed) * 0.002),
+        nearestTrack(c.x, c.z, this.track).y +
+          Math.sin(this.elapsed * 22) *
+            Math.min(0.035, Math.abs(c.speed) * 0.002),
         c.z,
       );
+      g.visible =
+        c.id === "ghost" ||
+        c.ghostTime <= 0 ||
+        Math.floor(this.elapsed * 12) % 3 !== 0;
       g.rotation.set(
         0,
         c.heading,
@@ -677,7 +973,7 @@ export class World {
         for (const side of [-0.83, 0.83]) {
           this.scratch.position.set(
             c.x + Math.cos(c.heading) * side,
-            0.075,
+            nearestTrack(c.x, c.z, this.track).y + 0.075,
             c.z - Math.sin(c.heading) * side,
           );
           this.scratch.rotation.set(-Math.PI / 2, 0, c.heading);
@@ -687,14 +983,14 @@ export class World {
         this.skids.instanceMatrix.needsUpdate = true;
       }
     }
-    for (const [id, g] of this.cars) g.visible = seen.has(id);
+    for (const [id, g] of this.cars) if (!seen.has(id)) g.visible = false;
     for (const p of this.propellers) p.rotation.z += dt * 0.5;
     if (preview) {
       const a = this.elapsed * 0.025;
       this.camera.position.set(
-        220 + Math.sin(a) * 15,
-        205,
-        245 + Math.cos(a) * 15,
+        this.track.radius * 1.15 + Math.sin(a) * 15,
+        this.track.radius * 1.12,
+        this.track.radius * 1.3 + Math.cos(a) * 15,
       );
       this.target.set(-36, -30, 0);
       this.camera.lookAt(this.target);
@@ -707,12 +1003,12 @@ export class World {
           distance = 8.5 + speed * 0.035;
         const desired = new THREE.Vector3(
           c.x - Math.sin(c.heading) * distance,
-          5.1 + speed * 0.018,
+          nearestTrack(c.x, c.z, this.track).y + 5.1 + speed * 0.018,
           c.z - Math.cos(c.heading) * distance,
         );
         const aim = new THREE.Vector3(
           c.x + Math.sin(c.heading) * 5,
-          1.4,
+          nearestTrack(c.x, c.z, this.track).y + 1.4,
           c.z + Math.cos(c.heading) * 5,
         );
         const smooth = 1 - Math.exp(-7 * dt);
@@ -733,6 +1029,7 @@ export class World {
     this.renderer.render(this.scene, this.camera);
     if (import.meta.env.DEV) {
       this.perfFrames++;
+      if (measuredMs > 0) this.frameIntervals.push(measuredMs);
       const now = performance.now();
       if (now - this.perfStart >= 2000) {
         this.canvas.dataset.fps = (
@@ -740,6 +1037,14 @@ export class World {
           (now - this.perfStart)
         ).toFixed(1);
         this.canvas.dataset.drawCalls = String(this.renderer.info.render.calls);
+        const sorted = this.frameIntervals.sort((a, b) => a - b);
+        this.canvas.dataset.frameP95 = String(
+          sorted[Math.floor(sorted.length * 0.95)] || 0,
+        );
+        this.canvas.dataset.longFrames = String(
+          sorted.filter((v) => v > 33.34).length,
+        );
+        this.frameIntervals = [];
         this.perfFrames = 0;
         this.perfStart = now;
       }

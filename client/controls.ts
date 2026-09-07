@@ -7,6 +7,7 @@ export const DEFAULT_BINDINGS = {
   drift: "ShiftLeft",
   boost: "ControlLeft",
   reset: "KeyR",
+  item: "Space",
 };
 export type Binding = keyof typeof DEFAULT_BINDINGS;
 export function readInput(
@@ -23,5 +24,6 @@ export function readInput(
     drift: held("drift"),
     boost: held("boost"),
     reset: held("reset"),
+    item: held("item"),
   };
 }

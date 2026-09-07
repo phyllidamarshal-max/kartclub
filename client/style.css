@@ -1858,3 +1858,234 @@ kbd {
     font-size: 36px;
   }
 }
+/* 0.2: game choices and readable HUD at short and narrow desktop sizes. */
+.track-picker {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 20px 0;
+}
+.track-option {
+  padding: 12px;
+  border: 1px solid #ffffff30;
+  border-radius: 14px;
+  background: #18333a;
+  color: #eaf4e5;
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+}
+.track-option.selected {
+  border: 2px solid #c0ff59;
+  background: #28464a;
+  padding: 11px;
+}
+.track-option svg {
+  width: 100%;
+  height: 95px;
+  display: block;
+}
+.track-option polyline {
+  fill: none;
+  stroke: #c0ff59;
+  stroke-width: 13;
+  stroke-linejoin: round;
+}
+.track-option b,
+.track-option small {
+  display: block;
+}
+.track-option small {
+  font-size: 10px;
+  line-height: 1.6;
+  margin-top: 6px;
+  color: #bfd0d0;
+}
+.selection-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.selection-grid label {
+  font-size: 12px;
+  color: #c5d4d1;
+}
+.selection-grid select {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  min-height: 42px;
+  background: #16333d;
+  color: #f2f7ea;
+  border: 1px solid #ffffff40;
+  border-radius: 8px;
+  padding: 8px;
+}
+.modal {
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+}
+.modal:has(.track-picker) {
+  width: min(760px, 94vw);
+}
+.stars {
+  font-size: 27px;
+  letter-spacing: 4px;
+  color: #e6cd6c;
+  margin: 12px 0;
+}
+.locked {
+  opacity: 0.6;
+}
+.locked button {
+  cursor: not-allowed;
+}
+.page-heading.compact h1 {
+  font-size: clamp(26px, 3vw, 45px);
+}
+.page-heading.compact {
+  margin-bottom: 25px;
+}
+.challenge-grid {
+  row-gap: 22px;
+}
+.challenge-tile {
+  min-width: 0;
+}
+.item-hud {
+  position: absolute;
+  left: 50%;
+  top: 120px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid #ffffff45;
+  background: #16323de0;
+  border-radius: 14px;
+  padding: 12px 18px;
+  min-width: 210px;
+  justify-content: center;
+  pointer-events: none;
+}
+.item-hud:empty {
+  display: none;
+}
+.item-hud > span {
+  font-size: 30px;
+  color: #ffdb7b;
+}
+.item-hud b {
+  font-size: 13px;
+}
+.item-hud small {
+  color: #a7efff;
+}
+.race-feedback {
+  position: absolute;
+  top: 205px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #ffdb7b;
+  font-size: 14px;
+  text-shadow: 0 2px 4px #000;
+  pointer-events: none;
+  text-align: center;
+}
+#objective {
+  max-width: 260px;
+  display: block;
+  line-height: 1.5;
+}
+.race-hint {
+  pointer-events: none;
+}
+.race-bottom {
+  pointer-events: none;
+}
+.header nav {
+  flex-shrink: 0;
+}
+.classification {
+  max-height: 240px;
+  overflow: auto;
+}
+@media (max-height: 750px) {
+  .race-top {
+    top: 15px;
+  }
+  .race-position,
+  .race-time {
+    top: 90px;
+  }
+  .race-position > b {
+    font-size: 60px;
+  }
+  .race-time b {
+    font-size: 34px;
+  }
+  .race-bottom {
+    bottom: 60px;
+  }
+  .speedometer b {
+    font-size: 65px;
+  }
+  .minimap-box canvas {
+    width: 180px;
+    height: 140px;
+  }
+  .item-hud {
+    top: 98px;
+  }
+  .race-feedback {
+    top: 170px;
+  }
+  .hero h1 {
+    font-size: 48px;
+  }
+  .hero {
+    padding-top: 20px;
+  }
+  .mode-card {
+    padding: 18px;
+  }
+  .modal {
+    padding: 25px;
+  }
+}
+@media (max-width: 900px) {
+  .selection-grid {
+    grid-template-columns: 1fr;
+  }
+  .track-picker {
+    gap: 7px;
+  }
+  .track-option {
+    padding: 8px;
+  }
+  .track-option.selected {
+    padding: 7px;
+  }
+  .track-option b {
+    font-size: 12px;
+  }
+  .item-hud {
+    top: 220px;
+    padding: 7px 12px;
+  }
+  .race-feedback {
+    top: 285px;
+  }
+  .item-hud small {
+    display: none;
+  }
+  .race-time {
+    max-width: 170px;
+  }
+  .race-title {
+    max-width: 180px;
+  }
+  .race-title span {
+    font-size: 10px;
+  }
+}

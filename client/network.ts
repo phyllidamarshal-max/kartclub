@@ -55,7 +55,11 @@ export class Network {
     this.account = a;
     this.pool = p;
   }
-  async join(name: string, roomId?: string) {
+  async join(
+    name: string,
+    roomId?: string,
+    config?: import("../shared/gameplay.ts").MatchConfig,
+  ) {
     if (!this.account) await this.init();
     const endpoint =
       location.port === "5173"
@@ -64,7 +68,7 @@ export class Network {
     const client = new Client(endpoint);
     this.room = roomId
       ? await client.joinById(roomId, { token: this.token, name })
-      : await client.create("kart", { token: this.token, name });
+      : await client.create("kart", { token: this.token, name, ...config });
     this.seq = 0;
     this.room.reconnection.minUptime = 0;
     this.connected = true;
