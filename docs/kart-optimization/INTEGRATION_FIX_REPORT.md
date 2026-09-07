@@ -36,3 +36,13 @@
 - `client/lifecycle.ts` 提供比赛实际调用的 `soloRaceComplete`：普通race/items达到截止或全车完成才结束；本地先完会显示“已完赛，等待其他车手…”，AI继续驾驶。time/practice/training仍可在本地完成时结束。最终个人“比赛用时”显示 `localCar.time`，DNF才使用截止elapsed，观战等待不计入个人成绩。
 - 新增生命周期回归覆盖本地100秒首完，100和104秒不结算，AI105秒完成后两车均FINISHED且排名1/2；另覆盖295秒AI首完的300秒截止、DNF无名次及非竞赛模式本地结束。先把原主循环终止分支原样提取成实际调用函数，运行 `npx tsx --test tests/lifecycle.test.ts` 时3通过、1失败（本地100秒首完返回true，期望false）；修改为全车/截止判定后通过。因此红阶段验证了旧行为，非仅“缺少导出函数”。
 - 最终针对性命令 `npx tsx --test tests/lifecycle.test.ts tests/records-training.test.ts tests/training-driving.test.ts tests/rules.test.ts`：12/12通过，退出码0；包含root拥有的全合法输入教学回归，147.4667模拟秒完成五步。仅运行、未修改root该测试。`npx tsc --noEmit` 与 `git diff --check` 均通过。本轮没有编写检查源码字符串或复制清理实现的镜像测试；教学退出后再进联机的真实UI复核由root继续。
+
+## 12.2 审计事件补齐
+
+仅修改 `server/room.ts` 并新增 `tests/room-audit.test.ts`，不修改玩法、前端或奖励领取接口。事件沿用现有RaceRecords追加写入，显式携带raceId/eventId/serverTick/rulesVersion；涉及车手的payload使用内部account作为playerId。
+
+- start事件保存初始 `itemSeed`（非道具赛为null）；种子仍仅在服务器审计库内，Snapshot中的seed保持0。无新客户端消息或导出渠道。
+- 实际从非复位进入复位等待时记 `reset-start`；每步前后比较离散库存与使用计数，仅在变化时记 `inventory-changed`（nitro或单道具槽）、`nitro-use`、`mini-use`、`item-use`。按住按键、复位等待、加速倒计时或逐tick能量增长不会刷这些事件。库存记录每步边界的净变化；同一步消费后立即补满、库存数不变时，仍由nitro-use记录真实消耗次数和剩余库存。
+- 沿现有输入拒绝/净化路径记 `invalid-input`，每个内部玩家ID两次采样至少相隔1000ms。原因仅固定码：not-racing、player-ineligible、invalid-packet、rate-limit、invalid-sequence、wrong-race、invalid-client-tick、sanitized-controls。不保存原始包、token、用户输入字符串或异常堆栈；越界控制仍按原规则净化并接受，审计本身不改变输入资格。
+- 回归使用真实KartRoom消息回调、stepCar/stepItems与内存SQLite RaceRecords；仅替代网络广播/定时调度边界。修复前 `npx tsx --test tests/room-audit.test.ts` 三项全部失败，分别为start缺seed、真实复位无事件、异常输入无采样日志；修复后三项全通过。校验123余物理步中的事件单次性、库存转换/消费、氮气/小喷使用、单道具使用以及两玩家采样互不干扰；数据库行只含约定字段，测试token和原始标记未写入。
+- 最终命令 `npx tsx --test tests/room-audit.test.ts tests/room-lifecycle.test.ts tests/rules.test.ts tests/driving-resources.test.ts tests/item-hits.test.ts tests/results.test.ts`：34/34通过、退出码0。Prettier后 `npx tsc --noEmit` 通过。奖励状态变化仍由已有经济账本负责，本轮没有变更其持久化或重试语义。

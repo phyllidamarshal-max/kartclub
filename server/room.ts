@@ -53,10 +53,12 @@ export class KartRoom extends Room {
   private stepP95 = 0;
   private stepP99 = 0;
   private eventSeq = 0;
+  private inputAuditAt = new Map<string, number>();
   private startedAt = "";
   private log(type: string, payload: unknown = {}) {
     try {
       KartRoom.records?.event(this.roomId, String(++this.eventSeq), {
+        raceId: this.roomId,
         eventId: this.eventSeq,
         serverTick: this.serverTick,
         rulesVersion: VERSIONS.rulesVersion,
@@ -66,6 +68,13 @@ export class KartRoom extends Room {
     } catch {
       this.reason = "审计日志写入失败，请保留房间码联系维护";
     }
+  }
+  private logInvalidInput(seat: Seat, reason: string, now: number) {
+    const last = this.inputAuditAt.get(seat.account) ?? -Infinity;
+    if (now - last < 1000) return;
+    this.inputAuditAt.set(seat.account, now);
+    // Only a fixed reason code and internal identity; never retain the packet.
+    this.log("invalid-input", { playerId: seat.account, reason });
   }
   maxClients = 4;
   seats = new Map<string, Seat>();
@@ -93,28 +102,51 @@ export class KartRoom extends Room {
     });
     this.onMessage("input", (client, packet) => {
       const s = this.seats.get(client.sessionId);
-      if (
-        !s ||
-        this.phase !== "racing" ||
-        s.info.dnf ||
-        !packet ||
-        typeof packet !== "object"
-      )
-        return;
+      if (!s) return;
       const now = Date.now();
+      if (this.phase !== "racing") {
+        this.logInvalidInput(s, "not-racing", now);
+        return;
+      }
+      if (s.info.dnf) {
+        this.logInvalidInput(s, "player-ineligible", now);
+        return;
+      }
+      if (!packet || typeof packet !== "object") {
+        this.logInvalidInput(s, "invalid-packet", now);
+        return;
+      }
       if (now - s.bucketStart > 1000) {
         s.bucket = 0;
         s.bucketStart = now;
       }
-      if (++s.bucket > 75) return;
+      if (++s.bucket > 75) {
+        this.logInvalidInput(s, "rate-limit", now);
+        return;
+      }
       if (
         !Number.isSafeInteger(packet.seq) ||
         packet.seq <= s.seq ||
         packet.seq > s.seq + 600
-      )
+      ) {
+        this.logInvalidInput(s, "invalid-sequence", now);
         return;
-      if (packet.raceId !== undefined && packet.raceId !== this.roomId) return;
-      if (!s.inbox.push(packet, this.serverTick, performance.now())) return;
+      }
+      if (packet.raceId !== undefined && packet.raceId !== this.roomId) {
+        this.logInvalidInput(s, "wrong-race", now);
+        return;
+      }
+      if (!s.inbox.push(packet, this.serverTick, performance.now())) {
+        this.logInvalidInput(s, "invalid-client-tick", now);
+        return;
+      }
+      const clean = sanitizeInput(packet);
+      if (
+        (
+          ["throttle", "steer", "drift", "boost", "reset", "item"] as const
+        ).some((key) => packet[key] !== undefined && packet[key] !== clean[key])
+      )
+        this.logInvalidInput(s, "sanitized-controls", now);
       s.seq = s.inbox.seq;
       s.lastInput = now;
     });
@@ -197,6 +229,7 @@ export class KartRoom extends Room {
         config: this.config,
         ...VERSIONS,
         players: seats.map((s) => s.account),
+        itemSeed: this.items?.seed ?? null,
       });
       this.phase = "countdown";
       this.lock();
@@ -223,6 +256,14 @@ export class KartRoom extends Room {
     } else if (this.phase === "racing") {
       dt = Math.min(dt, Math.max(0, this.finishDeadline - this.elapsed));
       this.elapsed += dt;
+      const resourcesBefore = [...this.seats.values()].map((seat) => ({
+        seat,
+        storedNitro: seat.car.storedNitro,
+        nitroUses: seat.car.nitroUses,
+        miniUses: seat.car.miniUses,
+        item: this.items?.players[seat.car.id]?.held ?? null,
+        itemUses: this.items?.players[seat.car.id]?.uses ?? 0,
+      }));
       for (const s of this.seats.values()) {
         if (s.info.dnf || s.car.finished) continue;
         const input = s.info.connected
@@ -230,8 +271,15 @@ export class KartRoom extends Room {
           : EMPTY_INPUT;
         s.input = input;
         const before = s.car.progress,
-          oldCp = s.car.checkpoint;
+          oldCp = s.car.checkpoint,
+          oldReset = s.car.resetTime;
         stepCar(s.car, input, dt, getTrack(this.config.trackId));
+        if (oldReset <= 0 && s.car.resetTime > 0)
+          this.log("reset-start", {
+            playerId: s.account,
+            progress: s.car.progress,
+            targetProgress: s.car.resetProgress,
+          });
         if (!s.info.connected && s.car.speed < 2)
           s.car.ghostTime = Math.max(s.car.ghostTime, 0.1);
         // Timestamp arrival at the current position, including a reverse/reset
@@ -277,6 +325,41 @@ export class KartRoom extends Room {
           dt,
           getTrack(this.config.trackId),
         );
+      // Discrete transitions only: countdown timers and per-tick energy gains
+      // never generate audit rows. Include item changes after stepItems.
+      for (const before of resourcesBefore) {
+        const s = before.seat,
+          car = s.car,
+          item = this.items?.players[car.id];
+        if (before.storedNitro !== car.storedNitro)
+          this.log("inventory-changed", {
+            playerId: s.account,
+            resource: "nitro",
+            previous: before.storedNitro,
+            current: car.storedNitro,
+          });
+        if (before.nitroUses !== car.nitroUses)
+          this.log("nitro-use", {
+            playerId: s.account,
+            count: car.nitroUses,
+            storedNitro: car.storedNitro,
+          });
+        if (before.miniUses !== car.miniUses)
+          this.log("mini-use", { playerId: s.account, count: car.miniUses });
+        if (before.item !== (item?.held ?? null))
+          this.log("inventory-changed", {
+            playerId: s.account,
+            resource: "item",
+            previous: before.item,
+            current: item?.held ?? null,
+          });
+        if (before.itemUses !== (item?.uses ?? 0))
+          this.log("item-use", {
+            playerId: s.account,
+            item: before.item,
+            count: item?.uses,
+          });
+      }
       if (
         this.elapsed >= this.finishDeadline ||
         [...this.seats.values()].every((s) => s.car.finished || s.info.dnf)
