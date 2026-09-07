@@ -1,23 +1,27 @@
 export const ROAD_WIDTH = 16;
 export const TRACK_ID = "tide-coast-v1";
 export interface Point {
-  x: number;
-  y: number;
-  z: number;
-  heading: number;
-  t: number;
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+  readonly heading: number;
+  readonly t: number;
 }
 export interface Track {
-  id: string;
-  name: string;
-  subtitle: string;
-  theme: "coast" | "city" | "mountain";
-  width: number;
-  length: number;
-  points: Point[];
-  obstacles: { x: number; z: number; radius: number }[];
-  shortcut: Point[];
-  radius: number;
+  readonly id: string;
+  readonly name: string;
+  readonly subtitle: string;
+  readonly theme: "coast" | "city" | "mountain";
+  readonly width: number;
+  readonly length: number;
+  readonly points: readonly Point[];
+  readonly obstacles: readonly {
+    readonly x: number;
+    readonly z: number;
+    readonly radius: number;
+  }[];
+  readonly shortcut: readonly Point[];
+  readonly radius: number;
 }
 const coast = [
   [0, -100],
@@ -44,7 +48,7 @@ function create(
   anchors: number[][],
   scale: number,
   width = 16,
-): Track {
+) {
   function spline(t: number) {
     const n = anchors.length,
       u = (((t % 1) + 1) % 1) * n,
@@ -67,7 +71,7 @@ function create(
       ds[i - 1] + Math.hypot(raw[i].x - raw[i - 1].x, raw[i].z - raw[i - 1].z),
     );
   const length = ds.at(-1)!,
-    points: Point[] = [];
+    points: { -readonly [K in keyof Point]: Point[K] }[] = [];
   let j = 0;
   for (let i = 0; i < 720; i++) {
     const d = (i / 720) * length;
@@ -95,12 +99,12 @@ function create(
     width,
     length,
     points,
-    obstacles: [],
-    shortcut: [],
+    obstacles: [] as { x: number; z: number; radius: number }[],
+    shortcut: [] as Point[],
     radius: Math.max(...points.map((p) => Math.hypot(p.x, p.z))) + 28,
   };
 }
-export const DEFAULT_TRACK = create(
+export const DEFAULT_TRACK: Track = create(
   TRACK_ID,
   "晴湾海岸 · 经典",
   "TIDE COAST CLASSIC",
@@ -108,7 +112,7 @@ export const DEFAULT_TRACK = create(
   coast,
   1,
 );
-export const TRACKS = [
+const assembledTracks = [
   create("coast", "晴湾环海", "TIDE COAST / TOURING", "coast", coast, 1.65, 18),
   create(
     "city",
@@ -133,7 +137,7 @@ export const TRACKS = [
       [-100, -90],
     ],
     1.4,
-    16,
+    14,
   ),
   create(
     "mountain",
@@ -156,9 +160,10 @@ export const TRACKS = [
       [-60, -125],
     ],
     1.6,
-    16,
+    12,
   ),
 ];
+export const TRACKS: readonly Track[] = assembledTracks;
 export function getTrack(id: string): Track {
   const t = id === TRACK_ID ? DEFAULT_TRACK : TRACKS.find((t) => t.id === id);
   if (!t) throw Error("未知赛道");
@@ -178,7 +183,7 @@ export function trackPoint(t: number, track: Track = DEFAULT_TRACK): Point {
     t: ((t % 1) + 1) % 1,
   };
 }
-const mountain = TRACKS[2],
+const mountain = assembledTracks[2],
   start = trackPoint(0.49, mountain),
   end = trackPoint(0.62, mountain);
 for (let i = 0; i <= 80; i++) {
@@ -202,6 +207,16 @@ for (const [t, side] of [
     radius: 1.5,
   });
 }
+// Freeze only after all branches and obstacles are assembled, before indexing.
+// Callers may still construct independent custom tracks using clones/spreads.
+for (const track of [DEFAULT_TRACK, ...TRACKS]) {
+  for (const collection of [track.points, track.shortcut, track.obstacles]) {
+    for (const value of collection) Object.freeze(value);
+    Object.freeze(collection);
+  }
+  Object.freeze(track);
+}
+Object.freeze(TRACKS);
 // Spatial bins retain exact nearest sampled-point results; distant reset queries use a full scan.
 const grids = new Map<Track, Map<string, Point[]>>();
 for (const track of [DEFAULT_TRACK, ...TRACKS]) {

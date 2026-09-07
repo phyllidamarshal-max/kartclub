@@ -22,6 +22,8 @@ import {
 import type { Snapshot } from "../shared/protocol.ts";
 import { DEFAULT_BINDINGS, readInput, type Binding } from "./controls.ts";
 import { canOpenPause } from "./lifecycle.ts";
+import { classicRecords, classicHistoryMarkup } from "./career-history.ts";
+import { paintMinimap } from "./minimap.ts";
 
 import {
   CHALLENGES,
@@ -150,10 +152,7 @@ const settings = stored("pons-settings", {
   effects: 0.4,
   quality: "high",
 });
-let progress: Record<string, { time: number; drift: number }> = stored(
-  "pons-progress",
-  {},
-);
+const progress: unknown = stored("pons-progress", {});
 let rebinding: Binding | null = null;
 let nickname = localStorage.getItem("pons-name") || "逐浪车手";
 function escape(text: string) {
@@ -214,7 +213,7 @@ function lobby() {
   roomStamp = "";
 }
 function home() {
-  return `<section class="hero"><div class="eyebrow"><span class="season">SEASON 00</span><span>THE COAST IS CALLING</span></div><h1>逐浪而行<span>弯道，由你定义。</span></h1><p class="hero-copy">把海风甩在身后。<br>漂移、蓄能、冲线，下一位领跑者就是你。</p><div class="hero-buttons"><button class="button primary" data-action="practice">即刻试驾 <span>↗</span></button><button class="button outline" data-page="online">与好友竞速 <span>→</span></button></div><div class="hero-meta"><span><b>03</b> 多主题赛道</span><span><b>04</b> 同场竞技席位</span><span><b>∞</b> 漂移可能</span></div></section><aside class="track-tag"><span class="live-pill"><i></i> CIRCUIT 001</span><h2>${escape(activeTrack.name)}</h2><p>${escape(activeTrack.subtitle)}</p><div><span>↝ ${(activeTrack.length / 1000).toFixed(2)} km</span><span>☀ 晴朗</span><span>技术型</span></div></aside><section class="mode-grid"><button class="mode-card practice" data-action="practice"><span class="card-index">01 / FREE DRIVE</span><div class="card-row"><h3>自由试驾</h3><span class="card-arrow">↗</span></div><p>熟悉每一个弯，找到你的节奏。</p><div class="card-bottom"><span class="badge">免费体验</span><span>随时出发 →</span></div></button><button class="mode-card challenge" data-page="career"><span class="card-index">02 / SOLO CHALLENGE</span><div class="card-row"><h3>单人挑战</h3><span class="card-arrow">↗</span></div><p>从第一圈，到属于你的最佳纪录。</p><div class="card-bottom"><span class="badge">${Object.keys(careerProgress).filter((k) => careerProgress[k].stars > 0).length} / 9 已完成</span><span>查看挑战 →</span></div></button><button class="mode-card multiplayer" data-page="online"><span class="card-index">03 / MULTIPLAYER</span><div class="card-row"><h3>多人竞速</h3><span class="card-arrow">↗</span></div><p>邀请好友，用实力争夺领奖台。</p><div class="card-bottom"><span class="badge">2–4 人实时联机</span><span>进入房间 →</span></div></button><button class="pool-card" data-page="vault"><span class="card-index">SIMULATED PRIZE POOL</span><div class="pool-value">${net.pool ? money(net.pool.available) : "—"} <small>$PONS</small></div><p><i></i> 模拟交易税 2% · 可用奖池</p><span class="pool-link">探索奖励金库 ↗</span></button></section>`;
+  return `<section class="hero"><div class="eyebrow"><span class="season">SEASON 00</span><span>THE COAST IS CALLING</span></div><h1>逐浪而行<span>弯道，由你定义。</span></h1><p class="hero-copy">把海风甩在身后。<br>漂移、蓄能、冲线，下一位领跑者就是你。</p><div class="hero-buttons"><button class="button primary" data-action="practice">即刻试驾 <span>↗</span></button><button class="button outline" data-page="online">与好友竞速 <span>→</span></button></div><div class="hero-meta"><span><b>03</b> 多主题赛道</span><span><b>04</b> 同场竞技席位</span><span><b>∞</b> 漂移可能</span></div></section><aside class="track-tag"><span class="live-pill"><i></i> CIRCUIT 001</span><h2>${escape(activeTrack.name)}</h2><p>${escape(activeTrack.subtitle)}</p><div><span>↝ ${(activeTrack.length / 1000).toFixed(2)} km</span><span>☀ 晴朗</span><span>技术型</span></div></aside><section class="mode-grid"><button class="mode-card practice" data-action="practice"><span class="card-index">01 / FREE DRIVE</span><div class="card-row"><h3>自由试驾</h3><span class="card-arrow">↗</span></div><p>熟悉每一个弯，找到你的节奏。</p><div class="card-bottom"><span class="badge">免费体验</span><span>随时出发 →</span></div></button><button class="mode-card challenge" data-page="career"><span class="card-index">02 / SOLO CHALLENGE</span><div class="card-row"><h3>单人挑战</h3><span class="card-arrow">↗</span></div><p>从第一圈，到属于你的最佳纪录。</p><div class="card-bottom"><span class="badge">${Object.keys(careerProgress).filter((k) => careerProgress[k].stars > 0).length} / 9 生涯已完成${classicRecords(progress).length ? ` · 经典 ${classicRecords(progress).length} / 3` : ""}</span><span>查看挑战 →</span></div></button><button class="mode-card multiplayer" data-page="online"><span class="card-index">03 / MULTIPLAYER</span><div class="card-row"><h3>多人竞速</h3><span class="card-arrow">↗</span></div><p>邀请好友，用实力争夺领奖台。</p><div class="card-bottom"><span class="badge">2–4 人实时联机</span><span>进入房间 →</span></div></button><button class="pool-card" data-page="vault"><span class="card-index">SIMULATED PRIZE POOL</span><div class="pool-value">${net.pool ? money(net.pool.available) : "—"} <small>$PONS</small></div><p><i></i> 模拟交易税 2% · 可用奖池</p><span class="pool-link">探索奖励金库 ↗</span></button></section>`;
 }
 function career() {
   return `<section class="page-heading compact"><span class="eyebrow">CAREER / 3 CHAPTERS · 9 CHALLENGES</span><h1>从海岸出发，向山巅进阶。</h1><p>赢取星级解锁下一关。自由比赛可提前练习所有赛道。</p><button class="button outline" data-action="practice">自由比赛与练习 ↗</button></section><section class="challenge-grid">${CHALLENGES.map(
@@ -223,7 +222,7 @@ function career() {
         unlocked = isUnlocked(i, careerProgress);
       return `<article class="challenge-tile ${unlocked ? "" : "locked"}"><span class="challenge-number">${String(i + 1).padStart(2, "0")}</span><span class="tag">${getTrack(q.trackId).name} · ${MODE_NAMES[q.mode]}</span><h2>${q.title}</h2><p>${q.description}</p><div class="stars">${"★".repeat(p?.stars || 0)}${"☆".repeat(3 - (p?.stars || 0))}</div><div class="challenge-detail"><span>${q.laps} 圈 · ${DIFFICULTY_NAMES[q.difficulty]}</span><span>${p ? "最佳 " + time(p.time) : "金星参考 " + q.gold + " 秒"}</span></div><button class="button ${unlocked ? "primary" : "outline"}" data-challenge="${i}" ${unlocked ? "" : "disabled"}>${unlocked ? "开始挑战 ↗" : "先完成上一关"}</button></article>`;
     },
-  ).join("")}</section>`;
+  ).join("")}</section>${classicHistoryMarkup(progress)}`;
 }
 function online() {
   return `<section class="page-heading"><span class="eyebrow">REAL-TIME MULTIPLAYER / 02</span><h1>一起出发，<br>各凭本事领跑。</h1><p>真实玩家，实时较量。创建房间，把房间码分享给好友。</p></section><section class="online-layout"><div class="glass form-panel"><label for="nickname">你的车手名</label><input id="nickname" maxlength="16" value="${escape(nickname)}" placeholder="输入车手名"><div class="two-col"><div><h3>发起一场比赛</h3><p>2–4 位车手 · 可选赛道与模式</p><button class="button outline" data-action="room-config">赛事设置</button><p>${getTrack(selection.trackId).name} · ${MODE_NAMES[selection.raceMode]} · ${selection.laps} 圈</p><button class="button primary" data-action="create">创建房间 <span>＋</span></button></div><div><h3>加入好友的房间</h3><input id="room-code" placeholder="输入房间码" maxlength="32" autocomplete="off"><button class="button outline" data-action="join">加入房间 <span>→</span></button></div></div><p class="form-note">本机可用两个独立标签页联机；同一局域网设备需能访问赛事服务器。</p></div><aside class="glass race-rules"><span class="eyebrow">RACE BRIEF</span><h2>这一场，为荣誉。</h2><div><span>每人门票</span><b>10 TICKET</b></div><div><span>本场奖金</span><b>100 $PONS</b></div><div><span>4 人场前三名</span><b>60 / 30 / 10%</b></div><p>凑齐至少 2 人并全部准备后才扣票。开赛前取消退票。奖金仅分配给有效完赛车手。</p>${simulated()}</aside></section>`;
@@ -660,35 +659,7 @@ function drawMinimap(cars: Car[]) {
   const cv = document.querySelector<HTMLCanvasElement>("#minimap");
   if (!cv) return;
   const ctx = cv.getContext("2d")!;
-  ctx.clearRect(0, 0, 230, 180);
-  const xy = (c: { x: number; z: number }) => [
-    c.x * (75 / activeTrack.radius) + 115,
-    c.z * (75 / activeTrack.radius) + 88,
-  ];
-  ctx.beginPath();
-  activeTrack.points.forEach((p, i) => {
-    const [x, y] = xy(p);
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  });
-  ctx.closePath();
-  ctx.lineWidth = 7;
-  ctx.strokeStyle = "#ffffff28";
-  ctx.stroke();
-  ctx.lineWidth = 1;
-  ctx.strokeStyle = "#e1eee866";
-  ctx.stroke();
-  for (let i = 0; i < cars.length; i++) {
-    const c = cars[i],
-      [x, y] = xy(c);
-    ctx.beginPath();
-    ctx.arc(x, y, c.id === localCar.id ? 4 : 3, 0, Math.PI * 2);
-    ctx.fillStyle = c.id === localCar.id ? "#c0ff59" : content.palette[i % 4];
-    ctx.fill();
-    ctx.strokeStyle = "#fff";
-    ctx.lineWidth = 1;
-    ctx.stroke();
-  }
+  paintMinimap(ctx, activeTrack, cars, localCar.id, content.palette);
 }
 function targetLaps() {
   return mode === "multi" ? latest?.laps || 1 : selection.laps;

@@ -85,6 +85,34 @@ function label(text: string, bg: string, fg: string, w = 512, h = 128) {
   material.userData.sign = true;
   return material;
 }
+function disposeObjectResources(...roots: THREE.Object3D[]) {
+  const objects = new Set<THREE.Object3D>(),
+    geometries = new Set<THREE.BufferGeometry>(),
+    materials = new Set<THREE.Material>(),
+    textures = new Set<THREE.Texture>();
+  for (const root of roots) root.traverse((o) => objects.add(o));
+  for (const o of objects) {
+    if (o instanceof THREE.InstancedMesh) o.dispose();
+    if (
+      o instanceof THREE.DirectionalLight ||
+      o instanceof THREE.SpotLight ||
+      o instanceof THREE.PointLight
+    )
+      o.shadow.dispose();
+    if (o instanceof THREE.Mesh) {
+      geometries.add(o.geometry);
+      for (const m of Array.isArray(o.material) ? o.material : [o.material])
+        materials.add(m);
+    }
+  }
+  for (const m of materials) {
+    for (const v of Object.values(m))
+      if (v instanceof THREE.Texture) textures.add(v);
+    m.dispose();
+  }
+  textures.forEach((t) => t.dispose());
+  geometries.forEach((g) => g.dispose());
+}
 export class World {
   renderer: THREE.WebGLRenderer;
   scene = new THREE.Scene();
@@ -104,6 +132,7 @@ export class World {
   private scratch = new THREE.Object3D();
   private water: THREE.Mesh;
   private cameraReady = false;
+  private disposed = false;
   constructor(
     public canvas: HTMLCanvasElement,
     public content: Content,
@@ -200,13 +229,20 @@ export class World {
     window.addEventListener("resize", this.onResize);
   }
   async loadAssets() {
+    if (this.disposed) return;
     const loader = new GLTFLoader();
     if (this.content.characterModel) {
       const gltf = await loader.loadAsync(this.content.characterModel);
+      if (this.disposed) {
+        disposeObjectResources(gltf.scene);
+        return;
+      }
       const b = new THREE.Box3().setFromObject(gltf.scene),
         size = b.getSize(new THREE.Vector3());
-      if (!Number.isFinite(size.y) || size.y <= 0 || size.y > 1000)
+      if (!Number.isFinite(size.y) || size.y <= 0 || size.y > 1000) {
+        disposeObjectResources(gltf.scene);
         throw Error("角色模型尺寸无效");
+      }
       this.customDriver = gltf.scene;
       this.customDriver.scale.setScalar(this.content.modelScale);
       for (const c of this.cars.values()) {
@@ -219,6 +255,10 @@ export class World {
     }
     if (this.content.sceneModel) {
       const gltf = await loader.loadAsync(this.content.sceneModel);
+      if (this.disposed) {
+        disposeObjectResources(gltf.scene);
+        return;
+      }
       gltf.scene.scale.setScalar(this.content.modelScale);
       this.scene.add(gltf.scene);
     }
@@ -724,24 +764,18 @@ export class World {
     oldGeo.forEach((g) => g.dispose());
   }
   dispose() {
+    if (this.disposed) return;
+    this.disposed = true;
     window.removeEventListener("resize", this.onResize);
-    const geometries = new Set<THREE.BufferGeometry>(),
-      materials = new Set<THREE.Material>(),
-      textures = new Set<THREE.Texture>();
-    this.scene.traverse((o) => {
-      if (o instanceof THREE.Mesh) {
-        geometries.add(o.geometry);
-        for (const m of Array.isArray(o.material) ? o.material : [o.material])
-          materials.add(m);
-      }
-    });
-    materials.forEach((m) => {
-      for (const v of Object.values(m))
-        if (v instanceof THREE.Texture) textures.add(v);
-      m.dispose();
-    });
-    textures.forEach((t) => t.dispose());
-    geometries.forEach((g) => g.dispose());
+    disposeObjectResources(
+      this.scene,
+      ...(this.customDriver ? [this.customDriver] : []),
+    );
+    this.scene.clear();
+    this.cars.clear();
+    this.itemMeshes.clear();
+    this.propellers.length = 0;
+    this.customDriver = null;
     this.renderer.dispose();
   }
   private onResize = () => this.resize();
