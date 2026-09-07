@@ -196,17 +196,23 @@ function constrainEnvironment(
     const dx = c.x - previousX,
       dz = c.z - previousZ;
     const travel2 = dx * dx + dz * dz;
+    const startDistance = Math.hypot(ox, oz);
+    const b = ox * dx + oz * dz;
     let hitX = c.x - obstacle.x,
       hitZ = c.z - obstacle.z;
     let hit = Math.hypot(hitX, hitZ) < radius;
     // A projected contact can round a few ulps inside the circle. Treat that
     // as boundary contact so tangent/outward travel is not pulled back.
-    if (Math.hypot(ox, oz) < radius - 1e-7) {
+    // Inward travel from that same boundary shell is an immediate impact;
+    // its mathematical entry root can be slightly negative after rounding.
+    if (
+      startDistance < radius - 1e-7 ||
+      (startDistance <= radius + 1e-7 && b < -1e-9)
+    ) {
       hit = true;
       hitX = ox;
       hitZ = oz;
     } else if (travel2 > 0) {
-      const b = ox * dx + oz * dz;
       const discriminant =
         b * b - travel2 * (ox * ox + oz * oz - radius * radius);
       // Sweep only into the circle. A tangent root at t=0 is not an impact.

@@ -282,3 +282,35 @@ for (const penetration of [0, 1e-12]) {
     });
   }
 }
+
+for (const velocity of [63, 200]) {
+  test(`microscopic obstacle penetration still blocks inward velocity ${velocity}`, () => {
+    const p = tracks.trackPoint(0),
+      sx = Math.sin(p.heading),
+      sz = Math.cos(p.heading);
+    const track = {
+      ...tracks.DEFAULT_TRACK,
+      obstacles: [{ x: p.x, z: p.z, radius: 0.1 }],
+    };
+    const c = spawnCar();
+    Object.assign(c, {
+      x: p.x - sx * (1.15 - 1e-12),
+      z: p.z - sz * (1.15 - 1e-12),
+      heading: p.heading,
+      vx: sx * velocity,
+      vz: sz * velocity,
+      speed: 63,
+      boostTime: 2,
+    });
+    stepCar(c, { ...EMPTY_INPUT, throttle: 1 }, 1 / 30, track);
+    assert.ok(
+      (c.x - p.x) * sx + (c.z - p.z) * sz <= -1.15 + 1e-7,
+      "must remain on the entry side",
+    );
+    assert.ok(
+      Math.hypot(c.vx, c.vz) < 1e-6,
+      "inward contact must remove forward velocity",
+    );
+    finite(c);
+  });
+}

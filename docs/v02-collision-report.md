@@ -35,3 +35,11 @@ Added four regression cases covering tangent/outward movement from exact contact
 The fix treats penetration less than `1e-7` metres as boundary contact, and accepts sweep roots only for inward movement with a strictly positive discriminant. This excludes stationary/tangent contact roots while retaining actual inward and full-obstacle crossing interception. The existing centre-overlap recovery and high-speed sweep regressions still pass.
 
 Final follow-up verification: `node --import tsx --test tests/collision.test.ts tests/race.test.ts tests/lap.test.ts` returned **28 tests, 28 pass, 0 fail, exit 0**. The physics reviewer reported no other concrete findings; their real mountain-obstacle two-car wall test was legal and separated.
+
+## Follow-up: inward contact within the tolerance shell
+
+Further review caught a regression in the first tangent fix: a start `1e-12` metres inside the expanded obstacle moving inward had a slightly negative entry root, which the normal sweep rejected. At boost speed this could project the car onto the far side; a sufficiently high velocity could cross it completely. Added two failing entry-side/velocity regressions for initial velocities 63 and 200. Before the fix the collision suite returned **16 pass / 2 failures**.
+
+Boundary-shell contact now explicitly distinguishes direction. An inward segment beginning within `1e-7` metres of the surface is handled immediately at time zero using the start-position normal. Tangent and outward segments remain free to depart. This preserves the four earlier escape regressions and blocks both new inward cases.
+
+Verification after this correction: `node --import tsx --test tests/collision.test.ts tests/race.test.ts tests/lap.test.ts` returned **30 tests, 30 pass, 0 fail, exit 0** (18 collision + 12 original race/lap tests).
