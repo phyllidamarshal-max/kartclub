@@ -1,6 +1,6 @@
 {
   "name": "pons-kart",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "engines": {
@@ -12,7 +12,8 @@
     "client": "vite --host 0.0.0.0",
     "build": "tsc --noEmit && vite build",
     "test": "tsx --test tests/*.test.ts",
-    "smoke": "tsx scripts/smoke.ts"
+    "smoke": "tsx scripts/smoke.ts",
+    "validate:network": "tsx scripts/network-validation.ts"
   },
   "dependencies": {
     "@colyseus/core": "0.18.11",

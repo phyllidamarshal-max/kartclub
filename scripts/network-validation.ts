@@ -22,6 +22,7 @@ const child = spawn(process.execPath, ["--import", "tsx", "server/index.ts"], {
 child.stdout.on("data", (d) => (log += d));
 child.stderr.on("data", (d) => (log += d));
 const report: any[] = [];
+const extended = process.env.NETWORK_EXTENDED === "1";
 let rooms: Room[] = [];
 const queued = new Set<ReturnType<typeof setTimeout>>();
 const later = (f: () => void, ms: number) => {
@@ -48,12 +49,29 @@ try {
         await (await fetch(base + "/api/account", { method: "POST" })).json(),
     ),
   );
-  for (const scenario of [
-    { count: 4, rtt: 0, loss: 0 },
-    { count: 4, rtt: 80, loss: 0 },
-    { count: 4, rtt: 150, loss: 0.02 },
-    { count: 8, rtt: 150, loss: 0.02 },
-  ]) {
+  for (const scenario of (extended
+    ? [
+        {
+          count: 4,
+          rtt: 150,
+          loss: 0.02,
+          trackId: "coast-breakwater",
+          laps: 3,
+          reconnect: true,
+        },
+      ]
+    : [
+        { count: 4, rtt: 0, loss: 0 },
+        { count: 4, rtt: 80, loss: 0 },
+        { count: 4, rtt: 150, loss: 0.02 },
+        { count: 8, rtt: 150, loss: 0.02 },
+      ]
+  ).map((s) => ({
+    trackId: "tide-coast-v1",
+    laps: 1,
+    reconnect: s.count === 8,
+    ...s,
+  }))) {
     const snapshots: (Snapshot | undefined)[] = [],
       predicted: (Car | undefined)[] = [],
       pending: { seq: number; input: Input }[][] = Array.from(
@@ -103,9 +121,9 @@ try {
       await new Client(base).create("kart", {
         token: users[0].token,
         name: "V0",
-        trackId: "tide-coast-v1",
+        trackId: scenario.trackId,
         mode: "race",
-        laps: 1,
+        laps: scenario.laps,
         free: true,
       }),
     ];
@@ -168,7 +186,7 @@ try {
     }, 1000 / 60);
     try {
       await until(() => snapshots[0]?.phase === "racing");
-      if (scenario.count === 8) {
+      if (scenario.reconnect) {
         await until(() => (snapshots[0]?.elapsed ?? 0) > 5);
         const old = rooms[0],
           token = old.reconnectionToken,
@@ -193,7 +211,7 @@ try {
         () =>
           snapshots.length === scenario.count &&
           snapshots.every((s) => s?.phase === "finished"),
-        100000,
+        extended ? 270000 : 100000,
       );
       const result = snapshots[0]!.results;
       for (const s of snapshots) assert.deepEqual(s!.results, result);
@@ -204,6 +222,41 @@ try {
       );
       assert.ok(result.every((r) => r.award === 0));
       assert.ok(snapshots.every((s) => s!.free && s!.maxPlayers === 8));
+      const resourceState = (s: Snapshot) =>
+        s.cars
+          .map((c) => ({
+            id: c.id,
+            drift: c.driftTotal,
+            nitro: c.nitroUses,
+            mini: c.miniUses,
+            stored: c.storedNitro,
+            energy: c.energy,
+          }))
+          .sort((a, b) => a.id.localeCompare(b.id));
+      const resources = resourceState(snapshots[0]!);
+      for (const s of snapshots)
+        assert.deepEqual(
+          resourceState(s!),
+          resources,
+          "all authoritative final resource states agree",
+        );
+      assert.ok(
+        resources.every(
+          (r) =>
+            r.energy >= 0 && r.energy <= 100 && r.stored >= 0 && r.stored <= 2,
+        ),
+      );
+      if (extended) {
+        assert.ok(
+          resources.some((r) => r.drift > 100),
+          "legal driving actually earns a bottle",
+        );
+        assert.ok(
+          resources.some((r) => r.nitro > 0),
+          "network scenario actually activates earned nitro",
+        );
+        assert.ok(reconnectOK);
+      }
       const sort = [...corrections].sort((a, b) => a - b),
         wall = (Date.now() - start) / 1000;
       report.push({
@@ -220,6 +273,8 @@ try {
         disconnectDone,
         reconnectOK,
         allResultsAgree: true,
+        allResourcesAgree: true,
+        resources,
       });
       console.log(
         "PASS",
@@ -232,7 +287,12 @@ try {
       clearInterval(timer);
       for (const t of queued) clearTimeout(t);
       queued.clear();
-      await Promise.allSettled(rooms.map((r) => r.leave()));
+      await Promise.race([
+        Promise.allSettled(
+          rooms.filter((r) => r.connection.isOpen).map((r) => r.leave()),
+        ),
+        delay(1000),
+      ]);
       rooms = [];
     }
   }
@@ -263,7 +323,9 @@ try {
   );
   assert.ok(accounts.every((a) => a.tickets === 100000 && a.pons === 0));
   writeFileSync(
-    "artifacts/network-validation.json",
+    extended
+      ? "artifacts/network-extended-validation.json"
+      : "artifacts/network-validation.json",
     JSON.stringify(
       {
         date: new Date().toISOString(),
@@ -280,6 +342,11 @@ try {
   console.log("PASS ten room cycles and unchanged free-race balances");
 } finally {
   for (const t of queued) clearTimeout(t);
-  await Promise.allSettled(rooms.map((r) => r.leave()));
+  await Promise.race([
+    Promise.allSettled(
+      rooms.filter((r) => r.connection.isOpen).map((r) => r.leave()),
+    ),
+    delay(1000),
+  ]);
   child.kill();
 }

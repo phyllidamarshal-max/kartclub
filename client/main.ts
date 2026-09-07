@@ -74,6 +74,14 @@ const oldCareerProgress = stored<
 let training: Training | null = null,
   currentSplits: number[] = [],
   correctionDistance = 0;
+let debugSample: {
+  id: string;
+  time: number;
+  progress: number;
+  drift: number;
+  forward: number;
+  gain: number;
+} | null = null;
 let freeOnline = true;
 let careerProgress: Record<string, { stars: number; time: number }> = stored(
   careerKey,
@@ -229,6 +237,8 @@ function footer() {
   return `<footer class="footer"><span><i class="status-dot ${net.account ? "" : "off"}"></i> ${net.account ? "本地赛事服务已连接" : "单人模式就绪"} <span class="footer-divider">/</span> PROTOTYPE 0.3</span><span>原创赛道 · 原创配乐 · 为每一次漂移而生</span><button data-action="help">操作指南 <span>↗</span></button></footer>`;
 }
 function clearSoloRun() {
+  debugSample = null;
+  document.querySelector("#driving-debug")?.remove();
   training = null;
   challengeIndex = -1;
   bestGhost = null;
@@ -913,7 +923,34 @@ function hud() {
       el.id = "driving-debug";
       document.body.append(el);
     }
-    el.textContent = `tick ${latest?.serverTick ?? Math.round(elapsed * 60)} seq ${c.ack}\nspeed ${c.speed.toFixed(2)} slip ${((c.slipAngle * 180) / Math.PI).toFixed(1)}°\nsegment ${c.checkpoint} progress ${c.progress.toFixed(4)}\nenergy ${c.energy.toFixed(1)} bottles ${c.storedNitro} ${c.driftState}\nboost ${c.boostTime.toFixed(2)} mini ${c.miniTime.toFixed(2)}\nRTT ${net.ping}ms correction ${correctionDistance.toFixed(2)}m`;
+    const debugClock = mode === "multi" ? (latest?.elapsed ?? 0) : elapsed;
+    if (
+      !debugSample ||
+      debugSample.id !== c.id ||
+      debugClock < debugSample.time
+    ) {
+      debugSample = {
+        id: c.id,
+        time: debugClock,
+        progress: c.progress,
+        drift: c.driftTotal,
+        forward: 0,
+        gain: 0,
+      };
+    } else if (debugClock - debugSample.time >= 0.25) {
+      debugSample = {
+        id: c.id,
+        time: debugClock,
+        progress: c.progress,
+        drift: c.driftTotal,
+        forward: Math.max(
+          0,
+          (c.progress - debugSample.progress) * activeTrack.length,
+        ),
+        gain: Math.max(0, c.driftTotal - debugSample.drift),
+      };
+    }
+    el.textContent = `tick ${latest?.serverTick ?? Math.round(elapsed * 60)} seq ${c.ack}\nspeed ${c.speed.toFixed(2)} slip ${((c.slipAngle * 180) / Math.PI).toFixed(1)}°\nsegment ${c.checkpoint} progress ${c.progress.toFixed(4)}\nΔ0.25s forward ${debugSample.forward.toFixed(2)}m gain ${debugSample.gain.toFixed(2)}\nenergy ${c.energy.toFixed(1)} bottles ${c.storedNitro} ${c.driftState}\nboost ${c.boostTime.toFixed(2)} mini ${c.miniTime.toFixed(2)}\nRTT ${net.ping}ms correction ${correctionDistance.toFixed(2)}m`;
   }
   drawMinimap(cars);
 }
