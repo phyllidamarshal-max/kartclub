@@ -1,10 +1,17 @@
-import { trackPoint, nearestTrack, ROAD_WIDTH, angleDiff } from "./track.ts";
+import {
+  trackPoint,
+  nearestTrack,
+  DEFAULT_TRACK,
+  angleDiff,
+  type Track,
+} from "./track.ts";
 export interface Input {
   throttle: number;
   steer: number;
   drift: boolean;
   boost: boolean;
   reset: boolean;
+  item?: boolean;
 }
 export const EMPTY_INPUT: Input = {
   throttle: 0,
@@ -12,6 +19,7 @@ export const EMPTY_INPUT: Input = {
   drift: false,
   boost: false,
   reset: false,
+  item: false,
 };
 export interface Car {
   id: string;
@@ -32,17 +40,19 @@ export interface Car {
   checkpoint: number;
   boostHeld: boolean;
   resetHeld: boolean;
+  ghostTime: number;
+  impact: number;
   finished: boolean;
   time: number;
   ack: number;
 }
-export function spawnCar(slot = 0, id = "local"): Car {
-  const p = trackPoint(0),
+export function spawnCar(slot = 0, id = "local", track = DEFAULT_TRACK): Car {
+  const p = trackPoint(0, track),
     side = slot % 2 === 0 ? -2.4 : 2.4,
     back = Math.floor(slot / 2) * 5,
     x = p.x + Math.cos(p.heading) * side - Math.sin(p.heading) * back,
     z = p.z - Math.sin(p.heading) * side - Math.cos(p.heading) * back,
-    startT = nearestTrack(x, z).t,
+    startT = nearestTrack(x, z, track).t,
     startProgress = startT > 0.5 ? startT - 1 : startT;
   return {
     id,
@@ -63,6 +73,8 @@ export function spawnCar(slot = 0, id = "local"): Car {
     checkpoint: 0,
     boostHeld: false,
     resetHeld: false,
+    ghostTime: 0,
+    impact: 0,
     finished: false,
     time: 0,
     ack: 0,
@@ -80,6 +92,7 @@ export function sanitizeInput(v: unknown): Input {
     drift: o.drift === true,
     boost: o.boost === true,
     reset: o.reset === true,
+    item: o.item === true,
   };
 }
 export function advanceProgress(c: Car, t: number) {
@@ -93,13 +106,15 @@ export function advanceProgress(c: Car, t: number) {
   const cp = Math.floor(c.progress * 12);
   if (cp > c.checkpoint) c.checkpoint = cp;
 }
-export function stepCar(c: Car, raw: Input, dt: number) {
+export function stepCar(c: Car, raw: Input, dt: number, track = DEFAULT_TRACK) {
   if (c.finished) return;
   const input = sanitizeInput(raw);
-  dt = Math.max(0, Math.min(dt, 1 / 30));
+  dt = Number.isFinite(dt) ? Math.max(0, Math.min(dt, 1 / 30)) : 0;
   c.time += dt;
+  c.ghostTime = Math.max(0, (c.ghostTime || 0) - dt);
+  c.impact = Math.max(0, (c.impact || 0) - dt * 2.5);
   if (input.reset && !c.resetHeld) {
-    const p = trackPoint(c.checkpoint / 12);
+    const p = trackPoint(c.checkpoint / 12, track);
     c.x = p.x;
     c.z = p.z;
     c.heading = p.heading;
@@ -109,6 +124,8 @@ export function stepCar(c: Car, raw: Input, dt: number) {
     c.lastT = p.t;
     c.progress = c.checkpoint / 12;
     c.boostTime = 0;
+    c.ghostTime = 2;
+    c.impact = 0;
   }
   c.resetHeld = input.reset;
   if (input.boost && !c.boostHeld && c.energy >= 100) {
@@ -131,19 +148,12 @@ export function stepCar(c: Car, raw: Input, dt: number) {
   const grip = 1 - Math.exp(-(c.drifting ? 2.8 : 10) * dt);
   c.vx += (Math.sin(c.heading) * c.speed - c.vx) * grip;
   c.vz += (Math.cos(c.heading) * c.speed - c.vz) * grip;
+  const previousX = c.x,
+    previousZ = c.z;
   c.x += c.vx * dt;
   c.z += c.vz * dt;
-  const p = nearestTrack(c.x, c.z);
-  let collision = false;
-  if (p.distance > ROAD_WIDTH / 2 - 1) {
-    const norm = Math.hypot(c.x - p.x, c.z - p.z) || 1;
-    c.x = p.x + ((c.x - p.x) / norm) * (ROAD_WIDTH / 2 - 1);
-    c.z = p.z + ((c.z - p.z) / norm) * (ROAD_WIDTH / 2 - 1);
-    c.speed *= Math.exp(-3.6 * dt);
-    c.vx *= 0.8;
-    c.vz *= 0.8;
-    collision = true;
-  }
+  const collision = constrainEnvironment(c, track, previousX, previousZ);
+  const p = nearestTrack(c.x, c.z, track);
   if (c.drifting && !collision) {
     const amount = Math.min(24, c.speed * 0.62) * dt;
     c.energy = Math.min(200, c.energy + amount);
@@ -153,22 +163,127 @@ export function stepCar(c: Car, raw: Input, dt: number) {
   if (Math.abs(angleDiff(c.heading, p.heading)) < Math.PI * 0.7)
     advanceProgress(c, p.t);
 }
-export function separateCars(cars: Car[]) {
-  for (let i = 0; i < cars.length; i++)
-    for (let j = i + 1; j < cars.length; j++) {
-      const a = cars[i],
-        b = cars[j],
-        dx = a.x - b.x,
-        dz = a.z - b.z,
-        d = Math.hypot(dx, dz);
-      if (d > 0 && d < 2.1 && !a.finished && !b.finished) {
-        const push = (2.1 - d) * 0.5;
-        a.x += (dx / d) * push;
-        a.z += (dz / d) * push;
-        b.x -= (dx / d) * push;
-        b.z -= (dz / d) * push;
-        a.speed *= 0.99;
-        b.speed *= 0.99;
+const CAR_RADIUS = 1.05;
+
+function syncSpeed(c: Car) {
+  c.speed = Math.max(
+    -63,
+    Math.min(63, c.vx * Math.sin(c.heading) + c.vz * Math.cos(c.heading)),
+  );
+}
+
+// Remove only the velocity pointing into a solid surface; retain sliding motion.
+function surfaceVelocity(c: Car, nx: number, nz: number) {
+  const inward = c.vx * nx + c.vz * nz;
+  if (inward >= 0) return;
+  c.vx -= inward * nx;
+  c.vz -= inward * nz;
+  c.impact = Math.max(c.impact || 0, Math.min(1, -inward / 32));
+  syncSpeed(c);
+}
+
+function constrainEnvironment(
+  c: Car,
+  track: Track,
+  previousX = c.x,
+  previousZ = c.z,
+) {
+  let collision = false;
+  for (const obstacle of track.obstacles) {
+    const radius = obstacle.radius + CAR_RADIUS;
+    const ox = previousX - obstacle.x,
+      oz = previousZ - obstacle.z;
+    const dx = c.x - previousX,
+      dz = c.z - previousZ;
+    const travel2 = dx * dx + dz * dz;
+    let hitX = c.x - obstacle.x,
+      hitZ = c.z - obstacle.z;
+    let hit = Math.hypot(hitX, hitZ) < radius;
+    if (Math.hypot(ox, oz) < radius) {
+      hit = true;
+      hitX = ox;
+      hitZ = oz;
+    } else if (travel2 > 0) {
+      const b = ox * dx + oz * dz;
+      const discriminant =
+        b * b - travel2 * (ox * ox + oz * oz - radius * radius);
+      if (discriminant >= 0) {
+        const time = (-b - Math.sqrt(discriminant)) / travel2;
+        if (time >= 0 && time <= 1) {
+          hit = true;
+          hitX = ox + dx * time;
+          hitZ = oz + dz * time;
+        }
       }
     }
+    if (!hit) continue;
+    let norm = Math.hypot(hitX, hitZ);
+    if (norm < 1e-9) {
+      hitX = -Math.sin(c.heading);
+      hitZ = -Math.cos(c.heading);
+      norm = 1;
+    }
+    const nx = hitX / norm,
+      nz = hitZ / norm;
+    c.x = obstacle.x + nx * radius;
+    c.z = obstacle.z + nz * radius;
+    surfaceVelocity(c, nx, nz);
+    collision = true;
+  }
+  const p = nearestTrack(c.x, c.z, track);
+  const limit = Math.max(0, p.roadWidth / 2 - CAR_RADIUS);
+  if (p.distance > limit) {
+    const norm = Math.hypot(c.x - p.x, c.z - p.z) || 1;
+    const nx = (c.x - p.x) / norm,
+      nz = (c.z - p.z) / norm;
+    c.x = p.x + nx * limit;
+    c.z = p.z + nz * limit;
+    surfaceVelocity(c, -nx, -nz);
+    collision = true;
+  }
+  return collision;
+}
+
+export function separateCars(cars: Car[], track = DEFAULT_TRACK) {
+  const active = cars.filter((c) => !c.finished && !(c.ghostTime > 0));
+  // Reproject after every pair so a contact cannot leave a kart through a wall.
+  // Repeated bounded corrections converge for queues and side-by-side contacts.
+  for (let pass = 0; pass < 48; pass++) {
+    let overlap = false;
+    for (let i = 0; i < active.length; i++)
+      for (let j = i + 1; j < active.length; j++) {
+        const a = active[i],
+          b = active[j];
+        const dx = a.x - b.x,
+          dz = a.z - b.z,
+          d = Math.hypot(dx, dz);
+        if (d >= CAR_RADIUS * 2 - 1e-7) continue;
+        overlap = true;
+        // A road tangent also separates coincident stationary cars near a wall.
+        const heading = nearestTrack(a.x, a.z, track).heading;
+        const nx = d > 1e-9 ? dx / d : Math.sin(heading);
+        const nz = d > 1e-9 ? dz / d : Math.cos(heading);
+        const closing = (a.vx - b.vx) * nx + (a.vz - b.vz) * nz;
+        if (closing < 0) {
+          const impulse = Math.min(24, -closing * 0.52);
+          a.vx += nx * impulse;
+          a.vz += nz * impulse;
+          b.vx -= nx * impulse;
+          b.vz -= nz * impulse;
+          syncSpeed(a);
+          syncSpeed(b);
+          const impact = Math.min(1, -closing / 32);
+          a.impact = Math.max(a.impact || 0, impact);
+          b.impact = Math.max(b.impact || 0, impact);
+        }
+        const push = (CAR_RADIUS * 2 - d) * 0.5;
+        a.x += nx * push;
+        a.z += nz * push;
+        b.x -= nx * push;
+        b.z -= nz * push;
+        constrainEnvironment(a, track);
+        constrainEnvironment(b, track);
+      }
+    if (!overlap) break;
+  }
 }
