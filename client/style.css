@@ -8,6 +8,8 @@
   --muted: #aebdba;
   --border: #e5eee51c;
   --dark: #13232c;
+  --logo-filter: brightness(3.4) saturate(1.15) hue-rotate(-20deg)
+    drop-shadow(0 1px 2px #061b26a6);
 }
 * {
   box-sizing: border-box;
@@ -113,6 +115,10 @@ p {
   font-weight: 800;
   line-height: 0.92;
   letter-spacing: 1.2px;
+}
+.brand-mark,
+.race-brand > img {
+  filter: var(--logo-filter);
 }
 .brand-mark {
   display: block;
