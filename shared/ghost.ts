@@ -1,5 +1,7 @@
+import { VERSIONS, type RecordContext } from "./rules.ts";
 import { angleDiff } from "./track.ts";
-export interface Ghost {
+export interface Ghost extends RecordContext {
+  sectors: number[];
   version: number;
   trackId: string;
   time: number;
@@ -9,7 +11,19 @@ export function validGhost(v: unknown, trackId: string): v is Ghost {
   const g = v as Ghost;
   return (
     !!g &&
-    g.version === 2 &&
+    g.version === 3 &&
+    Object.entries(VERSIONS).every(
+      ([k, v]) => g[k as keyof RecordContext] === v,
+    ) &&
+    Array.isArray(g.sectors) &&
+    g.sectors.length <= 3 &&
+    g.sectors.every(
+      (x, i) =>
+        Number.isFinite(x) &&
+        x > 0 &&
+        x <= g.time &&
+        (i === 0 || x > g.sectors[i - 1]),
+    ) &&
     g.trackId === trackId &&
     Number.isFinite(g.time) &&
     g.time > 0 &&
@@ -17,6 +31,10 @@ export function validGhost(v: unknown, trackId: string): v is Ghost {
     Array.isArray(g.frames) &&
     g.frames.length >= 2 &&
     g.frames.length <= 6001 &&
+    Array.isArray(g.frames[0]) &&
+    Array.isArray(g.frames[g.frames.length - 1]) &&
+    g.frames[0][0] === 0 &&
+    Math.abs(g.frames[g.frames.length - 1][0] - g.time) < 0.05 &&
     g.frames.every(
       (f, i) =>
         Array.isArray(f) &&

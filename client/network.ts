@@ -1,6 +1,7 @@
 import { Client, type Room } from "@colyseus/sdk";
 import type { Snapshot, Account, Pool } from "../shared/protocol.ts";
 import type { Input } from "../shared/race.ts";
+import { acceptSnapshot, VERSIONS } from "../shared/rules.ts";
 import { reconnectDeadline } from "./lifecycle.ts";
 export class Network {
   token = sessionStorage.getItem("pons-token") || "";
@@ -13,6 +14,7 @@ export class Network {
   connectionState: "connected" | "reconnecting" | "ended" = "connected";
   ping = 0;
   private pingStart = 0;
+  private lastTick = -1;
   onSnapshot: (s: Snapshot) => void = () => {};
   onNotice: (s: string) => void = () => {};
   onTerminal: (snapshot: Snapshot | null) => void = () => {};
@@ -70,6 +72,8 @@ export class Network {
       ? await client.joinById(roomId, { token: this.token, name })
       : await client.create("kart", { token: this.token, name, ...config });
     this.seq = 0;
+    this.lastTick = -1;
+    this.snapshot = null;
     this.room.reconnection.minUptime = 0;
     this.connected = true;
     this.connectionState = "connected";
@@ -93,7 +97,21 @@ export class Network {
       void this.refresh().catch(() => {});
     };
     this.room.onMessage("snapshot", (s: Snapshot) => {
-      if (this.room !== currentRoom) return;
+      if (
+        this.room !== currentRoom ||
+        !acceptSnapshot(currentRoom.roomId, this.lastTick, s)
+      )
+        return;
+      if (s.rulesVersion !== VERSIONS.rulesVersion) {
+        this.onNotice("游戏规则已更新，请刷新页面后重新加入");
+        void this.leave();
+        return;
+      }
+      this.lastTick = s.serverTick;
+      this.seq = Math.max(
+        this.seq,
+        s.cars.find((c) => c.id === currentRoom.sessionId)?.ack || 0,
+      );
       this.snapshot = s;
       this.onSnapshot(s);
     });
@@ -107,7 +125,7 @@ export class Network {
       if (this.room !== currentRoom) return;
       this.connected = false;
       this.connectionState = "reconnecting";
-      this.onNotice("连接中断，正在尝试重连（30 秒）");
+      this.onNotice("连接中断，正在尝试重连（10 秒）");
       const now = Date.now();
       this.reconnectDeadlineAt = reconnectDeadline(
         this.reconnectDeadlineAt,
@@ -139,7 +157,12 @@ export class Network {
   }
   input(input: Input) {
     if (this.room && this.connected)
-      this.room.send("input", { ...input, seq: ++this.seq });
+      this.room.send("input", {
+        ...input,
+        seq: ++this.seq,
+        raceId: this.room.roomId,
+        clientTick: this.snapshot?.serverTick,
+      });
   }
   ready(value: boolean) {
     this.room?.send("ready", value);

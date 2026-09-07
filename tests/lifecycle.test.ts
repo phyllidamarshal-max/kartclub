@@ -10,7 +10,7 @@ test("a stale solo result only blocks the solo result screen", () => {
 
 test("repeated drops preserve the first reconnect deadline", () => {
   const first = reconnectDeadline(null, 1_000);
-  assert.equal(first, 31_000);
+  assert.equal(first, 11_000);
   assert.equal(reconnectDeadline(first, 12_000), first);
-  assert.equal(reconnectDeadline(null, 12_000), 42_000);
+  assert.equal(reconnectDeadline(null, 12_000), 22_000);
 });

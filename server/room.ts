@@ -20,7 +20,12 @@ import { randomBytes } from "node:crypto";
 import { getTrack } from "../shared/track.ts";
 import { validateMatch, type MatchConfig } from "../shared/gameplay.ts";
 import { createItems, stepItems, type ItemWorld } from "../shared/items.ts";
+import { VERSIONS, RACE_RULES, classify, InputInbox } from "../shared/rules.ts";
+import type { RaceRecords } from "./race-records.ts";
 interface Seat {
+  inbox: InputInbox;
+  progressAt: number;
+  dnfReason: string;
   info: PlayerInfo;
   account: string;
   car: Car;
@@ -33,6 +38,29 @@ interface Seat {
 export class KartRoom extends Room {
   static economy: Economy;
   static auth: Auth;
+  static records: RaceRecords;
+  serverTick = 0;
+  waitTime = 0;
+  firstFinish = false;
+  resultDigest = "";
+  private stepSamples: number[] = [];
+  private stepP95 = 0;
+  private stepP99 = 0;
+  private eventSeq = 0;
+  private startedAt = "";
+  private log(type: string, payload: unknown = {}) {
+    try {
+      KartRoom.records?.event(this.roomId, String(++this.eventSeq), {
+        eventId: this.eventSeq,
+        serverTick: this.serverTick,
+        rulesVersion: VERSIONS.rulesVersion,
+        type,
+        payload,
+      });
+    } catch {
+      this.reason = "审计日志写入失败，请保留房间码联系维护";
+    }
+  }
   maxClients = 4;
   seats = new Map<string, Seat>();
   phase: Phase = "waiting";
@@ -45,8 +73,9 @@ export class KartRoom extends Room {
   config: MatchConfig = validateMatch();
   items: ItemWorld | null = null;
   onCreate(options: Record<string, unknown> = {}) {
-    this.config = validateMatch(options);
-    this.finishDeadline = this.config.laps * 180;
+    this.config = Object.freeze(validateMatch(options));
+    this.maxClients = this.config.free ? 8 : 4;
+    this.finishDeadline = RACE_RULES.hardLimit;
     this.roomId = randomBytes(4).toString("hex").toUpperCase();
     this.maxMessagesPerSecond = 90;
     this.onMessage("ready", (client, value) => {
@@ -78,12 +107,23 @@ export class KartRoom extends Room {
         packet.seq > s.seq + 600
       )
         return;
-      s.seq = packet.seq;
-      s.input = sanitizeInput(packet);
+      if (packet.raceId !== undefined && packet.raceId !== this.roomId) return;
+      if (!s.inbox.push(packet, this.serverTick, performance.now())) return;
+      s.seq = s.inbox.seq;
       s.lastInput = now;
     });
     this.onMessage("ping", (client) => client.send("pong", Date.now()));
-    this.setFixedTimestep(({ dt }) => this.tick(dt), 60);
+    this.setFixedTimestep(({ dt }) => {
+      const start = performance.now();
+      this.tick(dt);
+      this.stepSamples.push(performance.now() - start);
+      if (this.stepSamples.length > 600) this.stepSamples.shift();
+      if (this.serverTick % 60 === 0) {
+        const sorted = [...this.stepSamples].sort((a, b) => a - b);
+        this.stepP95 = sorted[Math.floor(sorted.length * 0.95)] || 0;
+        this.stepP99 = sorted[Math.floor(sorted.length * 0.99)] || 0;
+      }
+    }, 60);
     this.patchRate = null;
   }
   onAuth(_client: Client, options: Record<string, unknown>) {
@@ -95,7 +135,7 @@ export class KartRoom extends Room {
       [...this.seats.values()].some((s) => s.account === account)
     )
       throw Error("该账户已在房间中，或比赛已开始");
-    const slot = [0, 1, 2, 3].find(
+    const slot = Array.from({ length: this.maxClients }, (_, i) => i).find(
       (n) => ![...this.seats.values()].some((s) => s.info.slot === n),
     )!;
     const name =
@@ -106,6 +146,9 @@ export class KartRoom extends Room {
             .trim()
         : "车手";
     this.seats.set(client.sessionId, {
+      inbox: new InputInbox(),
+      progressAt: 0,
+      dnfReason: "",
       info: {
         id: client.sessionId,
         name: name || "逐浪车手",
@@ -132,15 +175,23 @@ export class KartRoom extends Room {
     )
       return;
     try {
-      KartRoom.economy.reserve(
-        this.roomId,
-        seats.map((s) => s.account),
-      );
+      if (!this.config.free)
+        KartRoom.economy.reserve(
+          this.roomId,
+          seats.map((s) => s.account),
+        );
       if (this.config.mode === "items")
         this.items = createItems(
           seats.map((s) => s.info.id),
           getTrack(this.config.trackId),
+          randomBytes(4).readUInt32LE(),
         );
+      this.startedAt = new Date().toISOString();
+      this.log("start", {
+        config: this.config,
+        ...VERSIONS,
+        players: seats.map((s) => s.account),
+      });
       this.phase = "countdown";
       this.lock();
       this.countdown = 3;
@@ -151,6 +202,12 @@ export class KartRoom extends Room {
     }
   }
   private tick(dt: number) {
+    this.serverTick++;
+    if (this.phase === "waiting") {
+      this.waitTime += dt;
+      if (this.waitTime >= RACE_RULES.readyTimeout)
+        this.abort("准备超过30秒，本场已取消；请创建新房间重试");
+    }
     if (this.phase === "countdown") {
       this.countdown -= dt;
       if (this.countdown <= 0) {
@@ -158,22 +215,38 @@ export class KartRoom extends Room {
         this.countdown = 0;
       }
     } else if (this.phase === "racing") {
+      dt = Math.min(dt, Math.max(0, this.finishDeadline - this.elapsed));
       this.elapsed += dt;
       for (const s of this.seats.values()) {
         if (s.info.dnf || s.car.finished) continue;
-        const input =
-          Date.now() - s.lastInput < 250 && s.info.connected
-            ? s.input
-            : EMPTY_INPUT;
+        const input = s.info.connected
+          ? s.inbox.take(performance.now())
+          : EMPTY_INPUT;
+        s.input = input;
+        const before = s.car.progress,
+          oldCp = s.car.checkpoint;
         stepCar(s.car, input, dt, getTrack(this.config.trackId));
+        if (!s.info.connected && s.car.speed < 2)
+          s.car.ghostTime = Math.max(s.car.ghostTime, 0.1);
+        if (s.car.progress > before) s.progressAt = this.elapsed;
+        if (s.car.checkpoint !== oldCp)
+          this.log("checkpoint", {
+            playerId: s.account,
+            checkpoint: s.car.checkpoint,
+          });
         s.car.ack = s.seq;
         if (s.car.lap >= this.config.laps) {
           s.car.finished = true;
-          s.car.time = this.elapsed;
-          this.finishDeadline = Math.min(
-            this.finishDeadline,
-            this.elapsed + 35,
-          );
+          s.car.time = s.car.lastLapTime || this.elapsed;
+          stepCar(s.car, EMPTY_INPUT, 0, getTrack(this.config.trackId));
+          this.log("finish", { playerId: s.account, time: s.car.time });
+          if (!this.firstFinish) {
+            this.firstFinish = true;
+            this.finishDeadline = Math.min(
+              RACE_RULES.hardLimit,
+              s.car.time + RACE_RULES.finishWindow,
+            );
+          }
         }
       }
       const activeSeats = [...this.seats.values()].filter((s) => !s.info.dnf);
@@ -188,9 +261,7 @@ export class KartRoom extends Room {
           Object.fromEntries(
             activeSeats.map((s) => [
               s.info.id,
-              Date.now() - s.lastInput < 250 && s.info.connected
-                ? s.input
-                : EMPTY_INPUT,
+              s.info.connected ? s.input : EMPTY_INPUT,
             ]),
           ),
           dt,
@@ -206,31 +277,55 @@ export class KartRoom extends Room {
   }
   private finish() {
     if (this.phase !== "racing") return;
-    const seats = [...this.seats.values()],
-      finishers = seats
-        .filter((s) => s.car.finished)
-        .sort((a, b) => a.car.time - b.car.time);
+    const seats = [...this.seats.values()];
+    const ranked = classify(seats.map((s) => s.car));
+    const finishers = ranked.filter((r) => r.car.finished);
     try {
-      KartRoom.economy.settle(
-        this.roomId,
-        finishers.map((s) => s.account),
-      );
-      const ranked = [
-        ...finishers,
-        ...seats
-          .filter((s) => !s.car.finished)
-          .sort((a, b) => b.car.progress - a.car.progress),
-      ];
-      this.results = ranked.map((s, i) => ({
-        id: s.info.id,
-        name: s.info.name,
-        time: s.car.finished ? s.car.time : null,
-        rank: s.car.finished ? i + 1 : 0,
-        award:
-          KartRoom.economy
-            .account(s.account)
-            .pending.find((a) => a.matchId === this.roomId)?.amount ?? 0,
-      }));
+      if (!this.config.free)
+        KartRoom.economy.settle(
+          this.roomId,
+          finishers.map(
+            (r) => seats.find((s) => s.car.id === r.car.id)!.account,
+          ),
+          finishers.map((r) => r.rank),
+        );
+      this.results = ranked.map((r) => {
+        const s = seats.find((s) => s.car.id === r.car.id)!;
+        if (!r.car.finished) {
+          s.info.dnf = true;
+          s.dnfReason ||=
+            this.elapsed >= this.finishDeadline ? "截止时间内未完赛" : "已退出";
+        }
+        return {
+          id: s.info.id,
+          name: s.info.name,
+          time: r.car.finished ? r.car.time : null,
+          rank: r.rank,
+          status: r.car.finished ? ("FINISHED" as const) : ("DNF" as const),
+          reason: s.dnfReason,
+          award: this.config.free
+            ? 0
+            : (KartRoom.economy
+                .account(s.account)
+                .pending.find((a) => a.matchId === this.roomId)?.amount ?? 0),
+        };
+      });
+      try {
+        this.resultDigest =
+          KartRoom.records?.freeze(this.roomId, {
+            raceId: this.roomId,
+            ...VERSIONS,
+            config: this.config,
+            startedAt: this.startedAt,
+            endedAt: new Date().toISOString(),
+            results: this.results,
+          }) || "";
+      } catch {
+        this.reason = "比赛已结算，审计记录写入失败；请保留房间码联系维护";
+      }
+      this.log("result-frozen", { digest: this.resultDigest });
+      for (const r of this.results) Object.freeze(r);
+      Object.freeze(this.results);
       this.phase = "finished";
       this.publish();
     } catch (e) {
@@ -239,10 +334,14 @@ export class KartRoom extends Room {
   }
   private abort(reason: string) {
     if (this.phase === "finished" || this.phase === "cancelled") return;
-    if (this.phase === "countdown" || this.phase === "racing")
+    if (
+      !this.config.free &&
+      (this.phase === "countdown" || this.phase === "racing")
+    )
       KartRoom.economy.cancel(this.roomId);
     this.phase = "cancelled";
     this.reason = reason;
+    this.log("cancelled", { reason });
     this.publish();
   }
   async onDrop(client: Client) {
@@ -250,9 +349,12 @@ export class KartRoom extends Room {
     if (!s) return;
     s.info.connected = false;
     s.input = { ...EMPTY_INPUT };
+    s.inbox.clear();
+    if (this.phase === "countdown")
+      this.abort("起跑前连接中断，本场已取消；模拟门票已退回");
     this.publish();
     try {
-      await this.allowReconnection(client, 30);
+      await this.allowReconnection(client, RACE_RULES.reconnectSeconds);
     } catch {
       /* onLeave applies final departure after expiry. */
     }
@@ -262,6 +364,7 @@ export class KartRoom extends Room {
     if (s) {
       s.info.connected = true;
       s.lastInput = 0;
+      s.inbox.clear();
       this.publish();
     }
   }
@@ -276,7 +379,8 @@ export class KartRoom extends Room {
       for (const seat of this.seats.values()) seat.info.ready = false;
     } else {
       s.info.connected = false;
-      s.info.dnf = true;
+      if (!s.car.finished) s.info.dnf = true;
+      s.dnfReason = "已退出或重连超时";
       s.input = { ...EMPTY_INPUT };
     }
     if (
@@ -289,11 +393,34 @@ export class KartRoom extends Room {
     this.publish();
   }
   onDispose() {
-    if (this.phase === "countdown" || this.phase === "racing")
+    if (
+      !this.config.free &&
+      (this.phase === "countdown" || this.phase === "racing")
+    )
       KartRoom.economy.cancel(this.roomId);
   }
   snapshot(): Snapshot {
     return {
+      ...VERSIONS,
+      serverTick: this.serverTick,
+      raceId: this.roomId,
+      free: !!this.config.free,
+      maxPlayers: this.maxClients,
+      deadline: this.finishDeadline,
+      resultDigest: this.resultDigest,
+      diagnostics: { stepP95: this.stepP95, stepP99: this.stepP99 },
+      stage:
+        this.phase === "waiting"
+          ? "LOBBY"
+          : this.phase === "countdown"
+            ? "COUNTDOWN"
+            : this.phase === "racing"
+              ? this.firstFinish
+                ? "FINISH_WINDOW"
+                : "RACING"
+              : this.phase === "finished"
+                ? "RESULTS"
+                : "CANCELLED",
       roomId: this.roomId,
       phase: this.phase,
       players: [...this.seats.values()].map((s) => s.info),
@@ -303,7 +430,7 @@ export class KartRoom extends Room {
       laps: this.config.laps,
       trackId: this.config.trackId,
       raceMode: this.config.mode,
-      items: this.items,
+      items: this.items ? { ...this.items, seed: 0 } : null,
       results: this.results,
       reason: this.reason,
     };

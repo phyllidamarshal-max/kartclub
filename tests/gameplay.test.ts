@@ -1,3 +1,4 @@
+import {VERSIONS} from "../shared/rules.ts";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
@@ -46,7 +47,9 @@ test("shield blocks tracking hit, item press is edge-triggered, finished cars ca
 });
 test("ghost interpolation follows stored pose and malformed recordings are rejected", () => {
   const g = {
-    version: 2,
+    version: 3,
+    ...VERSIONS,
+    sectors:[],
     trackId: "coast",
     time: 1,
     frames: [

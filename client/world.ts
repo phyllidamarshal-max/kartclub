@@ -120,6 +120,7 @@ export class World {
   cars = new Map<string, THREE.Group>();
   elapsed = 0;
   quality = "high";
+  motion = 1;
   private target = new THREE.Vector3();
   private perfStart = performance.now();
   private perfFrames = 0;
@@ -247,8 +248,8 @@ export class World {
       this.customDriver.scale.setScalar(this.content.modelScale);
       for (const c of this.cars.values()) {
         const d = c.getObjectByName("driver");
-        if (d) c.remove(d);
-        const n = this.customDriver.clone();
+        if (d) d.visible = false;
+        const n = this.cloneDriver();
         n.position.y = 0.9;
         c.add(n);
       }
@@ -939,12 +940,39 @@ export class World {
     flame.name = "flame";
     flame.visible = false;
     if (this.customDriver) {
-      g.remove(driver);
-      const d = this.customDriver.clone();
+      driver.visible = false;
+      const d = this.cloneDriver();
       d.position.y = 0.9;
       g.add(d);
     }
     return g;
+  }
+  private cloneDriver() {
+    const d = this.customDriver!.clone(true);
+    d.traverse((o) => {
+      if (o instanceof THREE.Mesh) {
+        o.geometry = o.geometry.clone();
+        const clone = (m: THREE.Material) => {
+          const n = m.clone();
+          for (const [k, v] of Object.entries(n))
+            if (v instanceof THREE.Texture)
+              (n as unknown as Record<string, unknown>)[k] = v.clone();
+          return n;
+        };
+        o.material = Array.isArray(o.material)
+          ? o.material.map(clone)
+          : clone(o.material);
+      }
+    });
+    return d;
+  }
+  pruneCars(seen: ReadonlySet<string>) {
+    for (const [id, g] of this.cars)
+      if (!seen.has(id)) {
+        this.scene.remove(g);
+        disposeObjectResources(g);
+        this.cars.delete(id);
+      }
   }
   resetCamera() {
     this.cameraReady = false;
@@ -964,7 +992,8 @@ export class World {
     measuredMs = dt * 1000,
   ) {
     this.elapsed += dt;
-    const seen = new Set<string>();
+    const seen = new Set<string>(cars.map((c) => c.id));
+    this.pruneCars(seen);
     for (let i = 0; i < cars.length; i++) {
       const c = cars[i];
       seen.add(c.id);
@@ -974,7 +1003,6 @@ export class World {
         if (c.id === "ghost")
           g.traverse((o) => {
             if (o instanceof THREE.Mesh) {
-              o.material = (o.material as THREE.Material).clone();
               const m = o.material as THREE.Material;
               m.transparent = true;
               m.opacity = 0.28;
@@ -988,7 +1016,8 @@ export class World {
         c.x,
         nearestTrack(c.x, c.z, this.track).y +
           Math.sin(this.elapsed * 22) *
-            Math.min(0.035, Math.abs(c.speed) * 0.002),
+            Math.min(0.035, Math.abs(c.speed) * 0.002) *
+            this.motion,
         c.z,
       );
       g.visible =
@@ -998,10 +1027,10 @@ export class World {
       g.rotation.set(
         0,
         c.heading,
-        c.drifting ? Math.sin(this.elapsed * 10) * 0.025 : 0,
+        c.drifting ? Math.sin(this.elapsed * 10) * 0.025 * this.motion : 0,
       );
       const flame = g.getObjectByName("flame")!;
-      flame.visible = c.boostTime > 0;
+      flame.visible = c.boostTime > 0 || c.miniTime > 0;
       flame.scale.y = 0.8 + Math.sin(this.elapsed * 40) * 0.25;
       if (c.drifting && Math.abs(c.speed) > 10 && Math.random() < 0.6) {
         for (const side of [-0.83, 0.83]) {
@@ -1056,7 +1085,8 @@ export class World {
         }
         this.camera.lookAt(this.target);
         this.camera.fov +=
-          ((c.boostTime > 0 ? 69 : 57) - this.camera.fov) * smooth;
+          (57 + (c.boostTime > 0 ? 12 : 0) * this.motion - this.camera.fov) *
+          smooth;
       }
     }
     this.camera.updateProjectionMatrix();

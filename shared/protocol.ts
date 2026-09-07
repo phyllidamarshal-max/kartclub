@@ -15,8 +15,22 @@ export interface RaceResult {
   time: number | null;
   rank: number;
   award: number;
+  status?: "FINISHED" | "DNF";
+  reason?: string;
 }
 export interface Snapshot {
+  serverTick: number;
+  raceId: string;
+  rulesVersion: string;
+  trackVersion: string;
+  performanceClass: string;
+  assistClass: string;
+  free: boolean;
+  maxPlayers: number;
+  deadline: number;
+  stage: string;
+  resultDigest: string;
+  diagnostics: { stepP95: number; stepP99: number };
   trackId: string;
   raceMode: "race" | "items";
   items: import("./items.ts").ItemWorld | null;

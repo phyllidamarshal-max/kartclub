@@ -31,6 +31,7 @@ export type ReserveReceipt = {
 export type SettlementReceipt = {
   matchId: string;
   finishers: string[];
+  ranks?: number[];
   allocations: Array<{ id: string; amount: number }>;
 };
 export type CancelReceipt = {
@@ -234,7 +235,24 @@ export class Economy {
     });
   }
 
-  settle(matchId: string, finishers: string[]): SettlementReceipt {
+  settle(
+    matchId: string,
+    finishers: string[],
+    ranks?: number[],
+  ): SettlementReceipt {
+    const positions = ranks ?? finishers.map((_, i) => i + 1);
+    if (
+      positions.length !== finishers.length ||
+      positions.some(
+        (r, i) =>
+          !Number.isInteger(r) ||
+          r < 1 ||
+          r > i + 1 ||
+          (i === 0 && r !== 1) ||
+          (i > 0 && r !== positions[i - 1] && r !== i + 1),
+      )
+    )
+      throw Error("invalid tied ranks");
     this.#identifier(matchId, "match");
     if (!Array.isArray(finishers))
       throw new Error("finishers must be an array");
@@ -246,9 +264,15 @@ export class Economy {
       if (String(match.status) === "settled") {
         if (String(match.finishers_json) !== JSON.stringify(finishers))
           throw new Error("settlement conflict");
-        return JSON.parse(
+        const prior = JSON.parse(
           String(match.settlement_receipt),
         ) as SettlementReceipt;
+        if (
+          JSON.stringify(prior.ranks ?? finishers.map((_, i) => i + 1)) !==
+          JSON.stringify(positions)
+        )
+          throw Error("settlement ranks conflict");
+        return prior;
       }
       if (String(match.status) !== "reserved")
         throw new Error("cancelled match cannot be settled");
@@ -266,13 +290,23 @@ export class Economy {
             : finishers.length >= 3
               ? [6_000, 3_000, 1_000]
               : [];
-      const allocations = finishers
-        .slice(0, 3)
-        .map((id, index) => ({ id, amount: shares[index] }));
+      const allocations: Array<{ id: string; amount: number }> = [];
+      for (let i = 0; i < finishers.length;) {
+        let end = i + 1;
+        while (end < finishers.length && positions[end] === positions[i]) end++;
+        const amount = Math.floor(
+          shares.slice(i, end).reduce((n, x) => n + x, 0) / (end - i),
+        );
+        for (let j = i; j < end; j++)
+          if (amount > 0) allocations.push({ id: finishers[j], amount });
+        i = end;
+      }
+      const allocated = allocations.reduce((n, a) => n + a.amount, 0);
       const receipt: SettlementReceipt = {
         matchId,
         finishers: [...finishers],
         allocations,
+        ...(ranks ? { ranks: [...positions] } : {}),
       };
       const insert = this.#db.prepare(
         "INSERT INTO awards(match_id,player_id,position,amount) VALUES (?,?,?,?)",
@@ -280,18 +314,11 @@ export class Economy {
       allocations.forEach((award, index) =>
         insert.run(matchId, award.id, index, award.amount),
       );
-      if (allocations.length)
-        this.#db
-          .prepare(
-            "UPDATE pool SET reserved=reserved-?, pending=pending+? WHERE singleton=1",
-          )
-          .run(PRIZE, PRIZE);
-      else
-        this.#db
-          .prepare(
-            "UPDATE pool SET reserved=reserved-?, available=available+? WHERE singleton=1",
-          )
-          .run(PRIZE, PRIZE);
+      this.#db
+        .prepare(
+          "UPDATE pool SET reserved=reserved-?, pending=pending+?, available=available+? WHERE singleton=1",
+        )
+        .run(PRIZE, allocated, PRIZE - allocated);
       this.#db
         .prepare(
           `UPDATE matches SET status='settled', finishers_json=?, settlement_receipt=? WHERE id=?`,

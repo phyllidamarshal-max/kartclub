@@ -14,6 +14,8 @@ export const ITEM_ICONS: Record<Item, string> = {
   trap: "△",
 };
 export interface ItemState {
+  lastProgress: number | null;
+  pickedLaps: number[];
   held: Item | null;
   shield: number;
   slow: number;
@@ -27,7 +29,7 @@ export interface ItemWorld {
   time: number;
   seed: number;
   players: Record<string, ItemState>;
-  boxes: { x: number; z: number; readyAt: number }[];
+  boxes: { x: number; z: number; y: number; band: number; readyAt: number }[];
   traps: { x: number; z: number; owner: string; ttl: number }[];
   missiles: {
     x: number;
@@ -40,10 +42,13 @@ export interface ItemWorld {
 export function createItems(
   ids: string[],
   track: Track = DEFAULT_TRACK,
+  seed = 537,
 ): ItemWorld {
   const players: Record<string, ItemState> = {};
   for (const id of ids)
     players[id] = {
+      lastProgress: null,
+      pickedLaps: Array(8).fill(-1),
       held: null,
       shield: 0,
       slow: 0,
@@ -61,9 +66,11 @@ export function createItems(
         x: p.x + Math.cos(p.heading) * side,
         z: p.z - Math.sin(p.heading) * side,
         readyAt: 0,
+        y: p.y,
+        band: i,
       });
     }
-  return { time: 0, seed: 537, players, boxes, traps: [], missiles: [] };
+  return { time: 0, seed: seed >>> 0, players, boxes, traps: [], missiles: [] };
 }
 export function stepItems(
   w: ItemWorld,
@@ -101,7 +108,13 @@ export function stepItems(
     p.noticeTime = Math.max(0, p.noticeTime - dt);
     if (p.slow > 0 && c.speed > 20) c.speed = 20;
     const pressed = inputs[c.id]?.item === true;
-    if (c.finished) {
+    const forward =
+      p.lastProgress !== null &&
+      c.progress > p.lastProgress &&
+      c.progress - p.lastProgress < 0.01 &&
+      c.speed > 0;
+    p.lastProgress = c.progress;
+    if (c.finished || c.resetTime > 0) {
       p.pressed = pressed;
       continue;
     }
@@ -126,6 +139,9 @@ export function stepItems(
               o.id !== c.id &&
               !o.finished &&
               o.progress > c.progress &&
+              Math.abs(
+                trackPoint(o.lastT, track).y - trackPoint(c.lastT, track).y,
+              ) < 5 &&
               Math.hypot(o.x - c.x, o.z - c.z) < 160,
           )
           .sort((a, b) => a.progress - b.progress)[0];
@@ -141,9 +157,15 @@ export function stepItems(
       }
     }
     p.pressed = pressed;
-    if (!p.held)
+    if (!p.held && forward && c.ghostTime <= 0)
       for (const b of w.boxes)
-        if (b.readyAt <= w.time && Math.hypot(c.x - b.x, c.z - b.z) < 2.5) {
+        if (
+          p.pickedLaps[b.band] !== Math.floor(c.progress) &&
+          b.readyAt <= w.time &&
+          Math.abs(trackPoint(c.lastT, track).y - b.y) < 3 &&
+          Math.hypot(c.x - b.x, c.z - b.z) < 2.5
+        ) {
+          p.pickedLaps[b.band] = Math.floor(c.progress);
           w.seed = (Math.imul(w.seed, 1664525) + 1013904223) >>> 0;
           p.held = (["boost", "shield", "missile", "trap"] as Item[])[
             (w.seed >>> 16) % 4

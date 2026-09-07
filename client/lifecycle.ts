@@ -7,7 +7,7 @@ export function canOpenPause(mode: RaceMode, soloDone: boolean, modal: string) {
 export function reconnectDeadline(
   current: number | null,
   now: number,
-  duration = 30_000,
+  duration = 10_000,
 ) {
   return current ?? now + duration;
 }

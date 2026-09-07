@@ -5,6 +5,7 @@ export interface MatchConfig {
   trackId: string;
   mode: "race" | "items";
   laps: number;
+  free?: boolean;
 }
 export function validateMatch(raw: Record<string, unknown> = {}): MatchConfig {
   const trackId =
@@ -19,7 +20,14 @@ export function validateMatch(raw: Record<string, unknown> = {}): MatchConfig {
     Number(laps) > 3
   )
     throw Error("比赛模式或圈数无效");
-  return { trackId, mode, laps: Number(laps) };
+  if (raw.free !== undefined && typeof raw.free !== "boolean")
+    throw Error("无效参赛类型");
+  return {
+    trackId,
+    mode,
+    laps: Number(laps),
+    ...(raw.free === true ? { free: true } : {}),
+  };
 }
 export interface Challenge {
   id: string;

@@ -35,6 +35,8 @@ import {
   type RaceMode,
   type Difficulty,
 } from "../shared/gameplay.ts";
+import { Training } from "./training.ts";
+import { VERSIONS, recordKey, classify, RACE_RULES } from "../shared/rules.ts";
 import { aiInput, AI_NAMES } from "../shared/ai.ts";
 import {
   createItems,
@@ -59,8 +61,16 @@ let selection = {
 };
 let soloCars: Car[] = [],
   itemWorld: ItemWorld | null = null;
+const careerKey = "pons-career-" + recordKey("all");
+const oldCareerProgress = stored<
+  Record<string, { stars: number; time: number }>
+>("pons-career-v2", {});
+let training: Training | null = null,
+  currentSplits: number[] = [],
+  correctionDistance = 0;
+let freeOnline = true;
 let careerProgress: Record<string, { stars: number; time: number }> = stored(
-  "pons-career-v2",
+  careerKey,
   {},
 );
 let bestGhost: Ghost | null = null,
@@ -83,10 +93,11 @@ function activateTrack(id: string) {
   if (world) world.dispose();
   world = new World($("#scene") as HTMLCanvasElement, content, next);
   world.setQuality(settings.quality);
+  world.motion = Number(settings.motion ?? 1);
   void world.loadAssets().catch((e) => toast(e.message));
 }
 function setupMarkup(online = false) {
-  return `<span class="eyebrow">RACE DIRECTOR / 0.2</span><h2>选择你的下一场挑战</h2><div class="track-picker">${TRACKS.map(
+  return `<span class="eyebrow">RACE DIRECTOR / 0.3</span><h2>选择你的下一场挑战</h2><div class="track-picker">${TRACKS.map(
     (t) =>
       `<button class="track-option ${selection.trackId === t.id ? "selected" : ""}" data-track="${t.id}"><svg viewBox="-330 -330 660 660" aria-hidden="true"><polyline points="${t.points
         .filter((_, i) => i % 5 === 0)
@@ -107,7 +118,7 @@ function setupMarkup(online = false) {
               `<option value="${v}" ${selection.difficulty === v ? "selected" : ""}>${n}</option>`,
           )
           .join("")}</select></label>`
-  }${online ? "" : `<label>AI 对手<select id="opponents-select" data-config="opponents">${[3, 5, 7].map((n) => `<option value="${n}" ${selection.opponents === n ? "selected" : ""}>${n} 名 AI · ${n + 1} 车赛</option>`).join("")}</select></label>`}<label>比赛圈数<select id="laps-select" data-config="laps">${[1, 2, 3].map((n) => `<option value="${n}" ${selection.laps === n ? "selected" : ""}>${n} 圈${n === 3 ? " · 标准赛事" : ""}</option>`).join("")}</select></label></div><p class="form-note">${online ? "多人比赛仅实际玩家参赛，全部准备后扣票。" : "竞速 / 道具模式可选 3–7 名 AI；计时模式记录每圈最佳影子；自由练习没有对手。所有单人玩法免费。"}</p>${online ? "" : '<button class="button primary full" data-action="start-custom">开始比赛 →</button>'}`;
+  }${online ? "" : `<label>AI 对手<select id="opponents-select" data-config="opponents">${[3, 5, 7].map((n) => `<option value="${n}" ${selection.opponents === n ? "selected" : ""}>${n} 名 AI · ${n + 1} 车赛</option>`).join("")}</select></label>`}<label>比赛圈数<select id="laps-select" data-config="laps">${[1, 2, 3].map((n) => `<option value="${n}" ${selection.laps === n ? "selected" : ""}>${n} 圈${n === 3 ? " · 标准赛事" : ""}</option>`).join("")}</select></label></div><p class="form-note">${online ? "普通免费赛无需门票；模拟奖金场全部准备后扣票。" : "竞速 / 道具模式可选 3–7 名 AI；计时模式记录每圈最佳影子；自由练习没有对手。所有单人玩法免费。"}</p>${online ? "" : '<button class="button primary full" data-action="start-custom">开始比赛 →</button>'}`;
 }
 
 type Page = "home" | "career" | "online" | "vault";
@@ -153,6 +164,7 @@ const settings = stored("pons-settings", {
   music: 0.24,
   effects: 0.4,
   quality: "high",
+  motion: 1,
 });
 const progress: unknown = stored("pons-progress", {});
 let rebinding: Binding | null = null;
@@ -202,7 +214,7 @@ function header() {
   return `<header class="header"><button class="brand" data-page="home" aria-label="返回首页"><span class="brand-mark">P<span>↗</span></span><span>PONS<span class="brand-light">KART</span><small>CHASE THE TIDE.</small></span></button><nav>${(["home", "career", "online", "vault"] as Page[]).map((p, i) => `<button data-page="${p}" class="${page === p ? "active" : ""}">${["赛事大厅", "单人挑战", "多人联机", "奖励金库"][i]}${p === "online" ? '<span class="nav-dot"></span>' : ""}</button>`).join("")}</nav><div class="header-actions">${simulated()}<button class="wallet" data-action="wallet"><span class="coin">◈</span> <span id="wallet-value">${net.account ? money(net.account.tickets) : "—"}</span> <span class="wallet-unit">TICKET</span></button><button class="icon-button" data-action="settings" aria-label="设置">${icons.gear}</button></div></header>`;
 }
 function footer() {
-  return `<footer class="footer"><span><i class="status-dot ${net.account ? "" : "off"}"></i> ${net.account ? "本地赛事服务已连接" : "单人模式就绪"} <span class="footer-divider">/</span> PROTOTYPE 0.2</span><span>原创赛道 · 原创配乐 · 为每一次漂移而生</span><button data-action="help">操作指南 <span>↗</span></button></footer>`;
+  return `<footer class="footer"><span><i class="status-dot ${net.account ? "" : "off"}"></i> ${net.account ? "本地赛事服务已连接" : "单人模式就绪"} <span class="footer-divider">/</span> PROTOTYPE 0.3</span><span>原创赛道 · 原创配乐 · 为每一次漂移而生</span><button data-action="help">操作指南 <span>↗</span></button></footer>`;
 }
 function lobby() {
   mode = "lobby";
@@ -215,20 +227,31 @@ function lobby() {
   roomStamp = "";
 }
 function home() {
-  return `<section class="hero"><div class="eyebrow"><span class="season">SEASON 00</span><span>THE COAST IS CALLING</span></div><h1>逐浪而行<span>弯道，由你定义。</span></h1><p class="hero-copy">把海风甩在身后。<br>漂移、蓄能、冲线，下一位领跑者就是你。</p><div class="hero-buttons"><button class="button primary" data-action="practice">即刻试驾 <span>↗</span></button><button class="button outline" data-page="online">与好友竞速 <span>→</span></button></div><div class="hero-meta"><span><b>09</b> 独立路线</span><span><b>04</b> 真人联机席位</span><span><b>∞</b> 漂移可能</span></div></section><aside class="track-tag"><span class="live-pill"><i></i> CIRCUIT 001</span><h2>${escape(activeTrack.name)}</h2><p>${escape(activeTrack.subtitle)}</p><div><span>↝ ${(activeTrack.length / 1000).toFixed(2)} km</span><span>☀ 晴朗</span><span>技术型</span></div></aside><section class="mode-grid"><button class="mode-card practice" data-action="practice"><span class="card-index">01 / FREE DRIVE</span><div class="card-row"><h3>自由试驾</h3><span class="card-arrow">↗</span></div><p>熟悉每一个弯，找到你的节奏。</p><div class="card-bottom"><span class="badge">免费体验</span><span>随时出发 →</span></div></button><button class="mode-card challenge" data-page="career"><span class="card-index">02 / SOLO CHALLENGE</span><div class="card-row"><h3>单人挑战</h3><span class="card-arrow">↗</span></div><p>从第一圈，到属于你的最佳纪录。</p><div class="card-bottom"><span class="badge">${Object.keys(careerProgress).filter((k) => careerProgress[k].stars > 0).length} / 9 生涯已完成${classicRecords(progress).length ? ` · 经典 ${classicRecords(progress).length} / 3` : ""}</span><span>查看挑战 →</span></div></button><button class="mode-card multiplayer" data-page="online"><span class="card-index">03 / MULTIPLAYER</span><div class="card-row"><h3>多人竞速</h3><span class="card-arrow">↗</span></div><p>邀请好友，用实力争夺领奖台。</p><div class="card-bottom"><span class="badge">2–4 人实时联机</span><span>进入房间 →</span></div></button><button class="pool-card" data-page="vault"><span class="card-index">SIMULATED PRIZE POOL</span><div class="pool-value">${net.pool ? money(net.pool.available) : "—"} <small>$PONS</small></div><p><i></i> 模拟交易税 2% · 可用奖池</p><span class="pool-link">探索奖励金库 ↗</span></button></section>`;
+  return `<section class="hero"><div class="eyebrow"><span class="season">SEASON 00</span><span>THE COAST IS CALLING</span></div><h1>逐浪而行<span>弯道，由你定义。</span></h1><p class="hero-copy">把海风甩在身后。<br>漂移、蓄能、冲线，下一位领跑者就是你。</p><div class="hero-buttons"><button class="button primary" data-action="practice">即刻试驾 <span>↗</span></button><button class="button outline" data-page="online">与好友竞速 <span>→</span></button></div><div class="hero-meta"><span><b>09</b> 独立路线</span><span><b>08</b> 免费联机席位</span><span><b>∞</b> 漂移可能</span></div></section><aside class="track-tag"><span class="live-pill"><i></i> CIRCUIT 001</span><h2>${escape(activeTrack.name)}</h2><p>${escape(activeTrack.subtitle)}</p><div><span>↝ ${(activeTrack.length / 1000).toFixed(2)} km</span><span>☀ 晴朗</span><span>技术型</span></div></aside><section class="mode-grid"><button class="mode-card practice" data-action="practice"><span class="card-index">01 / FREE DRIVE</span><div class="card-row"><h3>自由试驾</h3><span class="card-arrow">↗</span></div><p>熟悉每一个弯，找到你的节奏。</p><div class="card-bottom"><span class="badge">免费体验</span><span>随时出发 →</span></div></button><button class="mode-card challenge" data-page="career"><span class="card-index">02 / SOLO CHALLENGE</span><div class="card-row"><h3>单人挑战</h3><span class="card-arrow">↗</span></div><p>从第一圈，到属于你的最佳纪录。</p><div class="card-bottom"><span class="badge">${Object.keys(careerProgress).filter((k) => careerProgress[k].stars > 0).length} / 9 生涯已完成${classicRecords(progress).length ? ` · 经典 ${classicRecords(progress).length} / 3` : ""}</span><span>查看挑战 →</span></div></button><button class="mode-card multiplayer" data-page="online"><span class="card-index">03 / MULTIPLAYER</span><div class="card-row"><h3>多人竞速</h3><span class="card-arrow">↗</span></div><p>邀请好友，用实力争夺领奖台。</p><div class="card-bottom"><span class="badge">2–8 人免费联机</span><span>进入房间 →</span></div></button><button class="pool-card" data-page="vault"><span class="card-index">SIMULATED PRIZE POOL</span><div class="pool-value">${net.pool ? money(net.pool.available) : "—"} <small>$PONS</small></div><p><i></i> 模拟交易税 2% · 可用奖池</p><span class="pool-link">探索奖励金库 ↗</span></button></section>`;
 }
 function career() {
-  return `<section class="page-heading compact"><span class="eyebrow">CAREER / 3 CHAPTERS · 9 CHALLENGES</span><h1>从海岸出发，向山巅进阶。</h1><p>赢取星级解锁下一关。自由比赛可提前练习所有赛道。</p><button class="button outline" data-action="practice">自由比赛与练习 ↗</button></section><section class="challenge-grid">${CHALLENGES.map(
+  return `<section class="page-heading compact"><span class="eyebrow">CAREER / 3 CHAPTERS · 9 CHALLENGES</span><h1>从海岸出发，向山巅进阶。</h1><p>赢取星级解锁下一关。自由比赛可提前练习所有赛道。</p><button class="button primary" data-action="training">驾驶教学 · 五步练习</button> <button class="button outline" data-action="practice">自由比赛与练习 ↗</button></section><section class="challenge-grid">${CHALLENGES.map(
     (q, i) => {
       const p = careerProgress[q.id],
-        unlocked = isUnlocked(i, careerProgress);
+        unlocked = isUnlocked(i, { ...oldCareerProgress, ...careerProgress });
       return `<article class="challenge-tile ${unlocked ? "" : "locked"}"><span class="challenge-number">${String(i + 1).padStart(2, "0")}</span><span class="tag">${getTrack(q.trackId).name} · ${MODE_NAMES[q.mode]}</span><h2>${q.title}</h2><p>${q.description}</p><div class="stars">${"★".repeat(p?.stars || 0)}${"☆".repeat(3 - (p?.stars || 0))}</div><div class="challenge-detail"><span>${q.laps} 圈 · ${DIFFICULTY_NAMES[q.difficulty]}</span><span>${p ? "最佳 " + time(p.time) : "金星参考 " + q.gold + " 秒"}</span></div><button class="button ${unlocked ? "primary" : "outline"}" data-challenge="${i}" ${unlocked ? "" : "disabled"}>${unlocked ? "开始挑战 ↗" : "先完成上一关"}</button></article>`;
     },
-  ).join("")}</section>${classicHistoryMarkup(progress)}`;
+  ).join("")}</section>${
+    Object.keys(oldCareerProgress).length
+      ? `<section class="glass legacy-records"><h2>0.2 历史生涯</h2><p>旧规则成绩保留，已获得的关卡访问资格延续；本轮成绩按新规则重新记录。</p>${CHALLENGES.filter(
+          (q) => oldCareerProgress[q.id],
+        )
+          .map(
+            (q) =>
+              `<p>${escape(q.title)} · ${oldCareerProgress[q.id].stars} 星 · ${time(oldCareerProgress[q.id].time)}</p>`,
+          )
+          .join("")}</section>`
+      : ""
+  }${classicHistoryMarkup(progress)}`;
 }
 function online() {
-  const match = matchForSelection(selection);
-  return `<section class="page-heading"><span class="eyebrow">REAL-TIME MULTIPLAYER / 02</span><h1>一起出发，<br>各凭本事领跑。</h1><p>真实玩家，实时较量。创建房间，把房间码分享给好友。</p></section><section class="online-layout"><div class="glass form-panel"><label for="nickname">你的车手名</label><input id="nickname" maxlength="16" value="${escape(nickname)}" placeholder="输入车手名"><div class="two-col"><div><h3>发起一场比赛</h3><p>2–4 位车手 · 可选赛道与模式</p><button class="button outline" data-action="room-config">赛事设置</button><p>${getTrack(selection.trackId).name} · ${MODE_NAMES[match.mode]} · ${match.laps} 圈</p><button class="button primary" data-action="create">创建房间 <span>＋</span></button></div><div><h3>加入好友的房间</h3><input id="room-code" placeholder="输入房间码" maxlength="32" autocomplete="off"><button class="button outline" data-action="join">加入房间 <span>→</span></button></div></div><p class="form-note">本机可用两个独立标签页联机；同一局域网设备需能访问赛事服务器。</p></div><aside class="glass race-rules"><span class="eyebrow">RACE BRIEF</span><h2>这一场，为荣誉。</h2><div><span>每人门票</span><b>10 TICKET</b></div><div><span>本场奖金</span><b>100 $PONS</b></div><div><span>4 人场前三名</span><b>60 / 30 / 10%</b></div><p>凑齐至少 2 人并全部准备后才扣票。开赛前取消退票。奖金仅分配给有效完赛车手。</p>${simulated()}</aside></section>`;
+  const match = { ...matchForSelection(selection), free: freeOnline };
+  return `<section class="page-heading"><span class="eyebrow">REAL-TIME MULTIPLAYER / 02</span><h1>一起出发，<br>各凭本事领跑。</h1><p>真实玩家，实时较量。创建房间，把房间码分享给好友。</p></section><section class="online-layout"><div class="glass form-panel"><label for="nickname">你的车手名</label><input id="nickname" maxlength="16" value="${escape(nickname)}" placeholder="输入车手名"><div class="two-col"><div><h3>发起一场比赛</h3><p>普通免费场 2–8 人 · 模拟奖金场 2–4 人</p><label>参赛类型<select data-config="freeOnline"><option value="true" ${freeOnline ? "selected" : ""}>普通免费赛 · 无代币奖励</option><option value="false" ${!freeOnline ? "selected" : ""}>模拟奖金赛 · 每人10 TICKET</option></select></label><button class="button outline" data-action="room-config">赛事设置</button><p>${getTrack(selection.trackId).name} · ${MODE_NAMES[match.mode]} · ${match.laps} 圈</p><button class="button primary" data-action="create">创建房间 <span>＋</span></button></div><div><h3>加入好友的房间</h3><input id="room-code" placeholder="输入房间码" maxlength="32" autocomplete="off"><button class="button outline" data-action="join">加入房间 <span>→</span></button></div></div><p class="form-note">本机可用两个独立标签页联机；同一局域网设备需能访问赛事服务器。</p></div><aside class="glass race-rules"><span class="eyebrow">RACE BRIEF</span><h2>这一场，为荣誉。</h2><div><span>每人门票</span><b>${freeOnline ? "免费" : "10 TICKET"}</b></div><div><span>本场奖金</span><b>${freeOnline ? "无代币奖励" : "100 $PONS"}</b></div><div><span>4 人场前三名</span><b>60 / 30 / 10%</b></div><p>30秒内凑齐至少2人并全部准备。模拟奖金场此时才扣票，起跑前取消退票。并列车手均分所占名次奖金，不足最小单位的零头留在奖池。</p>${simulated()}</aside></section>`;
 }
 function vault() {
   const p = net.pool;
@@ -255,7 +278,7 @@ function showModal(kind: string) {
   root.innerHTML = `<div class="modal-backdrop"><section class="modal ${kind === "room" ? "room-modal" : ""}" role="dialog" aria-modal="true"><button class="modal-close" data-action="close" aria-label="关闭">×</button>${kind === "setup" ? setupMarkup() : kind === "room-config" ? setupMarkup(true) : kind === "settings" ? settingsMarkup() : kind === "wallet" ? walletMarkup() : kind === "room" ? roomMarkup() : helpMarkup()}</section></div>`;
 }
 function settingsMarkup() {
-  return `<span class="eyebrow">PIT STOP / SETTINGS</span><h2>找到你的驾驶节奏</h2><div class="setting-row"><label for="music-volume">音乐音量</label><input id="music-volume" data-setting="music" type="range" min="0" max="1" step=".01" value="${settings.music}"></div><div class="setting-row"><label for="effects-volume">音效音量</label><input id="effects-volume" data-setting="effects" type="range" min="0" max="1" step=".01" value="${settings.effects}"></div><div class="setting-row"><label for="quality">画面质量</label><select id="quality" data-setting="quality"><option value="high" ${settings.quality === "high" ? "selected" : ""}>高 · 阴影与高清渲染</option><option value="low" ${settings.quality === "low" ? "selected" : ""}>流畅 · 降低分辨率</option></select></div><h3 class="controls-title">键位设置 <small>点击按键后按下新键</small></h3><div class="binding-grid">${Object.entries(
+  return `<span class="eyebrow">PIT STOP / SETTINGS</span><h2>找到你的驾驶节奏</h2><div class="setting-row"><label for="music-volume">音乐音量</label><input id="music-volume" data-setting="music" type="range" min="0" max="1" step=".01" value="${settings.music}"></div><div class="setting-row"><label for="effects-volume">音效音量</label><input id="effects-volume" data-setting="effects" type="range" min="0" max="1" step=".01" value="${settings.effects}"></div><div class="setting-row"><label for="quality">画面质量</label><select id="quality" data-setting="quality"><option value="high" ${settings.quality === "high" ? "selected" : ""}>高 · 阴影与高清渲染</option><option value="low" ${settings.quality === "low" ? "selected" : ""}>流畅 · 降低分辨率</option></select></div><div class="setting-row"><label for="motion">速度视角与车身晃动</label><input id="motion" data-setting="motion" type="range" min="0" max="1" step="0.1" value="${settings.motion ?? 1}"></div><h3 class="controls-title">键位设置 <small>点击按键后按下新键</small></h3><div class="binding-grid">${Object.entries(
     bindings,
   )
     .map(
@@ -270,7 +293,7 @@ function walletMarkup() {
   return `<span class="eyebrow">SIMULATION ACCOUNT</span><h2>你的模拟账户</h2>${simulated()}<div class="wallet-balances"><div><span>门票余额</span><b>${money(net.account?.tickets)} <small>TICKET</small></b></div><div><span>已领取奖励</span><b>${money(net.account?.pons)} <small>PONS</small></b></div></div><p>每个标签页使用独立的模拟车手身份，刷新后保留。本阶段无需连接钱包。</p>${claims()}`;
 }
 function helpMarkup() {
-  return `<span class="eyebrow">DRIVER'S HANDBOOK</span><h2>第一圈，从这里开始。</h2><div class="help-list"><p><kbd>${keyName(bindings.throttle)}</kbd> / 方向键加速，<kbd>${keyName(bindings.brake)}</kbd> 刹车与倒车。</p><p>入弯时按住 <kbd>${keyName(bindings.drift)}</kbd> + 方向键，漂移积累能量。</p><p>每 100 点能量可用一次氮气。按 <kbd>${keyName(bindings.boost)}</kbd> 释放，在出弯直道超越对手。</p><p>撞墙后可按 <kbd>${keyName(bindings.reset)}</kbd> 回到已通过的检查点。</p><p>沿赛道前进，顺序通过检查点。回头穿越终点不会增加圈数。</p></div><button class="button primary" data-action="close">准备好了 <span>→</span></button>`;
+  return `<span class="eyebrow">DRIVER'S HANDBOOK</span><h2>第一圈，从这里开始。</h2><div class="help-list"><p><kbd>${keyName(bindings.throttle)}</kbd> / 方向键加速，<kbd>${keyName(bindings.brake)}</kbd> 刹车与倒车。</p><p>入弯时按住 <kbd>${keyName(bindings.drift)}</kbd> + 方向键，漂移积累能量。</p><p>每100点集气转成一瓶氮气，最多2瓶并保留满槽。有效漂移后拉正，松开再按油门触发一次小喷。按 <kbd>${keyName(bindings.boost)}</kbd> 释放，在出弯直道超越对手。</p><p>撞墙后可按 <kbd>${keyName(bindings.reset)}</kbd> 回到已通过的检查点。</p><p>沿赛道前进，顺序通过检查点。回头穿越终点不会增加圈数。</p></div><button class="button primary" data-action="training">进入五步驾驶教学</button><button class="button outline" data-action="close">准备好了 <span>→</span></button>`;
 }
 function roomMarkup() {
   const s = latest;
@@ -282,7 +305,7 @@ function roomMarkup() {
     },
   ).join(
     "",
-  )}</div><div class="room-summary"><span>${s?.laps || selection.laps} 圈 · ${escape(s ? getTrack(s.trackId).name : getTrack(selection.trackId).name)} · ${MODE_NAMES[s?.raceMode || "race"]}</span><span>10 TICKET / 人</span><span>奖金 100 PONS</span></div><p class="form-note">至少 2 人全部准备后自动扣票发车。关闭此面板将离开房间。</p><button class="button primary full" data-action="ready">${s?.players.find((p) => p.id === net.room?.sessionId)?.ready ? "取消准备" : "准备出发"} <span>→</span></button>`;
+  )}</div><div class="room-summary"><span>${s?.laps || selection.laps} 圈 · ${escape(s ? getTrack(s.trackId).name : getTrack(selection.trackId).name)} · ${MODE_NAMES[s?.raceMode || "race"]}</span><span>${s?.free ? "免费 / 人" : "10 TICKET / 人"}</span><span>${s?.free ? "无代币奖励" : "奖金 100 PONS"}</span></div><p class="form-note">至少2人全部准备后发车，准备超时30秒；模拟奖金场会扣票。关闭此面板将离开房间。</p><button class="button primary full" data-action="ready">${s?.players.find((p) => p.id === net.room?.sessionId)?.ready ? "取消准备" : "准备出发"} <span>→</span></button>`;
 }
 function closeModal() {
   if (modal === "room") {
@@ -298,11 +321,16 @@ function closeModal() {
 }
 function raceUI() {
   app.className = "in-race";
-  app.innerHTML = `<div class="race-top"><div class="race-brand"><b>PONS KART</b><span>${mode === "solo" ? (challengeIndex < 0 ? MODE_NAMES[selection.raceMode] : CHALLENGES[challengeIndex].title) : MODE_NAMES[latest?.raceMode || "race"]}</span></div><div class="race-title"><span>${escape(activeTrack.name)}</span><b id="lap-count">LAP 1 / 1</b></div><button class="race-menu" data-action="pause">☰ <span>ESC</span></button></div><div class="race-position"><b id="position">01</b><span id="position-total">/ 01</span><small id="race-status">SOLO RUN</small></div><div class="race-time"><span>RACE TIME</span><b id="timer">00:00<small>.00</small></b><small id="objective"></small></div><div class="race-bottom"><div class="minimap-box"><canvas id="minimap" width="230" height="180"></canvas><span>${activeTrack.subtitle}</span></div><div class="nitro-box"><span>◈ NITRO ENERGY <kbd>${keyName(bindings.boost)}</kbd></span><div class="nitro-track"><i id="nitro-fill"></i><span></span></div><div><b id="nitro-label">漂移集气</b><small id="drift-total">0 / 200</small></div></div><div class="speedometer"><span id="boost-label">KEEP YOUR FLOW</span><div><b id="speed">000</b><small>KM/H</small></div><div class="speed-bars">${"<i></i>".repeat(18)}</div></div></div><div class="race-hint"><kbd>${keyName(bindings.throttle)}</kbd> 加速 <kbd>${keyName(bindings.drift)}</kbd> 漂移 <kbd>${keyName(bindings.boost)}</kbd> 氮气 <kbd>${keyName(bindings.reset)}</kbd> 重置</div><div class="item-hud" id="item-hud"></div><div class="race-feedback" id="race-feedback" aria-live="polite"></div><div class="countdown" id="countdown"></div><div class="race-sim">${simulated()} <span id="net-ping"></span></div><div id="modal-root"></div>`;
+  app.innerHTML = `<div class="race-top"><div class="race-brand"><b>PONS KART</b><span>${mode === "solo" ? (challengeIndex < 0 ? MODE_NAMES[selection.raceMode] : CHALLENGES[challengeIndex].title) : MODE_NAMES[latest?.raceMode || "race"]}</span></div><div class="race-title"><span>${escape(activeTrack.name)}</span><b id="lap-count">LAP 1 / 1</b></div><button class="race-menu" data-action="pause">☰ <span>ESC</span></button></div><div class="race-position"><b id="position">01</b><span id="position-total">/ 01</span><small id="race-status">SOLO RUN</small></div><div class="race-time"><span>RACE TIME</span><b id="timer">00:00<small>.00</small></b><small id="objective"></small></div><div class="race-bottom"><div class="minimap-box"><canvas id="minimap" width="230" height="180"></canvas><span>${activeTrack.subtitle}</span></div><div class="nitro-box"><span>◈ NITRO ENERGY <kbd>${keyName(bindings.boost)}</kbd></span><div class="nitro-track"><i id="nitro-fill"></i><span></span></div><div><b id="nitro-label">漂移集气</b><small id="drift-total">0 / 100 · 氮气 0/2</small></div></div><div class="speedometer"><span id="boost-label">KEEP YOUR FLOW</span><div><b id="speed">000</b><small>KM/H</small></div><div class="speed-bars">${"<i></i>".repeat(18)}</div></div></div><div class="race-hint"><kbd>${keyName(bindings.throttle)}</kbd> 加速 <kbd>${keyName(bindings.drift)}</kbd> 漂移 <kbd>${keyName(bindings.boost)}</kbd> 氮气 <kbd>${keyName(bindings.reset)}</kbd> 重置</div><div class="item-hud" id="item-hud"></div><div class="race-feedback" id="race-feedback" aria-live="polite"></div><div class="countdown" id="countdown"></div><div class="race-sim">${simulated()} <span id="net-ping"></span></div><div id="modal-root"></div>`;
   world.resetCamera();
 }
 function beginSolo(index: number) {
-  if (index >= 0 && !isUnlocked(index, careerProgress)) {
+  training = null;
+  currentSplits = [];
+  if (
+    index >= 0 &&
+    !isUnlocked(index, { ...oldCareerProgress, ...careerProgress })
+  ) {
     toast("先完成上一关");
     return;
   }
@@ -333,9 +361,9 @@ function beginSolo(index: number) {
         )
       : null;
   bestGhost = null;
-  const g = stored<unknown>("pons-ghost-v2-" + activeTrack.id, null);
+  const g = stored<unknown>("pons-ghost-v3-" + recordKey(activeTrack.id), null);
   if (validGhost(g, activeTrack.id)) bestGhost = g;
-  ghostFrames = [];
+  ghostFrames = [[0, localCar.x, localCar.z, localCar.heading]];
   lapStart = 0;
   lastRecorded = -1;
   observedLap = 0;
@@ -363,19 +391,19 @@ function soloResult() {
   if (soloDone) return;
   soloDone = true;
   const q = challengeIndex >= 0 ? CHALLENGES[challengeIndex] : null;
-  const sorted = [...soloCars].sort((a, b) =>
-    a.finished && b.finished
-      ? a.time - b.time
-      : a.finished
-        ? -1
-        : b.finished
-          ? 1
-          : b.progress - a.progress,
-  );
-  const rank = sorted.findIndex((c) => c.id === localCar.id) + 1;
+  const ranks = classify(soloCars);
+  const sorted = ranks.map((r) => r.car);
+  const rank = ranks.find((r) => r.car.id === localCar.id)?.rank || 0;
   const uses = itemWorld?.players.local.uses || 0;
   const stars = q
-    ? starsFor(q, elapsed, rank, localCar.driftTotal, uses, localCar.finished)
+    ? starsFor(
+        q,
+        localCar.finished ? localCar.time : elapsed,
+        rank,
+        localCar.driftTotal,
+        uses,
+        localCar.finished,
+      )
     : localCar.finished
       ? 3
       : 0;
@@ -383,20 +411,20 @@ function soloResult() {
     const old = careerProgress[q.id];
     careerProgress[q.id] = {
       stars: Math.max(stars, old?.stars || 0),
-      time: Math.min(elapsed, old?.time || Infinity),
+      time: Math.min(localCar.time, old?.time || Infinity),
     };
-    save("pons-career-v2", careerProgress);
+    save(careerKey, careerProgress);
   }
   modal = "result";
   $("#modal-root").innerHTML =
-    `<div class="modal-backdrop"><section class="modal result-modal"><span class="eyebrow">RACE COMPLETE / ${MODE_NAMES[selection.raceMode]}</span><div class="result-emblem">${stars ? "⚑" : "↻"}</div><h2>${stars ? "冲线，继续向前！" : "差一点，再挑战一次。"}</h2>${q ? `<div class="stars">${"★".repeat(stars)}${"☆".repeat(3 - stars)}</div><p>${stars ? (challengeIndex < 8 ? "下一关已解锁，可在生涯中继续。" : "九关已完成，继续挑战全金星！") : q.description}</p>` : ""}<div class="result-stats"><div><span>比赛用时</span><b>${time(elapsed)}</b></div><div><span>排名 / 道具使用</span><b>${rank}<small> / ${uses} 次</small></b></div></div>${soloCars.length > 1 ? `<div class="classification">${sorted.map((c, i) => `<div class="${c.id === "local" ? "you" : ""}"><b>${i + 1}</b><span>${c.id === "local" ? "你" : AI_NAMES[c.slot - 1] || c.id}</span><span>${c.finished ? time(c.time) : "尚未完赛"}</span></div>`).join("")}</div>` : ""}${selection.raceMode === "time" && bestGhost ? `<p>赛道最佳单圈：${time(bestGhost.time)}</p>` : ""}<p class="form-note">单人模式免费 · 不发放代币奖励</p><div class="hero-buttons"><button class="button primary" data-action="retry">再跑一次 ↗</button><button class="button outline" data-action="exit">返回大厅</button></div></section></div>`;
+    `<div class="modal-backdrop"><section class="modal result-modal"><span class="eyebrow">RACE COMPLETE / ${MODE_NAMES[selection.raceMode]}</span><div class="result-emblem">${stars ? "⚑" : "↻"}</div><h2>${stars ? "冲线，继续向前！" : "差一点，再挑战一次。"}</h2>${q ? `<div class="stars">${"★".repeat(stars)}${"☆".repeat(3 - stars)}</div><p>${stars ? (challengeIndex < 8 ? "下一关已解锁，可在生涯中继续。" : "九关已完成，继续挑战全金星！") : q.description}</p>` : ""}<div class="result-stats"><div><span>比赛用时</span><b>${time(elapsed)}</b></div><div><span>排名 / 道具使用</span><b>${rank || "DNF"}<small> / ${uses} 次</small></b></div></div>${soloCars.length > 1 ? `<div class="classification">${sorted.map((c, i) => `<div class="${c.id === "local" ? "you" : ""}"><b>${i + 1}</b><span>${c.id === "local" ? "你" : AI_NAMES[c.slot - 1] || c.id}</span><span>${c.finished ? time(c.time) : "DNF · 未完赛"}</span></div>`).join("")}</div>` : ""}${selection.raceMode === "time" && bestGhost ? `<p>赛道最佳单圈：${time(bestGhost.time)}</p>` : ""}<p>碰撞 ${localCar.collisionCount} 次 · 氮气 ${localCar.nitroUses} 次 · 小喷 ${localCar.miniUses} 次</p>${training ? `<p>${training.step === 5 ? "五步教学完成！" : "教学未完成，可重新练习"}</p>` : ""}<p class="form-note">单人模式免费 · 不发放代币奖励</p><div class="hero-buttons"><button class="button primary" data-action="retry">再跑一次 ↗</button><button class="button outline" data-action="exit">返回大厅</button></div></section></div>`;
   audio.beep(true);
 }
 
 function multiResult(s: Snapshot) {
   modal = "result";
   $("#modal-root").innerHTML =
-    `<div class="modal-backdrop"><section class="modal result-modal"><span class="eyebrow">RACE CLASSIFICATION</span><h2>${s.phase === "cancelled" ? "本场比赛已取消" : "终点见，车手。"}</h2>${s.phase === "cancelled" ? `<p>${escape(s.reason)}</p>` : `<div class="classification">${s.results.map((r) => `<div class="${r.id === net.room?.sessionId ? "you" : ""}"><b>${r.rank ? String(r.rank).padStart(2, "0") : "—"}</b><span>${escape(r.name)}${r.id === net.room?.sessionId ? " · 你" : ""}</span><span>${r.time === null ? "未完成" : time(r.time)}</span><strong>${money(r.award)} PONS</strong></div>`).join("")}</div>`}<p class="form-note">模拟赛事奖励可在「奖励金库」领取。</p><button class="button primary full" data-action="exit">返回大厅 <span>→</span></button></section></div>`;
+    `<div class="modal-backdrop"><section class="modal result-modal"><span class="eyebrow">RACE CLASSIFICATION</span><h2>${s.phase === "cancelled" ? "本场比赛已取消" : "终点见，车手。"}</h2>${s.phase === "cancelled" ? `<p>${escape(s.reason)}</p>` : `<div class="classification">${s.results.map((r) => `<div class="${r.id === net.room?.sessionId ? "you" : ""}"><b>${r.rank ? String(r.rank).padStart(2, "0") : "—"}</b><span>${escape(r.name)}${r.id === net.room?.sessionId ? " · 你" : ""}</span><span>${r.time === null ? "DNF · " + escape(r.reason || "未完赛") : time(r.time)}</span><strong>${money(r.award)} PONS</strong></div>`).join("")}</div>`}<p class="form-note">${s.free ? "普通免费赛 · 不发放代币奖励" : "模拟奖励已分配，可在「奖励金库」领取；领取后才计入余额。"}</p><button class="button primary full" data-action="exit">返回大厅 <span>→</span></button></section></div>`;
   void net.refresh();
 }
 function handleSnapshot(s: Snapshot) {
@@ -404,11 +432,19 @@ function handleSnapshot(s: Snapshot) {
   if (activeTrack.id !== s.trackId) activateTrack(s.trackId);
   itemWorld = s.items;
   if (mode === "lobby" && modal === "room") {
-    const stamp = JSON.stringify(s.players);
+    const stamp = JSON.stringify([s.players, s.phase]);
     if (stamp !== roomStamp) {
       roomStamp = stamp;
       showModal("room");
     }
+  }
+  if (
+    (s.phase === "cancelled" || s.phase === "finished") &&
+    mode === "lobby" &&
+    modal === "room"
+  ) {
+    multiResult(s);
+    return;
   }
   if (s.phase === "countdown" && mode !== "multi") {
     mode = "multi";
@@ -422,7 +458,11 @@ function handleSnapshot(s: Snapshot) {
     const authoritative = s.cars.find((c) => c.id === net.room?.sessionId);
     if (authoritative) {
       pending = pending.filter((p) => p.seq > authoritative.ack).slice(-120);
-      localCar = { ...authoritative };
+      correctionDistance = Math.hypot(
+        localCar.x - authoritative.x,
+        localCar.z - authoritative.z,
+      );
+      localCar = structuredClone(authoritative);
       if (s.phase === "racing")
         for (const p of pending)
           stepCar(localCar, p.input, 1 / 60, activeTrack);
@@ -487,8 +527,22 @@ async function act(action: string) {
     showModal("wallet");
     return;
   }
+  if (action === "training") {
+    selection = {
+      trackId: "coast",
+      raceMode: "practice",
+      difficulty: "easy",
+      laps: 3,
+      opponents: 0,
+    };
+    beginSolo(-1);
+    training = new Training();
+    return;
+  }
   if (action === "retry") {
+    const wasTraining = !!training;
     beginSolo(challengeIndex);
+    if (wasTraining) training = new Training();
     return;
   }
   if (action === "exit") {
@@ -538,7 +592,10 @@ async function act(action: string) {
       toast("正在连接赛事服务器…");
       startAudio();
       latest = null;
-      await net.join(nickname, roomId, matchForSelection(selection));
+      await net.join(nickname, roomId, {
+        ...matchForSelection(selection),
+        free: freeOnline,
+      });
       showModal("room");
     }
     if (action === "tax") {
@@ -587,6 +644,10 @@ document.addEventListener("input", (event) => {
   const el = event.target as HTMLInputElement;
   if (el.dataset.config) {
     const k = el.dataset.config;
+    if (k === "freeOnline") {
+      freeOnline = el.value === "true";
+      lobby();
+    }
     if (k === "opponents") selection.opponents = Number(el.value);
     else if (k === "trackId") selection.trackId = el.value;
     else if (k === "raceMode") selection.raceMode = el.value as RaceMode;
@@ -667,7 +728,7 @@ function drawMinimap(cars: Car[]) {
   paintMinimap(ctx, activeTrack, cars, localCar.id, content.palette);
 }
 function targetLaps() {
-  return mode === "multi" ? latest?.laps || 1 : selection.laps;
+  return mode === "multi" ? latest?.laps || 1 : training ? 99 : selection.laps;
 }
 function hud() {
   if (mode === "lobby") return;
@@ -696,24 +757,29 @@ function hud() {
   );
   $("#lap-count").textContent =
     `LAP ${Math.min(c.lap + 1, targetLaps())} / ${targetLaps()}`;
-  $("#nitro-fill").style.width = c.energy / 2 + "%";
+  $("#nitro-fill").style.width = c.energy + "%";
   $("#nitro-label").textContent =
     c.boostTime > 0
       ? "氮气释放中"
-      : c.energy >= 100
+      : c.storedNitro > 0
         ? "氮气就绪 · 出弯加速"
         : c.drifting
           ? "DRIFTING · 持续集气"
           : "漂移集气";
-  $("#drift-total").textContent = `${Math.floor(c.energy)} / 200`;
+  $("#drift-total").textContent =
+    `${Math.floor(c.energy)} / 100 · 氮气 ${c.storedNitro}/2`;
   $("#boost-label").textContent =
     c.boostTime > 0
       ? "NITRO ON!"
-      : c.drifting
-        ? "FIND YOUR FLOW"
-        : "KEEP YOUR FLOW";
+      : c.miniTime > 0
+        ? "MINI BOOST!"
+        : c.miniWindow > 0
+          ? "松开再按油门 · 小喷"
+          : c.drifting
+            ? "FIND YOUR FLOW"
+            : "KEEP YOUR FLOW";
   $(".speedometer").classList.toggle("boosting", c.boostTime > 0);
-  $(".nitro-box").classList.toggle("ready", c.energy >= 100);
+  $(".nitro-box").classList.toggle("ready", c.storedNitro > 0);
   document
     .querySelectorAll<HTMLElement>(".speed-bars i")
     .forEach((bar, i) =>
@@ -745,16 +811,18 @@ function hud() {
   $("#net-ping").textContent = mode === "multi" ? `${net.ping} ms` : "";
   const q =
     mode === "solo" && challengeIndex >= 0 ? CHALLENGES[challengeIndex] : null;
-  $("#objective").textContent = q
-    ? q.description +
-      ` 当前集气 ${Math.floor(c.driftTotal)}/${q.drift}；道具 ${itemWorld?.players[c.id]?.uses || 0}/${q.uses}`
-    : selection.raceMode === "time" && mode === "solo"
-      ? bestGhost
-        ? "最佳单圈 " + bestGhost.time.toFixed(2) + " s"
-        : "完成一圈即可生成自己的影子"
-      : c.finished
-        ? "已完赛，等待其他车手…"
-        : "";
+  $("#objective").textContent = training
+    ? training.text
+    : q
+      ? q.description +
+        ` 当前集气 ${Math.floor(c.driftTotal)}/${q.drift}；道具 ${itemWorld?.players[c.id]?.uses || 0}/${q.uses}`
+      : selection.raceMode === "time" && mode === "solo"
+        ? bestGhost
+          ? "最佳单圈 " + bestGhost.time.toFixed(2) + " s"
+          : "完成一圈即可生成自己的影子"
+        : c.finished
+          ? "已完赛，等待其他车手…"
+          : "";
   const item = itemWorld?.players[c.id];
   const itemHud = $("#item-hud");
   const markup = item
@@ -762,13 +830,41 @@ function hud() {
     : "";
   if (itemHud.innerHTML !== markup) itemHud.innerHTML = markup;
   $("#race-feedback").textContent =
-    c.ghostTime > 0
-      ? "重置保护 · 暂时不会碰撞"
-      : item && item.noticeTime > 0
-        ? item.notice
-        : c.impact > 0.25
-          ? "接触碰撞 · 保持方向"
-          : "";
+    c.resetTime > 0
+      ? `正在复位 ${c.resetTime.toFixed(1)} 秒 · 计时继续`
+      : c.miniWindow > 0
+        ? "拉正成功 · 松开再按油门小喷"
+        : c.ghostTime > 0
+          ? "重置保护 · 暂时不会与其他车碰撞"
+          : item && item.noticeTime > 0
+            ? item.notice
+            : c.impact > 0.25
+              ? "接触碰撞 · 保持方向"
+              : "";
+  if (
+    mode === "solo" &&
+    selection.raceMode === "time" &&
+    !q &&
+    !training &&
+    currentSplits.length
+  ) {
+    const i = currentSplits.length - 1,
+      ref = bestGhost?.sectors[i];
+    $("#objective").textContent +=
+      ` · S${i + 1} ${currentSplits[i].toFixed(2)}s${ref === undefined ? "" : ` / 差值 ${currentSplits[i] - ref > 0 ? "+" : ""}${(currentSplits[i] - ref).toFixed(2)}s`}`;
+  }
+  if (
+    import.meta.env.DEV &&
+    new URLSearchParams(location.search).has("debug")
+  ) {
+    let el = document.querySelector<HTMLPreElement>("#driving-debug");
+    if (!el) {
+      el = document.createElement("pre");
+      el.id = "driving-debug";
+      document.body.append(el);
+    }
+    el.textContent = `tick ${latest?.serverTick ?? Math.round(elapsed * 60)} seq ${c.ack}\nspeed ${c.speed.toFixed(2)} slip ${((c.slipAngle * 180) / Math.PI).toFixed(1)}°\nsegment ${c.checkpoint} progress ${c.progress.toFixed(4)}\nenergy ${c.energy.toFixed(1)} bottles ${c.storedNitro} ${c.driftState}\nboost ${c.boostTime.toFixed(2)} mini ${c.miniTime.toFixed(2)}\nRTT ${net.ping}ms correction ${correctionDistance.toFixed(2)}m`;
+  }
   drawMinimap(cars);
 }
 function frame(ms: number) {
@@ -776,6 +872,13 @@ function frame(ms: number) {
   const measuredMs = ms - previous;
   const dt = Math.min(measuredMs / 1000 || 0, 0.06);
   previous = ms;
+  if (measuredMs > 250) {
+    accumulator = 0;
+    if (mode === "multi") {
+      pending = [];
+      keys.clear();
+    }
+  }
   accumulator += dt;
   while (accumulator >= 1 / 60) {
     accumulator -= 1 / 60;
@@ -796,14 +899,22 @@ function frame(ms: number) {
           stepCar(c, commands[c.id], 1 / 60, activeTrack);
           if (c.lap >= targetLaps() && !c.finished) {
             c.finished = true;
-            c.time = elapsed;
+            c.time = c.lastLapTime || elapsed;
+            stepCar(c, EMPTY_INPUT, 0, activeTrack);
           }
         }
         separateCars(soloCars, activeTrack);
         if (itemWorld)
           stepItems(itemWorld, soloCars, commands, 1 / 60, activeTrack);
+        training?.update(localCar);
+        if (training?.step === 5) {
+          localCar.finished = true;
+          stepCar(localCar, EMPTY_INPUT, 0, activeTrack);
+        }
         if (selection.raceMode === "time") {
-          const lapTime = elapsed - lapStart;
+          const lapTime =
+            (localCar.lap > observedLap ? localCar.lastLapTime : elapsed) -
+            lapStart;
           if (lapTime - lastRecorded >= 0.1 || localCar.lap > observedLap) {
             ghostFrames.push([
               lapTime,
@@ -815,7 +926,9 @@ function frame(ms: number) {
           }
           if (localCar.lap > observedLap) {
             const g: Ghost = {
-              version: 2,
+              version: 3,
+              ...VERSIONS,
+              sectors: [...currentSplits, lapTime],
               trackId: activeTrack.id,
               time: lapTime,
               frames: ghostFrames,
@@ -825,19 +938,20 @@ function frame(ms: number) {
               validGhost(g, activeTrack.id)
             ) {
               bestGhost = g;
-              save("pons-ghost-v2-" + activeTrack.id, g);
+              save("pons-ghost-v3-" + recordKey(activeTrack.id), g);
             }
             ghostFrames = [[0, localCar.x, localCar.z, localCar.heading]];
-            lapStart = elapsed;
+            lapStart = localCar.lastLapTime;
+            currentSplits = [];
             lastRecorded = 0;
             observedLap = localCar.lap;
-          }
+          } else currentSplits = [...localCar.sectorTimes];
         }
         const q = challengeIndex >= 0 ? CHALLENGES[challengeIndex] : null;
         if (
           localCar.finished ||
           (q?.limit && elapsed > q.limit) ||
-          elapsed > 540
+          elapsed > RACE_RULES.hardLimit
         )
           soloResult();
       }
@@ -914,6 +1028,7 @@ async function boot() {
     content = await loadContent();
     world = new World($("#scene") as HTMLCanvasElement, content, activeTrack);
     world.setQuality(settings.quality);
+    world.motion = Number(settings.motion ?? 1);
     await world.loadAssets();
     lobby();
     requestAnimationFrame(frame);

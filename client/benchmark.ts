@@ -1,5 +1,5 @@
 import { World, loadContent } from "./world.ts";
-import { TRACKS } from "../shared/track.ts";
+import { TRACKS, getTrack } from "../shared/track.ts";
 import { spawnCar, stepCar, separateCars } from "../shared/race.ts";
 import { aiInput } from "../shared/ai.ts";
 import { createItems, stepItems, type Item } from "../shared/items.ts";
@@ -8,6 +8,7 @@ const result = document.querySelector<HTMLPreElement>("#result")!,
 let current: World | null = null;
 button.onclick = async () => {
   button.disabled = true;
+  cyclesButton.disabled = true;
   const records = [];
   try {
     const content = await loadContent();
@@ -42,6 +43,7 @@ button.onclick = async () => {
       const stats = await new Promise<{
         fps: number;
         p95: number;
+        p99: number;
         max: number;
         drawCalls: number;
         throttled: number;
@@ -103,6 +105,10 @@ button.onclick = async () => {
               Math.round(
                 (sorted[Math.floor(sorted.length * 0.95)] || 0) * 100,
               ) / 100,
+            p99:
+              Math.round(
+                (sorted[Math.floor(sorted.length * 0.99)] || 0) * 100,
+              ) / 100,
             max: Math.round(Math.max(...samples) * 100) / 100,
             drawCalls: calls,
             throttled,
@@ -120,7 +126,12 @@ button.onclick = async () => {
       });
     }
     result.textContent = JSON.stringify(
-      { quality: "low", date: new Date().toISOString(), records },
+      {
+        quality: "low",
+        date: new Date().toISOString(),
+        device: navigator.userAgent,
+        records,
+      },
       null,
       2,
     );
@@ -128,6 +139,88 @@ button.onclick = async () => {
   } catch (e) {
     result.textContent = String(e);
   } finally {
+    button.disabled = false;
+    cyclesButton.disabled = false;
+  }
+};
+
+const cyclesButton = document.querySelector<HTMLButtonElement>("#cycles")!;
+cyclesButton.onclick = async () => {
+  cyclesButton.disabled = true;
+  button.disabled = true;
+  const records = [];
+  try {
+    const content = await loadContent(),
+      track = getTrack("coast");
+    for (let round = 0; round < 10; round++) {
+      current?.dispose();
+      const world = new World(
+        document.querySelector<HTMLCanvasElement>("#bench-scene")!,
+        content,
+        track,
+      );
+      current = world;
+      world.setQuality("low");
+      const cars = Array.from({ length: 8 }, (_, i) =>
+        spawnCar(i, `cycle-${round}-${i}`, track),
+      );
+      let now = 0;
+      await new Promise<void>((resolve) => {
+        function frame() {
+          for (
+            let n = 0;
+            n < 120 && cars.some((c) => !c.finished) && now < 300;
+            n++
+          ) {
+            now += 1 / 60;
+            for (const c of cars) {
+              stepCar(c, aiInput(c, track, "hard", now, cars), 1 / 60, track);
+              if (c.lap >= 1) c.finished = true;
+            }
+            separateCars(cars, track);
+          }
+          world.render(cars, cars[0].id, 1 / 60, false);
+          world.renderItems(null);
+          result.textContent = `连续比赛 ${round + 1}/10 · 模拟 ${now.toFixed(1)}秒 · 完赛 ${cars.filter((c) => c.finished).length}/8（加速模拟，非帧率基准）`;
+          if (now < 300 && cars.some((c) => !c.finished))
+            requestAnimationFrame(frame);
+          else resolve();
+        }
+        requestAnimationFrame(frame);
+      });
+      records.push({
+        round: round + 1,
+        finished: cars.filter((c) => c.finished).length,
+        time: now,
+        carModels: world.cars.size,
+        geometries: world.renderer.info.memory.geometries,
+        textures: world.renderer.info.memory.textures,
+        programs: world.renderer.info.programs?.length,
+        children: world.scene.children.length,
+      });
+    }
+    const last = records.slice(2),
+      stable = last.every(
+        (r) =>
+          r.geometries === last[0].geometries &&
+          r.textures === last[0].textures &&
+          r.carModels === 8,
+      );
+    result.textContent = JSON.stringify(
+      {
+        tenCompleteBrowserRaces: records.every((r) => r.finished === 8),
+        acceleratedSimulation: true,
+        stableResourceCounts: stable,
+        records,
+      },
+      null,
+      2,
+    );
+    result.dataset.done = "true";
+  } catch (e) {
+    result.textContent = String(e);
+  } finally {
+    cyclesButton.disabled = false;
     button.disabled = false;
   }
 };

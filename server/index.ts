@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Economy } from "./economy.ts";
 import { Auth } from "./auth.ts";
+import {RaceRecords} from "./race-records.ts";
 import { KartRoom } from "./room.ts";
 const data =
   process.env.PONS_DATA_DIR ||
@@ -15,6 +16,7 @@ economy.recover();
 const auth = new Auth(path.join(data, "auth.sqlite"));
 KartRoom.economy = economy;
 KartRoom.auth = auth;
+KartRoom.records = new RaceRecords(path.join(data,"races.sqlite"));
 const server = new Server({
   transport: new WebSocketTransport({ maxPayload: 8192 }),
   greet: false,
@@ -24,7 +26,7 @@ const server = new Server({
       next();
     });
     app.get("/api/health", (_req, res) =>
-      res.json({ ok: true, mode: "simulation", version: "0.2.0" }),
+      res.json({ ok: true, mode: "simulation", version: "0.3.0" }),
     );
     app.get("/api/pool", (_req, res) => res.json(economy.pool()));
     app.post("/api/account", (_req, res) => {
