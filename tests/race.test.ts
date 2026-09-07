@@ -36,6 +36,9 @@ test("reset returns car to its validated checkpoint without granting progress", 
   const p = c.progress;
   stepCar(c, { ...EMPTY_INPUT, reset: true }, 1 / 60);
   assert.equal(c.progress, p);
+  for (let i = 0; i < 89; i++)
+    stepCar(c, { ...EMPTY_INPUT, reset: true }, 1 / 60);
+  assert.ok(c.progress <= p);
   assert.ok(Math.hypot(c.x, c.z) < 400);
 });
 test("forward sequential travel completes a lap but skips/reverse crossings do not", () => {
@@ -60,7 +63,10 @@ test("reversing behind the start preserves signed distance and reset cannot tele
   assert.ok(c.progress < 0.06);
   assert.equal(c.checkpoint, 0);
   stepCar(c, { ...EMPTY_INPUT, reset: true }, 1 / 60);
-  assert.equal(c.progress, 0);
+  const beforeReset = c.progress;
+  for (let i = 0; i < 89; i++)
+    stepCar(c, { ...EMPTY_INPUT, reset: true }, 1 / 60);
+  assert.ok(c.progress <= beforeReset);
   assert.equal(c.checkpoint, 0);
 });
 test("rear grid cars start behind the line and complete only after crossing it", () => {

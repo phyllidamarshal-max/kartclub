@@ -47,3 +47,21 @@ test("legal reverse then forward driving cannot earn an early checkpoint", () =>
   assert.equal(c.checkpoint, 1);
   assert.ok(c.progress >= 1 / 12);
 });
+
+test("lap crossing time is interpolated within its physics tick and sectors stay ordered", () => {
+  const c = spawnCar();
+  let oldTime = 0;
+  let priorSector = 0;
+  while (c.lap < 1 && c.time < 90) {
+    oldTime = c.time;
+    stepCar(c, pilot(c), 1 / 60);
+    for (const sector of c.sectorTimes) {
+      assert.ok(sector > 0 && sector <= c.time);
+      priorSector = Math.max(priorSector, sector);
+    }
+  }
+  assert.equal(c.lap, 1);
+  assert.ok(priorSector > 0);
+  assert.ok(c.lastLapTime > oldTime && c.lastLapTime <= c.time);
+  assert.equal(c.sectorTimes.length, 0);
+});

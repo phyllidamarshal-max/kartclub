@@ -81,14 +81,17 @@ test("wall contact retains tangent velocity and removes strong outward normal ve
   assert.ok(c.speed < 20);
 });
 
-test("reset grants two seconds of contact grace which held reset cannot extend", () => {
+test("reset waits then grants one second of contact grace which held reset cannot extend", () => {
   const [a, b] = pair();
   stepCar(a, { ...EMPTY_INPUT, reset: true }, 1 / 60);
-  assert.equal(a.ghostTime, 2);
+  assert.ok(a.resetTime > 1.4);
+  for (let i = 0; i < 89; i++)
+    stepCar(a, { ...EMPTY_INPUT, reset: true }, 1 / 60);
+  assert.equal(a.ghostTime, 1);
   Object.assign(b, { x: a.x, z: a.z });
   separateCars([a, b]);
   assert.equal(distance(a, b), 0);
-  for (let i = 0; i < 121; i++)
+  for (let i = 0; i < 61; i++)
     stepCar(a, { ...EMPTY_INPUT, reset: true }, 1 / 60);
   assert.equal(a.ghostTime, 0);
   Object.assign(b, { x: a.x, z: a.z });
@@ -239,6 +242,9 @@ test("custom road widths and the mountain shortcut constrain car centres", () =>
   const mountain = tracks.getTrack("mountain"),
     shortcut = mountain.shortcut[40];
   Object.assign(c, {
+    routeBranch: "shortcut",
+    lastT: shortcut.t,
+    progress: shortcut.t,
     x: shortcut.x + Math.cos(shortcut.heading) * 3,
     z: shortcut.z - Math.sin(shortcut.heading) * 3,
   });

@@ -1,5 +1,5 @@
 import { type Car, type Input } from "./race.ts";
-import { trackPoint, nearestTrack, angleDiff, type Track } from "./track.ts";
+import { trackPoint, continuousTrack, angleDiff, type Track } from "./track.ts";
 import type { Difficulty } from "./gameplay.ts";
 export function aiInput(
   c: Car,
@@ -9,7 +9,7 @@ export function aiInput(
   rivals: readonly Car[] = [],
 ): Input {
   const level = { easy: 0, normal: 1, hard: 2 }[difficulty];
-  const p = nearestTrack(c.x, c.z, track),
+  const p = continuousTrack(c.x, c.z, c.lastT, track, c.routeBranch),
     look = trackPoint(
       p.t + (11 + Math.abs(c.speed) * 0.28) / track.length,
       track,
@@ -74,7 +74,11 @@ export function aiInput(
       curvature > 0.15 &&
       curvature < 0.35 &&
       Math.abs(error) > 0.15,
-    boost: c.energy >= 100 && Math.abs(error) < 0.08,
+    boost:
+      c.storedNitro > 0 &&
+      !c.boostHeld &&
+      (c.boostTime <= 0 || c.boostTime <= 0.15) &&
+      Math.abs(error) < 0.08,
     item: Math.sin(clock * 1.3 + c.slot) > 0.85,
     reset: c.speed < 2 && clock > 10 && Math.sin(clock) > 0.995,
   };

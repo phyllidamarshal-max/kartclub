@@ -285,12 +285,81 @@ export function nearestTrack(
       roadWidth = 7;
     }
   }
-  return {
-    ...p,
-    distance: Math.sqrt(best),
-    lateral: (x - p.x) * Math.cos(p.heading) - (z - p.z) * Math.sin(p.heading),
-    roadWidth,
-  };
+  return continuousTrack(x, z, p.t, track);
 }
 export const TRACK_LENGTH = DEFAULT_TRACK.length;
 export const TRACK_POINTS = DEFAULT_TRACK.points;
+
+// Project only onto connected nearby directed segments. Height crossings and
+// distant hairpins cannot steal a kart from its current route. Shortcut t values
+// map their connected branch back onto canonical race progress.
+export function continuousTrack(
+  x: number,
+  z: number,
+  lastT: number,
+  track: Track = DEFAULT_TRACK,
+  branch?: "main" | "shortcut",
+) {
+  let best = Infinity;
+  let result = {
+    ...trackPoint(lastT, track),
+    distance: Infinity,
+    lateral: 0,
+    roadWidth: track.width,
+    progressScale: 1,
+  };
+  const window = Math.max(30 / track.length, 3 / track.points.length);
+  const consider = (a: Point, b: Point, width: number) => {
+    let span = b.t - a.t;
+    if (span < 0) span++;
+    const dx = b.x - a.x,
+      dz = b.z - a.z,
+      len2 = dx * dx + dz * dz;
+    let f = Math.max(
+      0,
+      Math.min(1, ((x - a.x) * dx + (z - a.z) * dz) / (len2 || 1)),
+    );
+    const t = (a.t + span * f) % 1;
+    let delta = t - lastT;
+    if (delta > 0.5) delta--;
+    if (delta < -0.5) delta++;
+    if (Math.abs(delta) > window) return;
+    const px = a.x + dx * f,
+      pz = a.z + dz * f,
+      d = (x - px) ** 2 + (z - pz) ** 2;
+    if (d >= best) return;
+    best = d;
+    const heading = a.heading + angleDiff(b.heading, a.heading) * f;
+    result = {
+      x: px,
+      z: pz,
+      y: a.y + (b.y - a.y) * f,
+      t,
+      heading,
+      distance: Math.sqrt(d),
+      lateral: (x - px) * Math.cos(heading) - (z - pz) * Math.sin(heading),
+      roadWidth: width,
+      progressScale:
+        (span * track.length) /
+        (Math.sqrt(len2) || 1) /
+        Math.max(
+          0.1,
+          1 -
+            (Math.abs(angleDiff(b.heading, a.heading)) * Math.sqrt(d)) /
+              (Math.sqrt(len2) || 1),
+        ),
+    };
+  };
+  const n = track.points.length,
+    centre = Math.floor(lastT * n),
+    radius = Math.ceil(window * n) + 2;
+  if (branch !== "shortcut")
+    for (let k = -radius; k <= radius; k++) {
+      const i = (((centre + k) % n) + n) % n;
+      consider(track.points[i], track.points[(i + 1) % n], track.width);
+    }
+  if (branch !== "main")
+    for (let i = 0; i < track.shortcut.length - 1; i++)
+      consider(track.shortcut[i], track.shortcut[i + 1], 7);
+  return result;
+}

@@ -1,6 +1,8 @@
+import { DRIVING_CONFIG as CFG } from "./driving-config.ts";
 import {
   trackPoint,
   nearestTrack,
+  continuousTrack,
   DEFAULT_TRACK,
   angleDiff,
   type Track,
@@ -32,6 +34,26 @@ export interface Car {
   speed: number;
   energy: number;
   boostTime: number;
+  storedNitro: number;
+  miniTime: number;
+  miniWindow: number;
+  resetTime: number;
+  slipAngle: number;
+  driftState: "grip" | "entering" | "drifting" | "recovering";
+  nitroUses: number;
+  miniUses: number;
+  collisionCount: number;
+  lastLapTime: number;
+  sectorTimes: number[];
+  driftDuration: number;
+  nitroBuffer: number;
+  throttleHeld: boolean;
+  resetProgress: number;
+  spawnProgress: number;
+  routeBranch: "main" | "shortcut";
+  progressTravel: number;
+  lastX: number;
+  lastZ: number;
   drifting: boolean;
   driftTotal: number;
   progress: number;
@@ -52,7 +74,7 @@ export function spawnCar(slot = 0, id = "local", track = DEFAULT_TRACK): Car {
     back = Math.floor(slot / 2) * 5,
     x = p.x + Math.cos(p.heading) * side - Math.sin(p.heading) * back,
     z = p.z - Math.sin(p.heading) * side - Math.cos(p.heading) * back,
-    startT = nearestTrack(x, z, track).t,
+    startT = continuousTrack(x, z, 0, track).t,
     startProgress = startT > 0.5 ? startT - 1 : startT;
   return {
     id,
@@ -65,6 +87,26 @@ export function spawnCar(slot = 0, id = "local", track = DEFAULT_TRACK): Car {
     speed: 0,
     energy: 0,
     boostTime: 0,
+    storedNitro: 0,
+    miniTime: 0,
+    miniWindow: 0,
+    resetTime: 0,
+    slipAngle: 0,
+    driftState: "grip",
+    nitroUses: 0,
+    miniUses: 0,
+    collisionCount: 0,
+    lastLapTime: 0,
+    sectorTimes: [],
+    driftDuration: 0,
+    nitroBuffer: 0,
+    throttleHeld: false,
+    resetProgress: startProgress,
+    spawnProgress: startProgress,
+    routeBranch: "main",
+    progressTravel: 0,
+    lastX: x,
+    lastZ: z,
     drifting: false,
     driftTotal: 0,
     progress: startProgress,
@@ -106,62 +148,242 @@ export function advanceProgress(c: Car, t: number) {
   const cp = Math.floor(c.progress * 12);
   if (cp > c.checkpoint) c.checkpoint = cp;
 }
+function cancelEligibility(c: Car) {
+  c.miniWindow = 0;
+  c.miniTime = 0;
+  c.nitroBuffer = 0;
+  c.driftDuration = 0;
+  c.driftState = "grip";
+  c.drifting = false;
+}
+function convertEnergy(c: Car) {
+  if (c.energy >= CFG.energy.capacity && c.storedNitro < CFG.nitro.capacity) {
+    c.energy -= CFG.energy.capacity;
+    c.storedNitro++;
+  }
+  c.energy = Math.min(CFG.energy.capacity, c.energy);
+}
+function startNitro(c: Car, remainder = 0) {
+  if (c.storedNitro < 1) return;
+  c.storedNitro--;
+  c.nitroUses++;
+  c.boostTime = CFG.nitro.duration + remainder;
+  c.miniTime = 0;
+  c.nitroBuffer = 0;
+  convertEnergy(c);
+}
+function signedDelta(t: number, previous: number) {
+  let d = t - previous;
+  if (d > 0.5) d--;
+  if (d < -0.5) d++;
+  return d;
+}
 export function stepCar(c: Car, raw: Input, dt: number, track = DEFAULT_TRACK) {
-  if (c.finished) return;
+  if (c.finished) {
+    cancelEligibility(c);
+    return;
+  }
   const input = sanitizeInput(raw);
   dt = Number.isFinite(dt) ? Math.max(0, Math.min(dt, 1 / 30)) : 0;
+  const boostPress = input.boost && !c.boostHeld;
+  const throttlePress = input.throttle > 0 && !c.throttleHeld;
+  const resetPress = input.reset && !c.resetHeld;
+  c.boostHeld = input.boost;
+  c.throttleHeld = input.throttle > 0;
+  c.resetHeld = input.reset;
   c.time += dt;
-  c.ghostTime = Math.max(0, (c.ghostTime || 0) - dt);
-  c.impact = Math.max(0, (c.impact || 0) - dt * 2.5);
-  if (input.reset && !c.resetHeld) {
-    const p = trackPoint(c.checkpoint / 12, track);
-    c.x = p.x;
-    c.z = p.z;
-    c.heading = p.heading;
+  c.ghostTime = Math.max(0, c.ghostTime - dt);
+  c.impact = Math.max(0, c.impact - dt * 2.5);
+  if (resetPress && c.resetTime <= 0) {
+    c.resetProgress = Math.min(
+      c.checkpoint / 12,
+      Math.floor(c.progress * 12) / 12,
+    );
+    // A grid slot behind the start remains its original safe spawn only until
+    // the driver reverses behind that slot; reset never forgives reverse travel.
+    if (c.progress < 0 && c.progress >= c.spawnProgress)
+      c.resetProgress = c.spawnProgress;
+    c.resetTime = CFG.reset.wait;
+    c.boostTime = 0;
+    cancelEligibility(c);
     c.speed = 0;
     c.vx = 0;
     c.vz = 0;
-    c.lastT = p.t;
-    c.progress = c.checkpoint / 12;
-    c.boostTime = 0;
-    c.ghostTime = 2;
-    c.impact = 0;
   }
-  c.resetHeld = input.reset;
-  if (input.boost && !c.boostHeld && c.energy >= 100) {
-    c.energy -= 100;
-    c.boostTime = 2.3;
+  if (c.resetTime > 0) {
+    c.resetTime = Math.max(0, c.resetTime - dt);
+    if (c.resetTime < 1e-9) {
+      c.resetTime = 0;
+      const p = trackPoint(c.resetProgress, track);
+      c.x = p.x;
+      c.z = p.z;
+      c.heading = p.heading;
+      c.lastT = p.t;
+      c.progress = c.resetProgress;
+      c.routeBranch = "main";
+      c.progressTravel = 0;
+      c.lastX = c.x;
+      c.lastZ = c.z;
+      c.ghostTime = CFG.reset.protection;
+      c.impact = 0;
+    }
+    return;
   }
-  c.boostHeld = input.boost;
-  c.boostTime = Math.max(0, c.boostTime - dt);
-  const boosting = c.boostTime > 0;
-  c.speed += input.throttle * (boosting ? 29 : 22) * dt;
+  const previousBoost = c.boostTime;
+  c.boostTime = Math.max(0, previousBoost - dt);
+  c.miniTime = Math.max(0, c.miniTime - dt);
+  c.miniWindow = Math.max(0, c.miniWindow - dt);
+  convertEnergy(c);
+  if (
+    boostPress &&
+    previousBoost > 0 &&
+    previousBoost <= CFG.nitro.buffer + 1e-9
+  )
+    c.nitroBuffer = CFG.nitro.buffer;
+  if (previousBoost > 0 && previousBoost <= dt + 1e-9 && c.nitroBuffer > 0)
+    startNitro(c, Math.min(0, previousBoost - dt));
+  else if (boostPress && previousBoost <= 0) startNitro(c);
+  c.nitroBuffer = Math.max(0, c.nitroBuffer - dt);
+  if (throttlePress && c.miniWindow > 0 && c.boostTime <= 0) {
+    c.miniTime = CFG.mini.duration;
+    c.miniWindow = 0;
+    c.miniUses++;
+  }
+  const boost = c.boostTime > 0 ? CFG.nitro : c.miniTime > 0 ? CFG.mini : null;
+  const maxSpeed = CFG.vehicle.maxSpeed * (boost?.maxSpeed ?? 1);
+  const wasOverspeed = c.speed > maxSpeed;
+  if (c.speed <= maxSpeed)
+    c.speed +=
+      input.throttle *
+      CFG.vehicle.acceleration *
+      (boost?.acceleration ?? 1) *
+      dt;
   c.speed *= Math.exp(-(input.throttle === 0 ? 1.25 : 0.22) * dt);
-  c.speed = Math.max(-10, Math.min(boosting ? 63 : 43, c.speed));
-  c.drifting = input.drift && Math.abs(input.steer) > 0.15 && c.speed > 10;
+  if (c.speed > maxSpeed)
+    c.speed = wasOverspeed
+      ? maxSpeed + (c.speed - maxSpeed) * Math.exp(-3 * dt)
+      : maxSpeed;
+  c.speed = Math.max(-CFG.vehicle.reverseSpeed, c.speed);
+  const requestedDrift =
+    input.drift && Math.abs(input.steer) > 0.15 && c.speed > 10;
   c.heading +=
     input.steer *
-    (c.drifting ? 1.8 : 1.2) *
+    (requestedDrift ? CFG.vehicle.driftTurnRate : CFG.vehicle.turnRate) *
     Math.min(1, Math.abs(c.speed) / 10) *
     Math.sign(c.speed) *
     dt;
-  const grip = 1 - Math.exp(-(c.drifting ? 2.8 : 10) * dt);
+  const grip =
+    1 -
+    Math.exp(-(requestedDrift ? CFG.vehicle.driftGrip : CFG.vehicle.grip) * dt);
   c.vx += (Math.sin(c.heading) * c.speed - c.vx) * grip;
   c.vz += (Math.cos(c.heading) * c.speed - c.vz) * grip;
   const previousX = c.x,
     previousZ = c.z;
+  if (track.shortcut.length > 1) {
+    const entry = track.shortcut[0],
+      exit = track.shortcut.at(-1)!;
+    if (
+      c.routeBranch === "main" &&
+      Math.abs(signedDelta(c.lastT, entry.t)) * track.length < 5
+    ) {
+      const main = continuousTrack(c.x, c.z, c.lastT, track, "main");
+      const branch = continuousTrack(c.x, c.z, c.lastT, track, "shortcut");
+      const direction = Math.atan2(c.vx, c.vz);
+      if (
+        branch.distance < 2.45 &&
+        Math.abs(angleDiff(direction, entry.heading)) + 0.15 <
+          Math.abs(angleDiff(direction, main.heading))
+      )
+        c.routeBranch = "shortcut";
+    } else if (c.routeBranch === "shortcut" && c.lastT >= exit.t - 1e-8)
+      c.routeBranch = "main";
+  }
+  const before = continuousTrack(c.x, c.z, c.lastT, track, c.routeBranch);
   c.x += c.vx * dt;
   c.z += c.vz * dt;
   const collision = constrainEnvironment(c, track, previousX, previousZ);
-  const p = nearestTrack(c.x, c.z, track);
-  if (c.drifting && !collision) {
-    const amount = Math.min(24, c.speed * 0.62) * dt;
-    c.energy = Math.min(200, c.energy + amount);
-    c.driftTotal += amount;
-    c.speed *= Math.exp(-0.13 * dt);
+  const p = continuousTrack(c.x, c.z, c.lastT, track, c.routeBranch);
+  const travel = Math.hypot(c.x - previousX, c.z - previousZ);
+  const delta = signedDelta(p.t, c.lastT);
+  // Arc distance may exceed a chord on an inside racing line. The bound uses
+  // this step's physical travel and the branch's explicit metric conversion.
+  const scale = Math.max(1, p.progressScale, before.progressScale);
+  const coherent =
+    Math.abs(signedDelta(before.t, c.lastT)) * track.length <= 2.2 * scale;
+  const externalTravel = Math.hypot(previousX - c.lastX, previousZ - c.lastZ);
+  const budget =
+    c.progressTravel + travel + (externalTravel <= 2.2 ? externalTravel : 0);
+  const legal =
+    coherent && Math.abs(delta) * track.length <= budget * 1.8 * scale + 1e-6;
+  c.lastX = c.x;
+  c.lastZ = c.z;
+  c.progressTravel = legal && Math.abs(delta) > 1e-10 ? 0 : Math.min(3, budget);
+  let forward = 0;
+  if (legal) {
+    const previous = c.progress;
+    c.lastT = p.t;
+    c.progress += delta;
+    c.checkpoint = Math.max(c.checkpoint, Math.floor(c.progress * 12));
+    const nextLap = Math.max(c.lap, Math.floor(c.progress + 1e-10));
+    if (delta > 0) {
+      forward = Math.min(travel, (delta * track.length) / scale);
+      for (let sector = c.sectorTimes.length + 1; sector <= 2; sector++) {
+        const threshold = c.lap + sector / 3;
+        if (previous < threshold && c.progress >= threshold)
+          c.sectorTimes.push(
+            c.time - dt + (dt * (threshold - previous)) / delta - c.lastLapTime,
+          );
+      }
+      if (nextLap > c.lap) {
+        c.lastLapTime = c.time - dt + (dt * (nextLap - previous)) / delta;
+        c.sectorTimes = [];
+      }
+    }
+    c.lap = nextLap;
   }
-  if (Math.abs(angleDiff(c.heading, p.heading)) < Math.PI * 0.7)
-    advanceProgress(c, p.t);
+  const velocity = Math.hypot(c.vx, c.vz);
+  c.slipAngle =
+    velocity > 1e-6 ? angleDiff(c.heading, Math.atan2(c.vx, c.vz)) : 0;
+  const angle = Math.abs(c.slipAngle);
+  const angleWeight = Math.max(
+    0,
+    Math.min(
+      (angle - CFG.drift.angleMin) / (CFG.drift.anglePeak - CFG.drift.angleMin),
+      (CFG.drift.angleMax - angle) / (CFG.drift.angleMax - CFG.drift.anglePeak),
+    ),
+  );
+  const valid =
+    requestedDrift &&
+    !collision &&
+    c.impact < CFG.collision.severeImpact &&
+    velocity >= CFG.vehicle.maxSpeed * CFG.drift.minSpeedRatio &&
+    forward > 1e-6 &&
+    angleWeight > 0 &&
+    c.speed > 0;
+  c.drifting = requestedDrift;
+  if (c.impact >= CFG.collision.severeImpact) cancelEligibility(c);
+  else if (valid) {
+    c.driftState = "drifting";
+    c.driftDuration += dt;
+    const gain =
+      CFG.energy.perSecond *
+      dt *
+      angleWeight *
+      Math.min(1, velocity / CFG.vehicle.maxSpeed) *
+      Math.min(1, forward / (CFG.vehicle.maxSpeed * dt));
+    c.energy = Math.min(CFG.energy.capacity, c.energy + gain);
+    c.driftTotal += gain;
+    convertEnergy(c);
+  } else if (!requestedDrift && angle <= CFG.drift.recoverAngle) {
+    if (c.driftDuration + 1e-9 >= CFG.drift.eligibility)
+      c.miniWindow = CFG.mini.window;
+    c.driftDuration = 0;
+    c.driftState = "grip";
+  } else c.driftState = requestedDrift ? "entering" : "recovering";
+  if (requestedDrift)
+    c.speed *= Math.exp(
+      -(CFG.drift.drag + Math.max(0, angle - CFG.drift.anglePeak)) * dt,
+    );
 }
 const CAR_RADIUS = 1.05;
 
@@ -178,7 +400,9 @@ function surfaceVelocity(c: Car, nx: number, nz: number) {
   if (inward >= 0) return;
   c.vx -= inward * nx;
   c.vz -= inward * nz;
+  if (-inward > 2 && c.impact <= 0.01) c.collisionCount++;
   c.impact = Math.max(c.impact || 0, Math.min(1, -inward / 32));
+  if (c.impact >= CFG.collision.severeImpact) cancelEligibility(c);
   syncSpeed(c);
 }
 
@@ -239,7 +463,7 @@ function constrainEnvironment(
     surfaceVelocity(c, nx, nz);
     collision = true;
   }
-  const p = nearestTrack(c.x, c.z, track);
+  const p = continuousTrack(c.x, c.z, c.lastT, track, c.routeBranch);
   const limit = Math.max(0, p.roadWidth / 2 - CAR_RADIUS);
   if (p.distance > limit) {
     const norm = Math.hypot(c.x - p.x, c.z - p.z) || 1;
@@ -254,7 +478,9 @@ function constrainEnvironment(
 }
 
 export function separateCars(cars: Car[], track = DEFAULT_TRACK) {
-  const active = cars.filter((c) => !c.finished && !(c.ghostTime > 0));
+  const active = cars.filter(
+    (c) => !c.finished && !(c.ghostTime > 0) && !(c.resetTime > 0),
+  );
   // Reproject after every pair so a contact cannot leave a kart through a wall.
   // Repeated bounded corrections converge for queues and side-by-side contacts.
   for (let pass = 0; pass < 48; pass++) {
@@ -269,7 +495,13 @@ export function separateCars(cars: Car[], track = DEFAULT_TRACK) {
         if (d >= CAR_RADIUS * 2 - 1e-7) continue;
         overlap = true;
         // A road tangent also separates coincident stationary cars near a wall.
-        const heading = nearestTrack(a.x, a.z, track).heading;
+        const heading = continuousTrack(
+          a.x,
+          a.z,
+          a.lastT,
+          track,
+          a.routeBranch,
+        ).heading;
         const nx = d > 1e-9 ? dx / d : Math.sin(heading);
         const nz = d > 1e-9 ? dz / d : Math.cos(heading);
         const closing = (a.vx - b.vx) * nx + (a.vz - b.vz) * nz;
@@ -282,6 +514,12 @@ export function separateCars(cars: Car[], track = DEFAULT_TRACK) {
           syncSpeed(a);
           syncSpeed(b);
           const impact = Math.min(1, -closing / 32);
+          if (impact > 0.06 && a.impact <= 0.01) a.collisionCount++;
+          if (impact > 0.06 && b.impact <= 0.01) b.collisionCount++;
+          if (impact >= CFG.collision.severeImpact) {
+            cancelEligibility(a);
+            cancelEligibility(b);
+          }
           a.impact = Math.max(a.impact || 0, impact);
           b.impact = Math.max(b.impact || 0, impact);
         }

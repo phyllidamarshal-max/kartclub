@@ -39,3 +39,15 @@ test("career routes have nine different real layouts with progressively narrower
     tracks.getTrack("mountain-summit").width < tracks.getTrack("coast").width,
   );
 });
+
+test("AC13 neighbouring and elevated road segments cannot steal a continuous projection", () => {
+  const base = tracks.DEFAULT_TRACK,
+    p = tracks.trackPoint(0.02, base);
+  const points = base.points.map((q) => ({ ...q }));
+  points[360] = { ...p, t: 0.5, y: 20, x: p.x + 0.1 };
+  points[361] = { ...p, t: 361 / 720, y: 20, x: p.x + 0.1, z: p.z + 1 };
+  const track = { ...base, points };
+  const n = tracks.continuousTrack(p.x + 0.1, p.z, 0.02, track);
+  assert.ok(Math.abs(n.t - 0.02) < 0.001);
+  assert.equal(n.y, 0);
+});
