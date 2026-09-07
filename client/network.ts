@@ -9,10 +9,13 @@ export class Network {
   snapshot: Snapshot | null = null;
   seq = 0;
   connected = true;
+  connectionState: "connected" | "reconnecting" | "ended" = "connected";
   ping = 0;
   private pingStart = 0;
   onSnapshot: (s: Snapshot) => void = () => {};
   onNotice: (s: string) => void = () => {};
+  onTerminal: (snapshot: Snapshot | null) => void = () => {};
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   async request<T>(path: string, method = "GET"): Promise<T> {
     const r = await fetch("/api/" + path, {
       method,
@@ -63,7 +66,25 @@ export class Network {
     this.seq = 0;
     this.room.reconnection.minUptime = 0;
     this.connected = true;
+    this.connectionState = "connected";
     const currentRoom = this.room;
+    const clearReconnectTimer = () => {
+      if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    };
+    const endConnection = () => {
+      if (this.room !== currentRoom) return;
+      clearReconnectTimer();
+      const finalSnapshot = this.snapshot;
+      this.room = null;
+      this.snapshot = null;
+      this.connected = false;
+      this.connectionState = "ended";
+      currentRoom.reconnection.enabled = false;
+      if (!currentRoom.connection.isOpen) currentRoom.connection.close();
+      this.onTerminal(finalSnapshot);
+      void this.refresh().catch(() => {});
+    };
     this.room.onMessage("snapshot", (s: Snapshot) => {
       if (this.room !== currentRoom) return;
       this.snapshot = s;
@@ -78,7 +99,10 @@ export class Network {
     this.room.onDrop(() => {
       if (this.room !== currentRoom) return;
       this.connected = false;
+      this.connectionState = "reconnecting";
       this.onNotice("连接中断，正在尝试重连（30 秒）");
+      clearReconnectTimer();
+      this.reconnectTimer = setTimeout(endConnection, 30_000);
     });
     this.room.onReconnect(() => {
       if (this.room !== currentRoom) {
@@ -86,16 +110,16 @@ export class Network {
         return;
       }
       this.connected = true;
+      this.connectionState = "connected";
+      clearReconnectTimer();
       this.onNotice("已重连，比赛状态已恢复");
     });
     this.room.onLeave(() => {
-      if (this.room !== currentRoom) return;
-      this.connected = false;
-      this.onNotice("已离开联机房间");
+      endConnection();
     });
-    this.room.onError((_code, message) =>
-      this.onNotice(message || "联机连接异常"),
-    );
+    this.room.onError((_code, message) => {
+      if (this.room === currentRoom) this.onNotice(message || "联机连接异常");
+    });
     return this.room;
   }
   input(input: Input) {
@@ -115,6 +139,10 @@ export class Network {
     const r = this.room;
     this.room = null;
     this.snapshot = null;
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = null;
+    this.connected = false;
+    this.connectionState = "ended";
     if (r) {
       r.reconnection.enabled = false;
       if (r.connection.isOpen)

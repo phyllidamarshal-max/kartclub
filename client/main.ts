@@ -17,6 +17,7 @@ import {
 } from "../shared/track.ts";
 import type { Snapshot } from "../shared/protocol.ts";
 import { DEFAULT_BINDINGS, readInput, type Binding } from "./controls.ts";
+import { canOpenPause } from "./lifecycle.ts";
 
 const $ = (selector: string) => document.querySelector<HTMLElement>(selector)!;
 const app = $("#app");
@@ -292,6 +293,24 @@ function handleSnapshot(s: Snapshot) {
 }
 net.onSnapshot = handleSnapshot;
 net.onNotice = toast;
+net.onTerminal = (finalSnapshot) => {
+  latest = null;
+  pending = [];
+  if (
+    finalSnapshot &&
+    (finalSnapshot.phase === "finished" || finalSnapshot.phase === "cancelled")
+  ) {
+    latest = finalSnapshot;
+    if (mode === "multi") multiResult(finalSnapshot);
+    return;
+  }
+  mode = "lobby";
+  page = "online";
+  lobby();
+  modal = "connection-ended";
+  $("#modal-root").innerHTML =
+    '<div class="modal-backdrop"><section class="modal"><span class="eyebrow">CONNECTION ENDED</span><h2>联机赛事已结束</h2><p>重连时限已结束或赛事服务器已关闭。席位已释放，账户状态会在服务恢复后刷新。</p><button class="button primary full" data-action="exit">返回赛事大厅 <span>→</span></button></section></div>';
+};
 
 async function act(action: string) {
   if (action === "close") {
@@ -458,7 +477,7 @@ window.addEventListener("keydown", (event) => {
     event.preventDefault();
   if (event.code === "Escape" && !event.repeat) {
     if (modal && modal !== "result") closeModal();
-    else if (mode !== "lobby" && !soloDone && !modal) void act("pause");
+    else if (canOpenPause(mode, soloDone, modal)) void act("pause");
   }
   keys.add(event.code);
 });
@@ -571,7 +590,13 @@ function hud() {
   $("#position-total").textContent =
     "/ " + String(cars.length).padStart(2, "0");
   $("#race-status").textContent =
-    mode === "solo" ? "SOLO RUN" : net.connected ? "LIVE RACE" : "RECONNECTING";
+    mode === "solo"
+      ? "SOLO RUN"
+      : net.connectionState === "connected"
+        ? "LIVE RACE"
+        : net.connectionState === "reconnecting"
+          ? "RECONNECTING"
+          : "CONNECTION ENDED";
   $("#net-ping").textContent = mode === "multi" ? `${net.ping} ms` : "";
   if (mode === "solo" && challengeIndex >= 0) {
     const q = content.challenges[challengeIndex];

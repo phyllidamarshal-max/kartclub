@@ -52,6 +52,37 @@ test("forward sequential travel completes a lap but skips/reverse crossings do n
   advanceProgress(reverse, 0.98);
   assert.equal(reverse.lap, 0);
 });
+test("reversing behind the start preserves signed distance and reset cannot teleport forward", () => {
+  const c = spawnCar(0);
+  advanceProgress(c, 0.97);
+  assert.ok(c.progress < 0);
+  advanceProgress(c, 0.02);
+  assert.ok(c.progress < 0.06);
+  assert.equal(c.checkpoint, 0);
+  stepCar(c, { ...EMPTY_INPUT, reset: true }, 1 / 60);
+  assert.equal(c.progress, 0);
+  assert.equal(c.checkpoint, 0);
+});
+test("rear grid cars start behind the line and complete only after crossing it", () => {
+  for (const slot of [2, 3]) {
+    const c = spawnCar(slot);
+    assert.ok(c.progress < 0, `slot ${slot} starts at ${c.progress}`);
+    advanceProgress(c, 0.99);
+    assert.equal(c.lap, 0);
+    advanceProgress(c, 0.01);
+    assert.equal(c.lap, 0);
+  }
+});
+test("validated checkpoint never retreats while signed position may", () => {
+  const c = spawnCar(0);
+  advanceProgress(c, 0.04);
+  advanceProgress(c, 0.08);
+  advanceProgress(c, 0.09);
+  assert.equal(c.checkpoint, 1);
+  advanceProgress(c, 0.07);
+  assert.equal(c.checkpoint, 1);
+  assert.ok(c.progress < 0.09);
+});
 test("track is closed with a finite tangent", () => {
   const a = trackPoint(0),
     b = trackPoint(1);

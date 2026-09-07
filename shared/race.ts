@@ -39,12 +39,16 @@ export interface Car {
 export function spawnCar(slot = 0, id = "local"): Car {
   const p = trackPoint(0),
     side = slot % 2 === 0 ? -2.4 : 2.4,
-    back = Math.floor(slot / 2) * 5;
+    back = Math.floor(slot / 2) * 5,
+    x = p.x + Math.cos(p.heading) * side - Math.sin(p.heading) * back,
+    z = p.z - Math.sin(p.heading) * side - Math.cos(p.heading) * back,
+    startT = nearestTrack(x, z).t,
+    startProgress = startT > 0.5 ? startT - 1 : startT;
   return {
     id,
     slot,
-    x: p.x + Math.cos(p.heading) * side - Math.sin(p.heading) * back,
-    z: p.z - Math.sin(p.heading) * side - Math.cos(p.heading) * back,
+    x,
+    z,
     heading: p.heading,
     vx: 0,
     vz: 0,
@@ -53,9 +57,9 @@ export function spawnCar(slot = 0, id = "local"): Car {
     boostTime: 0,
     drifting: false,
     driftTotal: 0,
-    progress: 0,
+    progress: startProgress,
     lap: 0,
-    lastT: 0,
+    lastT: startT,
     checkpoint: 0,
     boostHeld: false,
     resetHeld: false,
@@ -84,8 +88,8 @@ export function advanceProgress(c: Car, t: number) {
   if (d > 0.5) d--;
   if (Math.abs(d) > 0.04) return;
   c.lastT = t;
-  c.progress = Math.max(0, c.progress + d);
-  c.lap = Math.floor(c.progress + 1e-6);
+  c.progress += d;
+  c.lap = Math.max(0, Math.floor(c.progress + 1e-6));
   const cp = Math.floor(c.progress * 12);
   if (cp > c.checkpoint) c.checkpoint = cp;
 }
