@@ -5,6 +5,7 @@ import { getLevel } from "../shared/levels.ts";
 import { buildLevelLandscape, decorateLevel } from "./level-scenery.ts";
 import { buildDrivingSurfaces } from "./level-surfaces.ts";
 import { addRoadWear, enhanceAsphalt } from "./road-surface.ts";
+import { loadCoastAssets, disposeCoastAssets, updateCoastAssets } from "./coast-assets.ts";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
@@ -411,6 +412,9 @@ export class World {
   private cameraReady = false;
   private disposed = false;
   private environmentTarget?: THREE.WebGLRenderTarget;
+  private coastFallback?: THREE.Scene;
+  private coastAssets?: THREE.Group;
+  private coastLoad?: Promise<void>;
   constructor(
     public canvas: HTMLCanvasElement,
     public content: Content,
@@ -564,9 +568,18 @@ export class World {
       this.scene.getObjectByName("coast-road-wear")!.userData.dynamic = true;
     }
     buildDrivingSurfaces(this.scene, this.track);
-    if (level.biome === "coast")
-      decorateLandscape(this.scene, this.track, () => this.random());
-    else decorateLevel(this.scene, this.track, () => this.random());
+    if (level.biome === "coast") {
+      const fallback = (this.coastFallback = new THREE.Scene());
+      fallback.name = "coast-procedural-fallback";
+      decorateLandscape(fallback, this.track, () => this.random());
+      // These ground layers follow the physical shore and remain beneath either asset set.
+      for (const name of ["coast-wildflower-meadow", "coast-verge-grass", "coast-shore-foam"]) {
+        const object = fallback.getObjectByName(name);
+        if (object) this.scene.add(object);
+      }
+      fallback.traverse(object => { object.userData.coastFallback = true; });
+      this.scene.add(fallback);
+    } else decorateLevel(this.scene, this.track, () => this.random());
     this.batchStatic();
     this.skids = new THREE.InstancedMesh(
       new THREE.PlaneGeometry(0.22, 1.15),
@@ -593,6 +606,11 @@ export class World {
     if (this.disposed) return;
     await this.textureReady;
     if (this.disposed) return;
+    if (this.coastFallback) {
+      this.coastLoad ??= this.loadCoastScene();
+      await this.coastLoad;
+      if (this.disposed) return;
+    }
     const loader = new GLTFLoader();
     if (this.content.characterModel) {
       const gltf = await loader.loadAsync(this.content.characterModel);
@@ -624,6 +642,29 @@ export class World {
       }
       gltf.scene.scale.setScalar(this.content.modelScale);
       this.scene.add(gltf.scene);
+    }
+  }
+  private async loadCoastScene() {
+    try {
+      const assets = await loadCoastAssets(this.track);
+      if (this.disposed) {
+        disposeCoastAssets(assets);
+        return;
+      }
+      this.coastAssets = assets;
+      this.scene.add(assets);
+      const fallback = this.coastFallback;
+      this.coastFallback = undefined;
+      if (fallback) {
+        fallback.removeFromParent();
+        disposeObjectResources(fallback);
+        fallback.clear();
+      }
+      this.scene.userData.coastAssetStatus = "ready";
+    } catch (error) {
+      if (this.disposed) return;
+      this.scene.userData.coastAssetStatus = "fallback";
+      console.warn("Coast assets could not load; retaining procedural scenery.", error);
     }
   }
   setQuality(q: string) {
@@ -772,6 +813,7 @@ export class World {
         if (this.propellers.includes(p as THREE.Group)) return;
       const m = o.material as THREE.MeshStandardMaterial;
       const key = [
+        Boolean(o.userData.coastFallback),
         m.type,
         m.color?.getHexString(),
         m.roughness,
@@ -817,7 +859,9 @@ export class World {
       const o = new THREE.Mesh(merged, b.material);
       o.castShadow = b.objects[0].castShadow;
       o.receiveShadow = b.objects[0].receiveShadow;
-      this.scene.add(o);
+      const isFallback = Boolean(b.objects[0].userData.coastFallback);
+      o.userData.coastFallback = isFallback;
+      (isFallback && this.coastFallback ? this.coastFallback : this.scene).add(o);
       for (const old of b.objects) {
         old.removeFromParent();
         oldGeo.add(old.geometry);
@@ -840,11 +884,14 @@ export class World {
     if (this.disposed) return;
     this.disposed = true;
     window.removeEventListener("resize", this.onResize);
+    if (this.coastAssets) disposeCoastAssets(this.coastAssets);
+    this.coastAssets = undefined;
     disposeObjectResources(
       this.scene,
       ...(this.customDriver ? [this.customDriver] : []),
     );
     this.scene.clear();
+    this.coastFallback = undefined;
     this.cars.clear();
     this.itemMeshes.clear();
     this.propellers.length = 0;
@@ -1212,6 +1259,8 @@ export class World {
     this.seaMaterial.uniforms.clock.value = this.elapsed;
     this.sky.position.copy(this.camera.position);
     this.camera.updateProjectionMatrix();
+    if (this.coastAssets)
+      updateCoastAssets(this.coastAssets, this.camera.position, this.quality === "low");
     this.renderer.render(this.scene, this.camera);
     if (import.meta.env.DEV) {
       this.perfFrames++;

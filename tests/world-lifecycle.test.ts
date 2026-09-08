@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import * as THREE from "three";
 import { GLTFLoader, type GLTF } from "three/addons/loaders/GLTFLoader.js";
 import { World } from "../client/world.ts";
+import { DEFAULT_TRACK } from "../shared/track.ts";
+import { COAST_FOOTPRINTS } from "../client/coast-layout.ts";
 
 function bareWorld() {
   // Exercise the real lifecycle without requiring a browser/GPU constructor.
@@ -176,4 +178,73 @@ test("a world disposed while textures load never starts a model request", async 
   finishTextures();
   await pending;
   assert.equal(loader.mock.callCount(), 0);
+});
+
+test("static batching keeps replaceable scenery separate from persistent ground", () => {
+  const world = bareWorld(), fallback = new THREE.Scene();
+  Object.assign(world, { coastFallback: fallback });
+  world.scene.add(fallback);
+  const ground = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshStandardMaterial());
+  const house = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshStandardMaterial());
+  house.userData.coastFallback = true;
+  world.scene.add(ground); fallback.add(house);
+  (world as unknown as { batchStatic(): void }).batchStatic();
+  assert.equal(fallback.children.length, 1);
+  assert.ok(fallback.children[0].userData.coastFallback);
+  assert.equal(world.scene.children.filter(o => o instanceof THREE.Mesh).length, 1);
+});
+
+for (const replaceDuringLoad of [false, true]) {
+  test(`coast assets ${replaceDuringLoad ? "finishing after disposal are released" : "replace fallback only after the complete load"}`, async t => {
+    Object.defineProperty(globalThis, "window", { configurable: true, value: { removeEventListener() {} } });
+    const world = bareWorld(), fallback = new THREE.Scene();
+    const fallbackGeometry = new THREE.BoxGeometry();
+    let fallbackDisposed = 0, newDisposed = 0, loadCalls = 0;
+    fallbackGeometry.addEventListener("dispose", () => fallbackDisposed++);
+    fallback.add(new THREE.Mesh(fallbackGeometry, new THREE.MeshBasicMaterial()));
+    world.scene.add(fallback);
+    Object.assign(world, { coastFallback: fallback, track: DEFAULT_TRACK });
+    let finish!: () => void;
+    const gate = new Promise<void>(resolve => { finish = resolve; });
+    const keys = Object.keys(COAST_FOOTPRINTS);
+    t.mock.method(globalThis, "fetch", async () => ({ ok: true, json: async () => ({ version: "test", assets: keys.map(key => ({key,model:`/${key}.glb`,indirect:`/${key}.png`})) }) }) as Response);
+    t.mock.method(GLTFLoader.prototype, "loadAsync", async () => {
+      loadCalls++;
+      await gate;
+      const geometry = new THREE.BoxGeometry();
+      geometry.setAttribute("uv1", geometry.getAttribute("uv").clone());
+      geometry.addEventListener("dispose", () => newDisposed++);
+      return { scene: new THREE.Group().add(new THREE.Mesh(geometry,new THREE.MeshStandardMaterial())) } as GLTF;
+    });
+    t.mock.method(THREE.TextureLoader.prototype, "loadAsync", async () => new THREE.Texture());
+    const pending = world.loadAssets();
+    const concurrent = world.loadAssets();
+    await new Promise(resolve => setImmediate(resolve));
+    assert.equal(fallback.parent, world.scene);
+    assert.equal(loadCalls, keys.length);
+    if (replaceDuringLoad) world.dispose();
+    finish();
+    await Promise.all([pending, concurrent]);
+    assert.equal(fallbackDisposed, 1);
+    assert.equal(fallback.parent, null);
+    if (!replaceDuringLoad) {
+      assert.equal(world.scene.userData.coastAssetStatus, "ready");
+      assert.ok(world.scene.getObjectByName("coast-authored-assets"));
+      assert.equal(newDisposed, 0);
+      world.dispose();
+    }
+    assert.equal(newDisposed, keys.length);
+    assert.equal(world.scene.children.length, 0);
+  });
+}
+
+test("a failed coast load leaves the fallback visible", async t => {
+  const world = bareWorld(), fallback = new THREE.Scene();
+  Object.assign(world, { coastFallback: fallback, track: DEFAULT_TRACK });
+  world.scene.add(fallback);
+  t.mock.method(globalThis, "fetch", async () => ({ok:false}) as Response);
+  t.mock.method(console, "warn", () => {});
+  await world.loadAssets();
+  assert.equal(fallback.parent, world.scene);
+  assert.equal(world.scene.userData.coastAssetStatus, "fallback");
 });

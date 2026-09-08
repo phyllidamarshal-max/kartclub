@@ -104,6 +104,32 @@ def bake_asset(key, size, samples):
     PUBLIC.mkdir(parents=True, exist_ok=True)
     SOURCE.mkdir(parents=True, exist_ok=True)
     bpy.ops.wm.save_as_mainfile(filepath=str(SOURCE / f'{key}.blend'), check_existing=False)
+    # Keep each authored piece's original Generated coordinates before joining.
+    # This preserves stone/wood scale, while baking one atlas instead of uploading
+    # the complete atlas and rebuilding Cycles for every individual roof tile.
+    for obj in objects:
+        coords = np.array([tuple(vertex.co) for vertex in obj.data.vertices], dtype=np.float32)
+        lower = coords.min(axis=0)
+        span = np.maximum(coords.max(axis=0) - lower, 1e-7)
+        generated = obj.data.attributes.new('SourceGenerated', 'FLOAT_VECTOR', 'POINT')
+        generated.data.foreach_set('vector', ((coords-lower)/span).ravel())
+    for mat in {m for obj in objects for m in obj.data.materials if m}:
+        nodes, links = mat.node_tree.nodes, mat.node_tree.links
+        for node in list(nodes):
+            if node.type != 'TEX_COORD':
+                continue
+            original = list(node.outputs['Generated'].links)
+            if not original:
+                continue
+            attribute = nodes.new('ShaderNodeAttribute')
+            attribute.attribute_name = 'SourceGenerated'
+            for link in original:
+                destination = link.to_socket
+                links.remove(link)
+                links.new(attribute.outputs['Vector'], destination)
+    isolate(objects)
+    bpy.ops.object.join()
+    objects = [bpy.context.object]
     color = bake(objects, key+'-color', size, 'DIFFUSE', pass_filter={'COLOR'})
     normal = bake(objects, key+'-normal', size, 'NORMAL', normal_space='TANGENT')
     roughness = bake(objects, key+'-roughness', size, 'ROUGHNESS')
