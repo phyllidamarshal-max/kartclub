@@ -7,7 +7,10 @@ on:
 
 jobs:
   build:
+    name: Netlify production deploy
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout
@@ -25,14 +28,33 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Install Netlify CLI
-        run: npm i -g netlify-cli
-
-      - name: Deploy to Netlify
+      - name: Verify Netlify secrets
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
         run: |
+          if [ -z "${NETLIFY_AUTH_TOKEN}" ]; then
+            echo "::error title=Missing Secret::NETLIFY_AUTH_TOKEN is not configured in repository Secrets."
+            echo "Please add NETLIFY_AUTH_TOKEN in Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+
+          if [ -z "${NETLIFY_SITE_ID}" ]; then
+            echo "::error title=Missing Secret::NETLIFY_SITE_ID is not configured in repository Secrets."
+            echo "Please add NETLIFY_SITE_ID in Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+
+      - name: Install Netlify CLI
+        run: npm i -g netlify-cli
+
+      - name: Deploy to Netlify
+        timeout-minutes: 30
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        run: |
+          set -euo pipefail
           netlify deploy \
             --dir=dist \
             --prod \
