@@ -1,0 +1,96 @@
+{"track":"coast","difficulty":"normal","before":{"time":121.89999999999436,"collisions":0,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":91.36666666666277,"collisions":0,"resets":0,"nitro":5,"mini":19,"drift":597.841007627699}}
+{"track":"coast-harbor","difficulty":"normal","before":{"time":140.0500000000036,"collisions":0,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":109.36666666666174,"collisions":0,"resets":0,"nitro":5,"mini":30,"drift":557.1225337702618}}
+{"track":"coast-breakwater","difficulty":"normal","before":{"time":143.41666666667294,"collisions":6,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":114.94999999999476,"collisions":0,"resets":0,"nitro":5,"mini":47,"drift":578.2810068687876}}
+{"track":"city","difficulty":"normal","before":{"time":173.86666666669717,"collisions":3,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":130.78333333332955,"collisions":0,"resets":0,"nitro":10,"mini":29,"drift":1043.7249503625512}}
+{"track":"city-factory","difficulty":"normal","before":{"time":193.15000000004585,"collisions":0,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":151.0000000000123,"collisions":1,"resets":0,"nitro":10,"mini":46,"drift":1039.0721551066833}}
+{"track":"city-nightshift","difficulty":"normal","before":{"time":197.81666666671623,"collisions":3,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":146.21666666667517,"collisions":9,"resets":0,"nitro":10,"mini":29,"drift":1024.6463922253638}}
+{"track":"mountain","difficulty":"normal","before":{"time":176.61666666669936,"collisions":0,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":136.2166666666672,"collisions":0,"resets":0,"nitro":6,"mini":29,"drift":661.3519693418004}}
+{"track":"mountain-pass","difficulty":"normal","before":{"time":235.60000000007963,"collisions":21,"resets":8,"nitro":0,"mini":0,"drift":0},"after":{"time":144.4333333333404,"collisions":15,"resets":0,"nitro":5,"mini":43,"drift":532.2480936756345}}
+{"track":"mountain-summit","difficulty":"normal","before":{"time":205.25000000005548,"collisions":18,"resets":2,"nitro":0,"mini":0,"drift":0},"after":{"time":152.23333333334662,"collisions":15,"resets":0,"nitro":7,"mini":47,"drift":701.761888104964}}
+{"track":"coast","difficulty":"hard","before":{"time":109.88333333332838,"collisions":0,"resets":0,"nitro":0,"mini":0,"drift":0.679313782989623},"after":{"time":89.71666666666286,"collisions":0,"resets":0,"nitro":6,"mini":17,"drift":625.3022228427101}}
+{"track":"coast-harbor","difficulty":"hard","before":{"time":129.3333333333284,"collisions":3,"resets":0,"nitro":0,"mini":3,"drift":38.11542565950971},"after":{"time":107.6833333333285,"collisions":1,"resets":0,"nitro":7,"mini":24,"drift":702.8507326043407}}
+{"track":"coast-breakwater","difficulty":"hard","before":{"time":133.4833333333317,"collisions":9,"resets":0,"nitro":0,"mini":0,"drift":26.732580411902624},"after":{"time":111.78333333332827,"collisions":0,"resets":0,"nitro":7,"mini":39,"drift":758.6251803782503}}
+{"track":"city","difficulty":"hard","before":{"time":160.61666666668663,"collisions":3,"resets":0,"nitro":0,"mini":6,"drift":18.219402363510778},"after":{"time":127.38333333332739,"collisions":0,"resets":0,"nitro":12,"mini":28,"drift":1254.286868113854}}
+{"track":"city-factory","difficulty":"hard","before":{"time":179.2333333333681,"collisions":7,"resets":0,"nitro":0,"mini":3,"drift":26.559256653209747},"after":{"time":147.266666666676,"collisions":7,"resets":0,"nitro":12,"mini":30,"drift":1283.7463985384734}}
+{"track":"city-nightshift","difficulty":"hard","before":{"time":203.45000000005405,"collisions":8,"resets":2,"nitro":0,"mini":3,"drift":2.6057107529817074},"after":{"time":143.30000000000618,"collisions":13,"resets":0,"nitro":12,"mini":27,"drift":1201.1699350829247}}
+{"track":"mountain","difficulty":"hard","before":{"time":159.78333333335263,"collisions":0,"resets":0,"nitro":0,"mini":0,"drift":11.524667924796642},"after":{"time":133.3999999999983,"collisions":0,"resets":0,"nitro":7,"mini":26,"drift":755.299276758287}}
+✔ AI keeps accelerating during nitro on a clear straight instead of braking at its cruising cap (1.6977ms)
+✖ new competitive AI is materially faster on every route using unchanged legal physics (6243.4468ms)
+✔ expert AI earns and spends real drift nitro and uses recovery mini boosts (443.2782ms)
+✔ AI decisions do not mutate vehicle or rival physics and remain repeatable (1.5963ms)
+✔ AI escapes a glancing obstacle contact instead of driving indefinitely against it (83.9914ms)
+✔ competitive AI follows an occupied shortcut and rejoins the main road without resetting (2863.8809ms)
+coast easy 100.2
+coast normal 91.4
+coast hard 89.7
+coast-harbor easy 117.5
+coast-harbor normal 109.4
+coast-harbor hard 107.7
+coast-breakwater easy 122.6
+coast-breakwater normal 114.9
+coast-breakwater hard 111.8
+city easy 143.9
+city normal 130.8
+city hard 127.4
+city-factory easy 164.6
+city-factory normal 151.0
+city-factory hard 147.3
+city-nightshift easy 159.4
+city-nightshift normal 146.2
+city-nightshift hard 143.3
+mountain easy 148.2
+mountain normal 136.2
+mountain hard 133.4
+mountain-pass easy 152.0
+mountain-pass normal 144.4
+mountain-pass hard 142.4
+mountain-summit easy 163.0
+mountain-summit normal 152.2
+mountain-summit hard 149.9
+four-item-race coast 99.1 uses [ 7, 16, 17, 6 ]
+four-item-race coast-harbor 117.1 uses [ 9, 20, 12, 1 ]
+four-item-race coast-breakwater 122.9 uses [ 16, 17, 14, 5 ]
+four-item-race city 137.9 uses [ 13, 8, 4, 9 ]
+four-item-race city-factory 165.8 uses [ 20, 12, 19, 11 ]
+four-item-race city-nightshift 153.1 uses [ 18, 13, 14, 6 ]
+four-item-race mountain 145.6 uses [ 13, 19, 23, 18 ]
+four-item-race mountain-pass 150.3 uses [ 17, 16, 20, 21 ]
+four-item-race mountain-summit 162.7 uses [ 17, 20, 19, 21 ]
+eight-car summit final 160.8
+✔ AI completes three legal-input laps on each track at every difficulty (3805.9428ms)
+✔ four AI race with actual collisions and all item mechanics on every circuit (45198.8964ms)
+✔ AI reacts to a nearby rival with an overtaking lane and safe closing speed (0.5229ms)
+✔ eight expert AI complete the narrow summit final with overtaking, contacts and items (7450.6286ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 9
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 56699.8092
+
+✖ failing tests:
+
+test at tests\ai-pace.test.ts:1:712
+✖ new competitive AI is materially faster on every route using unchanged legal physics (6243.4468ms)
+  AssertionError [ERR_ASSERTION]: mountain-pass/hard did not finish
+  
+  0 !== 3
+  
+      at <anonymous> (C:\Users\teery\Documents\币相关\跑跑卡丁车\tests\ai-pace.test.ts:40:16)
+      at Array.map (<anonymous>)
+      at TestContext.<anonymous> (C:\Users\teery\Documents\币相关\跑跑卡丁车\tests\ai-pace.test.ts:31:43)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 3,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

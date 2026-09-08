@@ -1,0 +1,120 @@
+{"track":"coast","difficulty":"normal","before":{"time":121.89999999999436,"collisions":0,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":96.14999999999583,"collisions":0,"resets":0,"nitro":6,"mini":11,"drift":610.7347519913968}}
+{"track":"city","difficulty":"normal","before":{"time":173.8333333333638,"collisions":3,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":142.96666666667258,"collisions":1,"resets":0,"nitro":7,"mini":27,"drift":752.2400823816828}}
+{"track":"mountain","difficulty":"normal","before":{"time":176.53333333336596,"collisions":0,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":145.7833333333415,"collisions":0,"resets":0,"nitro":5,"mini":34,"drift":580.441403739202}}
+{"track":"coast-harbor","difficulty":"normal","before":{"time":140.26666666667043,"collisions":3,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":114.99999999999476,"collisions":0,"resets":0,"nitro":6,"mini":15,"drift":682.4303659493329}}
+{"track":"coast-breakwater","difficulty":"normal","before":{"time":140.15000000000367,"collisions":1,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":121.8333333333277,"collisions":0,"resets":0,"nitro":3,"mini":21,"drift":353.475188875409}}
+{"track":"city-factory","difficulty":"normal","before":{"time":193.6833333333796,"collisions":3,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":163.98333333335597,"collisions":3,"resets":0,"nitro":6,"mini":29,"drift":632.1501994894328}}
+{"track":"city-nightshift","difficulty":"normal","before":{"time":196.66666666671532,"collisions":3,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":157.46666666668412,"collisions":3,"resets":0,"nitro":12,"mini":12,"drift":1206.6147681705786}}
+{"track":"mountain-pass","difficulty":"normal","before":{"time":179.26666666670147,"collisions":11,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":151.9166666666797,"collisions":9,"resets":0,"nitro":1,"mini":16,"drift":158.60639591152378}}
+{"track":"mountain-summit","difficulty":"normal","before":{"time":193.63333333337957,"collisions":12,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":165.56666666669057,"collisions":9,"resets":0,"nitro":5,"mini":22,"drift":541.3389176146457}}
+{"track":"coast","difficulty":"hard","before":{"time":109.81666666666172,"collisions":0,"resets":0,"nitro":0,"mini":0,"drift":3.0538703586832425},"after":{"time":91.81666666666274,"collisions":0,"resets":0,"nitro":7,"mini":5,"drift":757.75994788861}}
+{"track":"city","difficulty":"hard","before":{"time":160.9666666666869,"collisions":6,"resets":0,"nitro":0,"mini":6,"drift":33.16041842087603},"after":{"time":134.09999999999886,"collisions":1,"resets":0,"nitro":13,"mini":18,"drift":1384.0123865447172}}
+{"track":"mountain","difficulty":"hard","before":{"time":159.85000000001935,"collisions":0,"resets":0,"nitro":0,"mini":0,"drift":42.51194320641499},"after":{"time":137.98333333333528,"collisions":0,"resets":0,"nitro":11,"mini":18,"drift":1194.8003284769923}}
+{"track":"coast-harbor","difficulty":"hard","before":{"time":129.23333333332832,"collisions":3,"resets":0,"nitro":0,"mini":3,"drift":96.52656189191705},"after":{"time":108.93333333332843,"collisions":0,"resets":0,"nitro":12,"mini":15,"drift":1230.196047991942}}
+{"track":"coast-breakwater","difficulty":"hard","before":{"time":130.3166666666625,"collisions":6,"resets":0,"nitro":1,"mini":0,"drift":150.94439418987204},"after":{"time":115.34999999999474,"collisions":0,"resets":0,"nitro":9,"mini":27,"drift":902.656000679119}}
+✔ AI keeps accelerating during nitro on a clear straight instead of braking at its cruising cap (1.4046ms)
+✖ new competitive AI is materially faster on every route using unchanged legal physics (1989.8853ms)
+✔ expert AI earns and spends real drift nitro and uses recovery mini boosts (41.1596ms)
+✔ AI decisions do not mutate vehicle or rival physics and remain repeatable (0.949ms)
+✖ AI escapes a glancing obstacle contact instead of driving indefinitely against it (10.402ms)
+coast easy 140.8
+coast normal 96.1
+coast hard 91.8
+city easy 197.6
+city normal 143.0
+city hard 134.1
+mountain easy 203.8
+mountain normal 145.8
+mountain hard 138.0
+coast-harbor easy 159.5
+coast-harbor normal 115.0
+coast-harbor hard 108.9
+coast-breakwater easy 160.6
+coast-breakwater normal 121.8
+coast-breakwater hard 115.3
+city-factory easy 220.8
+city-factory normal 164.0
+four-item-race coast 102.9 uses [ 16, 13, 24, 9 ]
+four-item-race city 148.4 uses [ 17, 13, 24, 17 ]
+four-item-race mountain 150.7 uses [ 10, 16, 14, 24 ]
+four-item-race coast-harbor 127.0 uses [ 16, 22, 23, 14 ]
+four-item-race coast-breakwater 130.6 uses [ 18, 11, 22, 15 ]
+four-item-race city-factory 170.1 uses [ 12, 24, 9, 15 ]
+four-item-race city-nightshift 166.0 uses [ 11, 13, 23, 15 ]
+four-item-race mountain-pass 164.7 uses [ 16, 21, 23, 17 ]
+four-item-race mountain-summit 171.8 uses [ 24, 16, 12, 14 ]
+eight-car summit final 169.7
+✖ AI completes three legal-input laps on each track at every difficulty (1274.1507ms)
+✔ four AI race with actual collisions and all item mechanics on every circuit (4323.3015ms)
+✔ AI reacts to a nearby rival with an overtaking lane and safe closing speed (0.4542ms)
+✔ eight expert AI complete the narrow summit final with overtaking, contacts and items (1492.5349ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 6
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 7318.3827
+
+✖ failing tests:
+
+test at tests\ai-pace.test.ts:16:1
+✖ new competitive AI is materially faster on every route using unchanged legal physics (1989.8853ms)
+  AssertionError [ERR_ASSERTION]: city-factory/hard did not finish
+  
+  0 !== 3
+  
+      at <anonymous> (C:\Users\teery\Documents\币相关\跑跑卡丁车\tests\ai-pace.test.ts:29:16)
+      at Array.map (<anonymous>)
+      at TestContext.<anonymous> (C:\Users\teery\Documents\币相关\跑跑卡丁车\tests\ai-pace.test.ts:20:43)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 3,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\ai-pace.test.ts:59:1
+✖ AI escapes a glancing obstacle contact instead of driving indefinitely against it (10.402ms)
+  AssertionError [ERR_ASSERTION]: still stuck at 0.7596073236641909
+      at TestContext.<anonymous> (C:\Users\teery\Documents\币相关\跑跑卡丁车\tests\ai-pace.test.ts:64:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:897:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests\ai.test.ts:6:1
+✖ AI completes three legal-input laps on each track at every difficulty (1274.1507ms)
+  AssertionError [ERR_ASSERTION]: city-factory/hard: 0.7596059591621716 in 300.0000000000558s
+  
+  0 !== 3
+  
+      at TestContext.<anonymous> (C:\Users\teery\Documents\币相关\跑跑卡丁车\tests\ai.test.ts:12:14)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.start (node:internal/test_runner/test:1177:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 3,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

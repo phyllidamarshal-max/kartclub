@@ -1,0 +1,44 @@
+
+> kart-club@0.3.0 smoke
+> tsx scripts/smoke.ts
+
+Driving [
+  { progress: 0.2163435920328954, speed: 28.98549871451755 },
+  { progress: 0.2136397737303282, speed: 28.977740353639167 }
+]
+Driving [
+  { progress: 0.5820527770063232, speed: 32.774178189690254 },
+  { progress: 0.5777777777777776, speed: 30.9275756878311 }
+]
+PASS: two real clients finished, rankings agree, 70/30 payout, duplicate claims paid once, pool conserved.
+{
+  "results": [
+    {
+      "id": "WPtIXkTWu",
+      "name": "Smoke Alpha",
+      "time": 26.96073864636369,
+      "rank": 1,
+      "status": "FINISHED",
+      "reason": "",
+      "award": 7000
+    },
+    {
+      "id": "HY4nIQbIf",
+      "name": "Smoke Beta",
+      "time": 27.059373281458242,
+      "rank": 2,
+      "status": "FINISHED",
+      "reason": "",
+      "award": 3000
+    }
+  ],
+  "elapsedWallSeconds": 30.249,
+  "pool": {
+    "received": 1284000,
+    "available": 1274000,
+    "reserved": 0,
+    "pending": 0,
+    "paid": 10000,
+    "ticketRevenue": 2000
+  }
+}

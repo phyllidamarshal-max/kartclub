@@ -1,13 +1,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { paintMinimap } from "../client/minimap.ts";
-import { getTrack } from "../shared/track.ts";
+import { getTrack, trackWidth } from "../shared/track.ts";
 
 function recordingCanvas() {
   let points: number[][] = [],
     closed = false;
   const strokes: { points: number[][]; closed: boolean; width: number }[] = [];
   const circles: number[][] = [];
+  const fills: number[][][] = [];
   const ctx = {
     lineWidth: 0,
     strokeStyle: "",
@@ -33,9 +34,16 @@ function recordingCanvas() {
     arc(x: number, y: number, r: number) {
       circles.push([x, y, r]);
     },
-    fill() {},
+    fill() {
+      if (points.length) fills.push([...points]);
+    },
   };
-  return { ctx: ctx as unknown as CanvasRenderingContext2D, strokes, circles };
+  return {
+    ctx: ctx as unknown as CanvasRenderingContext2D,
+    strokes,
+    circles,
+    fills,
+  };
 }
 
 test("mountain minimap draws the shared shortcut as an open, narrower branch with aligned car marker", () => {
@@ -49,7 +57,22 @@ test("mountain minimap draws the shared shortcut as an open, narrower branch wit
   const [road, , branch] = canvas.strokes;
   assert.equal(road.closed, true);
   assert.equal(branch.closed, false);
-  assert.ok(branch.width < road.width);
+  assert.equal(
+    branch.width,
+    Math.max(1, ((track.shortcutWidth ?? 7) * 75) / track.radius),
+  );
+  const edges = canvas.fills[0];
+  assert.equal(edges.length, track.points.length * 2);
+  for (const index of [0, 100, 200, 400]) {
+    const left = edges[index],
+      right = edges[edges.length - 1 - index];
+    assert.ok(
+      Math.abs(
+        Math.hypot(left[0] - right[0], left[1] - right[1]) -
+          (trackWidth(track.points[index].t, track) * 75) / track.radius,
+      ) < 1e-8,
+    );
+  }
   assert.equal(branch.points.length, track.shortcut.length);
   track.shortcut.forEach((p, i) => {
     assert.ok(

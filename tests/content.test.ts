@@ -27,3 +27,23 @@ test("invalid assets, colors, duplicate challenges and fractional laps fail clea
   }
   assert.throws(() => validateContent(null));
 });
+
+test("optional landscape textures support old content and reject invalid asset paths", () => {
+  const c = source();
+  delete c.roadTexture;
+  delete c.grassTexture;
+  assert.equal(validateContent(c).roadTexture, undefined);
+  for (const path of [
+    null,
+    "https://example.com/grass.png",
+    "//example.com/grass.png",
+    5,
+  ]) {
+    assert.throws(() => validateContent({ ...c, grassTexture: path }));
+  }
+  assert.equal(
+    validateContent({ ...c, grassTexture: "/textures/coast-grass.png" })
+      .grassTexture,
+    "/textures/coast-grass.png",
+  );
+});

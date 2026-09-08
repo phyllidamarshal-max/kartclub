@@ -1,0 +1,35 @@
+✔ AI steers toward an available box when its inventory is empty (2.4825ms)
+✔ AI avoids an armed trap in its driving corridor instead of boosting into it (0.384ms)
+✔ unavailable or already collected boxes do not distract the AI (0.1663ms)
+✖ a nearer harmless trap cannot hide a second trap directly ahead (1.0293ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 3
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 202.251
+
+✖ failing tests:
+
+test at tests\ai-course.test.ts:69:1
+✖ a nearer harmless trap cannot hide a second trap directly ahead (1.0293ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  true !== false
+  
+      at TestContext.<anonymous> (C:\Users\teery\Documents\币相关\跑跑卡丁车\tests\ai-course.test.ts:78:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:897:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: true,
+    expected: false,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

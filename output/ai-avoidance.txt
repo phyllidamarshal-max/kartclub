@@ -1,0 +1,64 @@
+coast easy 140.8
+coast normal 96.1
+coast hard 93.5
+city easy 197.6
+city normal 142.3
+city hard 138.1
+mountain easy 203.8
+four-item-race coast 104.7 uses [ 16, 15, 24, 10 ]
+four-item-race city 149.0 uses [ 14, 6, 24, 17 ]
+eight-car summit final 173.2
+✖ AI completes three legal-input laps on each track at every difficulty (618.3915ms)
+✖ four AI race with actual collisions and all item mechanics on every circuit (1200.1061ms)
+✔ AI reacts to a nearby rival with an overtaking lane and safe closing speed (0.3547ms)
+✔ eight expert AI complete the narrow summit final with overtaking, contacts and items (876.0256ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 2
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2946.9538
+
+✖ failing tests:
+
+test at tests\ai.test.ts:6:1
+✖ AI completes three legal-input laps on each track at every difficulty (618.3915ms)
+  AssertionError [ERR_ASSERTION]: mountain/normal: 0.20064858211540793 in 300.0000000000558s
+  
+  0 !== 3
+  
+      at TestContext.<anonymous> (C:\Users\teery\Documents\币相关\跑跑卡丁车\tests\ai.test.ts:12:14)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.start (node:internal/test_runner/test:1177:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 3,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\ai.test.ts:22:1
+✖ four AI race with actual collisions and all item mechanics on every circuit (1200.1061ms)
+  AssertionError [ERR_ASSERTION]: mountain: 3.0003738784785448,2.1971641984768837,3.000271509379272,3.0000494685000105
+  
+  3 !== 4
+  
+      at TestContext.<anonymous> (C:\Users\teery\Documents\币相关\跑跑卡丁车\tests\ai.test.ts:42:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 3,
+    expected: 4,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

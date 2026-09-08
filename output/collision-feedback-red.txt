@@ -1,0 +1,35 @@
+node:internal/modules/esm/resolve:271
+    throw new ERR_MODULE_NOT_FOUND(
+          ^
+
+Error [ERR_MODULE_NOT_FOUND]: Cannot find module 'C:\Users\teery\Documents\币相关\跑跑卡丁车\client\collision-feedback.ts' imported from C:\Users\teery\Documents\币相关\跑跑卡丁车\tests\collision-feedback.test.ts
+    at finalizeResolution (node:internal/modules/esm/resolve:271:11)
+    at moduleResolve (node:internal/modules/esm/resolve:865:10)
+    at defaultResolve (node:internal/modules/esm/resolve:992:11)
+    at #cachedDefaultResolve (node:internal/modules/esm/loader:691:20)
+    at #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:708:38)
+    at nextStep (node:internal/modules/customization_hooks:189:26)
+    at resolveBaseSync (file:///C:/Users/teery/Documents/%E5%B8%81%E7%9B%B8%E5%85%B3/%E8%B7%91%E8%B7%91%E5%8D%A1%E4%B8%81%E8%BD%A6/node_modules/tsx/dist/register-SoqaU4rg.mjs:2:10932)
+    at resolveDirectorySync (file:///C:/Users/teery/Documents/%E5%B8%81%E7%9B%B8%E5%85%B3/%E8%B7%91%E8%B7%91%E5%8D%A1%E4%B8%81%E8%BD%A6/node_modules/tsx/dist/register-SoqaU4rg.mjs:2:12238)
+    at resolveTsPathsSync (file:///C:/Users/teery/Documents/%E5%B8%81%E7%9B%B8%E5%85%B3/%E8%B7%91%E8%B7%91%E5%8D%A1%E4%B8%81%E8%BD%A6/node_modules/tsx/dist/register-SoqaU4rg.mjs:2:13445)
+    at resolve (file:///C:/Users/teery/Documents/%E5%B8%81%E7%9B%B8%E5%85%B3/%E8%B7%91%E8%B7%91%E5%8D%A1%E4%B8%81%E8%BD%A6/node_modules/tsx/dist/register-SoqaU4rg.mjs:2:15991) {
+  code: 'ERR_MODULE_NOT_FOUND',
+  url: 'file:///C:/Users/teery/Documents/%E5%B8%81%E7%9B%B8%E5%85%B3/%E8%B7%91%E8%B7%91%E5%8D%A1%E4%B8%81%E8%BD%A6/client/collision-feedback.ts'
+}
+
+Node.js v24.16.0
+✖ tests\collision-feedback.test.ts (140.6602ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 147.97
+
+✖ failing tests:
+
+test at tests\collision-feedback.test.ts:1:1
+✖ tests\collision-feedback.test.ts (140.6602ms)
+  'test failed'

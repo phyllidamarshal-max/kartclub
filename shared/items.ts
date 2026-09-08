@@ -1,5 +1,12 @@
 import type { Car, Input } from "./race.ts";
-import { DEFAULT_TRACK, trackPoint, type Track } from "./track.ts";
+import {
+  DEFAULT_TRACK,
+  continuousTrack,
+  trackPoint,
+  trackWidth,
+  type Track,
+} from "./track.ts";
+import { chooseItem, itemRaceGap } from "./item-strategy.ts";
 export type Item = "boost" | "shield" | "missile" | "trap";
 const HIT_EFFECT = Object.freeze({
   slow: 1.5,
@@ -30,6 +37,8 @@ export interface ItemState {
   pressed: boolean;
   uses: number;
   hits: number;
+  usefulHits: number;
+  blocks: number;
   notice: string;
   noticeTime: number;
 }
@@ -38,7 +47,7 @@ export interface ItemWorld {
   seed: number;
   players: Record<string, ItemState>;
   boxes: { x: number; z: number; y: number; band: number; readyAt: number }[];
-  traps: { x: number; z: number; owner: string; ttl: number }[];
+  traps: { x: number; z: number; y?: number; owner: string; ttl: number }[];
   missiles: {
     x: number;
     z: number;
@@ -46,6 +55,49 @@ export interface ItemWorld {
     target: string;
     ttl: number;
   }[];
+}
+const MISSILE_SPEED = 65;
+const MISSILE_RADIUS = 4;
+
+/** Impact estimate for the current target pose, using the same swept radius and
+ * lifetime as stepItems. It is recomputed as the driver moves and changes line. */
+export function missileImpactTime(
+  missile: { x: number; z: number; ttl: number },
+  car: Pick<Car, "x" | "z">,
+): number | null {
+  if (missile.ttl <= 0) return null;
+  const arrival = Math.max(
+    0,
+    (Math.hypot(missile.x - car.x, missile.z - car.z) - MISSILE_RADIUS) /
+      MISSILE_SPEED,
+  );
+  return arrival < missile.ttl ? arrival : null;
+}
+export function selectMissileTarget(
+  car: Readonly<Car>,
+  cars: readonly Car[],
+  track: Track,
+): Car | undefined {
+  if (car.finished || car.resetTime > 0 || car.ghostTime > 0) return undefined;
+  const height = (c: Readonly<Car>) =>
+    continuousTrack(c.x, c.z, c.lastT, track, c.routeBranch).y;
+  const y = height(car);
+  return cars
+    .filter(
+      (rival) =>
+        rival.id !== car.id &&
+        !rival.finished &&
+        rival.resetTime <= 0 &&
+        rival.ghostTime <= 0 &&
+        itemRaceGap(car, rival, track) > 0 &&
+        itemRaceGap(car, rival, track) < 160 &&
+        Math.hypot(rival.x - car.x, rival.z - car.z) < 160 &&
+        Math.abs(height(rival) - y) < 5,
+    )
+    .sort(
+      (a, b) =>
+        a.progress - b.progress || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
+    )[0];
 }
 export function createItems(
   ids: string[],
@@ -64,13 +116,16 @@ export function createItems(
       pressed: false,
       uses: 0,
       hits: 0,
+      usefulHits: 0,
+      blocks: 0,
       notice: "",
       noticeTime: 0,
     };
   const boxes = [];
   for (let i = 0; i < 8; i++)
-    for (const side of [-4, 0, 4]) {
+    for (const lane of [-1, 0, 1]) {
       const p = trackPoint(0.06 + i * 0.12, track);
+      const side = lane * Math.min(4, trackWidth(p.t, track) / 2 - 1.6);
       boxes.push({
         x: p.x + Math.cos(p.heading) * side,
         z: p.z - Math.sin(p.heading) * side,
@@ -89,6 +144,19 @@ export function stepItems(
   track: Track,
 ) {
   w.time += dt;
+  // Advance defensive timers to each chronological impact, then to frame end.
+  // Decrementing a whole frame up front would erase a shield that was still
+  // active when an early swept missile actually arrived.
+  const advanced = new Map<string, number>();
+  const advance = (id: string, time: number) => {
+    const p = w.players[id];
+    if (!p) return;
+    const elapsed = time - (advanced.get(id) ?? 0);
+    p.shield = Math.max(0, p.shield - elapsed);
+    p.slow = Math.max(0, p.slow - elapsed);
+    p.hitProtection = Math.max(0, p.hitProtection - elapsed);
+    advanced.set(id, time);
+  };
   const notice = (p: ItemState, s: string) => {
     p.notice = s;
     p.noticeTime = 2;
@@ -106,6 +174,7 @@ export function stepItems(
     if (p.shield > 0) {
       p.shield = 0;
       p.hitProtection = HIT_EFFECT.shieldProtection;
+      if (owner !== c.id) p.blocks++;
       notice(p, "护盾抵挡了攻击");
       return;
     }
@@ -122,16 +191,16 @@ export function stepItems(
     c.vz *= factor;
     c.impact = 1;
     notice(p, "受到攻击 · 正在恢复");
-    if (w.players[owner]) w.players[owner].hits++;
+    if (owner !== c.id && w.players[owner]) {
+      w.players[owner].hits++;
+      w.players[owner].usefulHits++;
+    }
   };
   for (const c of cars) {
     const p = w.players[c.id];
     if (!p) continue;
-    p.shield = Math.max(0, p.shield - dt);
-    p.slow = Math.max(0, p.slow - dt);
-    p.hitProtection = Math.max(0, p.hitProtection - dt);
     p.noticeTime = Math.max(0, p.noticeTime - dt);
-    if (p.slow > 0 && c.speed > 20) {
+    if (p.slow > dt && c.speed > 20) {
       const factor = 20 / c.speed;
       c.vx *= factor;
       c.vz *= factor;
@@ -144,7 +213,7 @@ export function stepItems(
       c.progress - p.lastProgress < 0.01 &&
       c.speed > 0;
     p.lastProgress = c.progress;
-    if (c.finished || c.resetTime > 0) {
+    if (c.finished || c.resetTime > 0 || c.ghostTime > 0) {
       p.pressed = pressed;
       continue;
     }
@@ -155,28 +224,19 @@ export function stepItems(
       notice(p, ITEM_NAMES[item] + " 已使用");
       if (item === "boost") c.boostTime = Math.max(c.boostTime, 2.3);
       if (item === "shield") p.shield = 5;
-      if (item === "trap" && w.traps.length < 16)
+      if (item === "trap" && w.traps.length < 16) {
+        const x = c.x - Math.sin(c.heading) * 4,
+          z = c.z - Math.cos(c.heading) * 4;
         w.traps.push({
-          x: c.x - Math.sin(c.heading) * 4,
-          z: c.z - Math.cos(c.heading) * 4,
+          x,
+          z,
+          y: continuousTrack(x, z, c.lastT, track, c.routeBranch).y,
           owner: c.id,
           ttl: 15,
         });
+      }
       if (item === "missile") {
-        const target = cars
-          .filter(
-            (o) =>
-              o.id !== c.id &&
-              !o.finished &&
-              o.resetTime <= 0 &&
-              o.ghostTime <= 0 &&
-              o.progress > c.progress &&
-              Math.abs(
-                trackPoint(o.lastT, track).y - trackPoint(c.lastT, track).y,
-              ) < 5 &&
-              Math.hypot(o.x - c.x, o.z - c.z) < 160,
-          )
-          .sort((a, b) => a.progress - b.progress)[0];
+        const target = selectMissileTarget(c, cars, track);
         if (target)
           w.missiles.push({
             x: c.x,
@@ -194,21 +254,29 @@ export function stepItems(
         if (
           p.pickedLaps[b.band] < Math.floor(c.progress) &&
           b.readyAt <= w.time &&
-          Math.abs(trackPoint(c.lastT, track).y - b.y) < 3 &&
+          Math.abs(
+            c.progress - Math.floor(c.progress) - (0.06 + b.band * 0.12),
+          ) *
+            track.length <
+            5 &&
+          Math.abs(
+            continuousTrack(c.x, c.z, c.lastT, track, c.routeBranch).y - b.y,
+          ) < 3 &&
           Math.hypot(c.x - b.x, c.z - b.z) < 2.5
         ) {
           p.pickedLaps[b.band] = Math.floor(c.progress);
-          w.seed = (Math.imul(w.seed, 1664525) + 1013904223) >>> 0;
-          p.held = (["boost", "shield", "missile", "trap"] as Item[])[
-            (w.seed >>> 16) % 4
-          ];
+          const choice = chooseItem(w.seed, c, cars, track);
+          w.seed = choice.seed;
+          p.held = choice.item;
           b.readyAt = w.time + 3;
           notice(p, "获得 " + ITEM_NAMES[p.held]);
           break;
         }
   }
+  const impacts: { time: number; victim: Car; owner: string }[] = [];
   for (const m of w.missiles) {
-    m.ttl -= dt;
+    const life = m.ttl;
+    if (life <= 0) continue;
     const target = cars.find(
       (c) =>
         c.id === m.target &&
@@ -223,29 +291,79 @@ export function stepItems(
     const dx = target.x - m.x,
       dz = target.z - m.z,
       d = Math.hypot(dx, dz);
-    if (d < 4 + 65 * dt) {
-      hit(target, m.owner);
+    const arrival = missileImpactTime(m, target);
+    if (arrival !== null && arrival <= dt) {
+      impacts.push({ time: arrival, victim: target, owner: m.owner });
       m.ttl = 0;
     } else {
-      m.x += (dx / d) * 65 * dt;
-      m.z += (dz / d) * 65 * dt;
+      const travel = MISSILE_SPEED * Math.min(dt, life);
+      if (d > 0) {
+        m.x += (dx / d) * travel;
+        m.z += (dz / d) * travel;
+      }
+      m.ttl = life - dt;
     }
   }
   w.missiles = w.missiles.filter((m) => m.ttl > 0);
   for (const t of w.traps) {
+    const life = t.ttl;
     t.ttl -= dt;
-    if (t.ttl > 14.3) continue;
+    const armedAt = Math.max(0, life - 14.3);
+    if (life <= 0 || armedAt > dt || armedAt >= life) continue;
     const victim = cars.find(
       (c) =>
         !c.finished &&
         c.resetTime <= 0 &&
         c.ghostTime <= 0 &&
-        Math.hypot(c.x - t.x, c.z - t.z) < 2.5,
+        Math.hypot(c.x - t.x, c.z - t.z) < 2.5 &&
+        (t.y === undefined ||
+          Math.abs(
+            continuousTrack(c.x, c.z, c.lastT, track, c.routeBranch).y - t.y,
+          ) < 3),
     );
     if (victim) {
-      hit(victim, t.owner);
+      impacts.push({ time: armedAt, victim, owner: t.owner });
       t.ttl = 0;
     }
   }
   w.traps = w.traps.filter((t) => t.ttl > 0);
+  impacts.sort((a, b) => a.time - b.time);
+  for (const impact of impacts) {
+    advance(impact.victim.id, impact.time);
+    hit(impact.victim, impact.owner);
+  }
+  for (const c of cars) advance(c.id, dt);
+}
+
+/** Seconds until the earliest missile impact worth warning about. */
+export function incomingThreat(
+  world: ItemWorld,
+  car: Readonly<Car>,
+): number | null {
+  if (
+    car.finished ||
+    car.resetTime > 0 ||
+    car.ghostTime > 0 ||
+    !world.players[car.id]
+  )
+    return null;
+  const arrivals: number[] = [];
+  for (const missile of world.missiles) {
+    if (missile.target !== car.id || missile.ttl <= 0) continue;
+    const arrival = missileImpactTime(missile, car);
+    if (arrival !== null && arrival <= 2.25) arrivals.push(arrival);
+  }
+  const state = world.players[car.id];
+  let shieldUntil = state.shield,
+    protectedUntil = state.hitProtection;
+  for (const arrival of arrivals.sort((a, b) => a - b)) {
+    if (protectedUntil > arrival) continue;
+    if (shieldUntil > arrival) {
+      shieldUntil = 0;
+      protectedUntil = arrival + HIT_EFFECT.shieldProtection;
+      continue;
+    }
+    return arrival;
+  }
+  return null;
 }

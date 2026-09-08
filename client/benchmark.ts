@@ -23,6 +23,7 @@ button.onclick = async () => {
       );
       current = world;
       world.setQuality("low");
+      await world.loadAssets();
       world.renderer.setSize(1920, 1080, false);
       world.camera.aspect = 1920 / 1080;
       world.camera.updateProjectionMatrix();
@@ -74,7 +75,7 @@ button.onclick = async () => {
             acc -= 1 / 60;
             sim += 1 / 60;
             const inputs = Object.fromEntries(
-              cars.map((c) => [c.id, aiInput(c, track, "hard", sim, cars)]),
+              cars.map((c) => [c.id, aiInput(c, track, "hard", sim, cars, items)]),
             );
             for (const c of cars) stepCar(c, inputs[c.id], 1 / 60, track);
             separateCars(cars, track);
@@ -161,6 +162,7 @@ cyclesButton.onclick = async () => {
       );
       current = world;
       world.setQuality("low");
+      await world.loadAssets();
       const cars = Array.from({ length: 8 }, (_, i) =>
         spawnCar(i, `cycle-${round}-${i}`, track),
       );

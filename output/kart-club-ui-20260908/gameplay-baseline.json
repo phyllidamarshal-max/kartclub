@@ -1,0 +1,38 @@
+[
+  {
+    "Path": "C:\\Users\\teery\\Documents\\币相关\\跑跑卡丁车\\shared\\race.ts",
+    "Hash": "46C47AA4F9D79CEB5FF0E76D365912A9B0DBEEDA60D5ADB2BBD95B0B5E60B536"
+  },
+  {
+    "Path": "C:\\Users\\teery\\Documents\\币相关\\跑跑卡丁车\\shared\\track.ts",
+    "Hash": "76F7EF0D127B0AA7D617404C2DB9B3841869C62AD284C3BC6ECC55EF9F39C953"
+  },
+  {
+    "Path": "C:\\Users\\teery\\Documents\\币相关\\跑跑卡丁车\\shared\\ai.ts",
+    "Hash": "ED117D6B293424534C9E4C81F1FD43294451B5B7D6C551291C79DB40B4EF6BC7"
+  },
+  {
+    "Path": "C:\\Users\\teery\\Documents\\币相关\\跑跑卡丁车\\client\\world.ts",
+    "Hash": "0D40805F2FDD0AD3A7140BA1FC06715FCE133C1C7D5AA263A64E90AF4FFB24CF"
+  },
+  {
+    "Path": "C:\\Users\\teery\\Documents\\币相关\\跑跑卡丁车\\client\\kart-model.ts",
+    "Hash": "BF078A16F0D7CC00327763D5817C175B8F6F20C1A21A34F5C217D14E22E0E893"
+  },
+  {
+    "Path": "C:\\Users\\teery\\Documents\\币相关\\跑跑卡丁车\\client\\scenery.ts",
+    "Hash": "F75BA3B924CE66E25435342EA02EE5D6A71E41E360435C24CF5EB258E21F506F"
+  },
+  {
+    "Path": "C:\\Users\\teery\\Documents\\币相关\\跑跑卡丁车\\client\\controls.ts",
+    "Hash": "2268E39DD12815839B9FFF3E8E4E01DEB22C39AE5D671B8486D8E066CFFB016E"
+  },
+  {
+    "Path": "C:\\Users\\teery\\Documents\\币相关\\跑跑卡丁车\\client\\network.ts",
+    "Hash": "DD52BC0817D3706767537513F1CCA3BB4C53DBA0CAA3092A7DA9FD4A293B4579"
+  },
+  {
+    "Path": "C:\\Users\\teery\\Documents\\币相关\\跑跑卡丁车\\server\\index.ts",
+    "Hash": "3363D294B2A8AE8634E956A759AC0A2810AF3CE3DFC4C0FC279AE9C4A2023917"
+  }
+]

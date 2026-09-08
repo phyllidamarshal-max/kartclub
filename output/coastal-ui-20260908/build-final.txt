@@ -1,0 +1,19 @@
+
+> kart-club@0.3.0 build
+> tsc --noEmit && vite build
+
+vite v8.2.2 building client environment for production...
+transforming...
+✓ 103 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                     0.59 kB │ gzip:   0.36 kB
+dist/assets/index-ZVIQ2dNy.css     67.34 kB │ gzip:  15.11 kB
+dist/assets/index-DDx9iStL.js   1,043.34 kB │ gzip: 302.19 kB
+
+✓ built in 241ms
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 800 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.

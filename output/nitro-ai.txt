@@ -1,0 +1,100 @@
+{"track":"coast","difficulty":"normal","before":{"time":121.89999999999436,"collisions":0,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":98.3499999999957,"collisions":0,"resets":0,"nitro":2,"mini":17,"drift":250.68663175739758}}
+{"track":"city","difficulty":"normal","before":{"time":173.8333333333638,"collisions":3,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":143.91666666667334,"collisions":0,"resets":0,"nitro":2,"mini":34,"drift":299.98944698904336}}
+{"track":"mountain","difficulty":"normal","before":{"time":176.53333333336596,"collisions":0,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":146.9333333333424,"collisions":0,"resets":0,"nitro":1,"mini":33,"drift":196.94233298034933}}
+{"track":"coast-harbor","difficulty":"normal","before":{"time":140.26666666667043,"collisions":3,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":117.08333333332797,"collisions":0,"resets":0,"nitro":3,"mini":15,"drift":300.26582877914706}}
+{"track":"coast-breakwater","difficulty":"normal","before":{"time":140.15000000000367,"collisions":1,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":122.59999999999432,"collisions":0,"resets":0,"nitro":1,"mini":25,"drift":155.0687416294148}}
+{"track":"city-factory","difficulty":"normal","before":{"time":193.6833333333796,"collisions":3,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":164.83333333335665,"collisions":3,"resets":0,"nitro":2,"mini":29,"drift":236.07602948302988}}
+{"track":"city-nightshift","difficulty":"normal","before":{"time":196.66666666671532,"collisions":3,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":160.91666666668687,"collisions":3,"resets":0,"nitro":4,"mini":24,"drift":556.6543403549334}}
+{"track":"mountain-pass","difficulty":"normal","before":{"time":179.26666666670147,"collisions":11,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":152.0833333333465,"collisions":9,"resets":0,"nitro":0,"mini":18,"drift":40.32530088548267}}
+{"track":"mountain-summit","difficulty":"normal","before":{"time":193.63333333337957,"collisions":12,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":166.98333333335836,"collisions":9,"resets":0,"nitro":0,"mini":29,"drift":203.67248550209993}}
+{"track":"coast","difficulty":"hard","before":{"time":109.81666666666172,"collisions":0,"resets":0,"nitro":0,"mini":0,"drift":0.6234322033256048},"after":{"time":94.23333333332927,"collisions":0,"resets":0,"nitro":3,"mini":12,"drift":337.8580320001104}}
+{"track":"city","difficulty":"hard","before":{"time":160.9666666666869,"collisions":6,"resets":0,"nitro":0,"mini":6,"drift":7.63668701095264},"after":{"time":136.36666666666733,"collisions":0,"resets":0,"nitro":6,"mini":29,"drift":619.5067584326573}}
+{"track":"mountain","difficulty":"hard","before":{"time":159.85000000001935,"collisions":0,"resets":0,"nitro":0,"mini":0,"drift":11.681953273419918},"after":{"time":140.40000000000387,"collisions":0,"resets":0,"nitro":4,"mini":27,"drift":484.6416221141734}}
+{"track":"coast-harbor","difficulty":"hard","before":{"time":129.23333333332832,"collisions":3,"resets":0,"nitro":0,"mini":3,"drift":29.898674600899064},"after":{"time":112.5499999999949,"collisions":0,"resets":0,"nitro":4,"mini":26,"drift":473.44006001351954}}
+{"track":"coast-breakwater","difficulty":"hard","before":{"time":130.3999999999959,"collisions":6,"resets":0,"nitro":0,"mini":0,"drift":44.029079443251284},"after":{"time":118.78333333332787,"collisions":0,"resets":0,"nitro":3,"mini":36,"drift":349.7416279703305}}
+{"track":"city-factory","difficulty":"hard","before":{"time":179.10000000003467,"collisions":3,"resets":0,"nitro":0,"mini":3,"drift":40.71561882252248},"after":{"time":159.53333333335243,"collisions":6,"resets":0,"nitro":5,"mini":38,"drift":695.5162084373017}}
+{"track":"city-nightshift","difficulty":"hard","before":{"time":185.28333333337292,"collisions":3,"resets":0,"nitro":0,"mini":3,"drift":15.493454648153511},"after":{"time":152.30000000001334,"collisions":3,"resets":0,"nitro":7,"mini":24,"drift":778.2468184697457}}
+{"track":"mountain-pass","difficulty":"hard","before":{"time":183.0500000000378,"collisions":14,"resets":2,"nitro":0,"mini":4,"drift":20.13723563495059},"after":{"time":150.55000000001195,"collisions":9,"resets":0,"nitro":0,"mini":33,"drift":285.3114097871699}}
+{"track":"mountain-summit","difficulty":"hard","before":{"time":191.93333333337822,"collisions":14,"resets":2,"nitro":0,"mini":0,"drift":15.325038495207828},"after":{"time":161.0500000000203,"collisions":9,"resets":0,"nitro":3,"mini":29,"drift":430.40548171662584}}
+✔ AI keeps accelerating during nitro on a clear straight instead of braking at its cruising cap (1.6848ms)
+✖ new competitive AI is materially faster on every route using unchanged legal physics (2465.6925ms)
+✔ expert AI earns and spends real drift nitro and uses recovery mini boosts (45.4049ms)
+✔ AI decisions do not mutate vehicle or rival physics and remain repeatable (0.9488ms)
+✔ AI escapes a glancing obstacle contact instead of driving indefinitely against it (10.2065ms)
+✔ competitive AI follows an occupied shortcut and rejoins the main road without resetting (177.6846ms)
+coast easy 140.8
+coast normal 98.3
+coast hard 94.2
+city easy 197.6
+city normal 143.9
+city hard 136.4
+mountain easy 203.8
+mountain normal 146.9
+mountain hard 140.4
+coast-harbor easy 159.5
+coast-harbor normal 117.1
+coast-harbor hard 112.5
+coast-breakwater easy 160.6
+coast-breakwater normal 122.6
+coast-breakwater hard 118.8
+city-factory easy 220.8
+city-factory normal 164.8
+city-factory hard 159.5
+city-nightshift easy 223.4
+city-nightshift normal 160.9
+city-nightshift hard 152.3
+mountain-pass easy 202.3
+mountain-pass normal 152.1
+mountain-pass hard 150.6
+mountain-summit easy 222.9
+mountain-summit normal 167.0
+mountain-summit hard 161.1
+four-item-race coast 104.7 uses [ 11, 15, 14, 7 ]
+four-item-race city 148.2 uses [ 7, 17, 14, 14 ]
+four-item-race mountain 152.6 uses [ 15, 13, 17, 11 ]
+four-item-race coast-harbor 121.2 uses [ 10, 14, 13, 11 ]
+four-item-race coast-breakwater 127.8 uses [ 15, 7, 16, 11 ]
+four-item-race city-factory 170.1 uses [ 11, 14, 19, 14 ]
+four-item-race city-nightshift 167.3 uses [ 10, 4, 16, 6 ]
+four-item-race mountain-pass 159.8 uses [ 5, 14, 12, 9 ]
+four-item-race mountain-summit 170.9 uses [ 6, 6, 3, 20 ]
+eight-car summit final 169.7
+✔ AI completes three legal-input laps on each track at every difficulty (2012.2668ms)
+✔ four AI race with actual collisions and all item mechanics on every circuit (9280.9916ms)
+✔ AI reacts to a nearby rival with an overtaking lane and safe closing speed (0.6786ms)
+✔ eight expert AI complete the narrow summit final with overtaking, contacts and items (2437.3474ms)
+40-tick charge 19.837752152782382
+✔ a quick point drift earns less than a committed clean drift and neither fills a bottle (3.1288ms)
+✔ a full gauge waits for drift release and cannot mint repeated bottles while drift stays held (1.0307ms)
+✔ wall impacts deduct current charge by severity, retain bottles and interrupt mini eligibility (0.5006ms)
+✔ holding a full gauge into a collision cannot convert it before the impact penalty (0.1601ms)
+✔ one contact episode does not drain repeatedly and stationary overlap corrections are free (0.9117ms)
+✔ post-impact lockout prevents immediately earning charge again or repeatedly charging against a wall (0.4218ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 15
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 14013.2599
+
+✖ failing tests:
+
+test at tests\ai-pace.test.ts:26:1
+✖ new competitive AI is materially faster on every route using unchanged legal physics (2465.6925ms)
+  AssertionError [ERR_ASSERTION]: hard: aggregate improvement only 0.14260066683772177
+      at TestContext.<anonymous> (C:\Users\teery\Documents\币相关\跑跑卡丁车\tests\ai-pace.test.ts:67:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

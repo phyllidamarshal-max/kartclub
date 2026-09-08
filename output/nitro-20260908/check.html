@@ -1,0 +1,18 @@
+<!doctype html><html lang="zh"><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>KART CLUB · 氮气与碰撞验证</title>
+<style>body{background:#102d25;color:#f3f5e9;font:17px/1.7 system-ui;max-width:820px;margin:60px auto;padding:24px}h1{color:#d8f46c;font-size:30px}button{font:inherit;background:#d8f46c;color:#163c2b;border:0;border-radius:12px;padding:12px 20px;margin:8px 4px;cursor:pointer}pre{white-space:pre-wrap;background:#1c4134;padding:20px;border-radius:16px}a{color:#d8f46c}</style>
+<h1>KART CLUB · 氮气与碰撞验证</h1><p>独立测试车辆使用当前游戏物理，不写入游戏成绩。下面的按钮可试听当前碰撞音效。</p>
+<pre id="values">正在计算…</pre><button data-kind="wall" data-strength="0.18">试听轻擦护栏</button><button data-kind="wall" data-strength="0.9">试听重撞护栏</button><button data-kind="kart" data-strength="0.6">试听车身碰撞</button><p id="status" role="status">等待试听</p><p><a href="/">返回游戏</a></p>
+<script type="module">
+import {GameAudio} from '/client/audio.ts';
+import {spawnCar,stepCar,EMPTY_INPUT} from '/shared/race.ts';
+import {DEFAULT_TRACK,trackPoint} from '/shared/track.ts';
+const status=document.querySelector('#status'), audio=new GameAudio();
+const clean=spawnCar(); clean.speed=35;clean.vx=Math.sin(clean.heading)*35;clean.vz=Math.cos(clean.heading)*35;
+for(let i=0;i<40;i++)stepCar(clean,{...EMPTY_INPUT,throttle:1,drift:true,steer:1},1/60);
+const impact=(angle,drifting=true)=>{const c=spawnCar(),p=trackPoint(0),side=DEFAULT_TRACK.width/2-1.05-.015;Object.assign(c,{x:p.x+Math.cos(p.heading)*side,z:p.z-Math.sin(p.heading)*side,heading:p.heading+angle+(drifting?.3:0),drifting,driftState:drifting?"drifting":"grip",driftDuration:drifting?.4:0,speed:35,energy:80,storedNitro:1,lastT:0,progress:0});c.vx=Math.sin(p.heading+angle)*35;c.vz=Math.cos(p.heading+angle)*35;c.lastX=c.x;c.lastZ=c.z;stepCar(c,{...EMPTY_INPUT,throttle:1,drift:drifting,steer:drifting?.2:0},1/60);return c;};
+const light=impact(.15),heavy=impact(1),straight=impact(1,false);
+document.querySelector('#values').textContent=`干净漂移 0.67 秒：${clean.driftTotal.toFixed(2)} / 100 点\n漂移轻擦后气槽：80 → ${light.energy.toFixed(2)}\n漂移重撞后气槽：80 → ${heavy.energy.toFixed(2)}\n直行重撞后气槽：80 → ${straight.energy.toFixed(2)}\n已存氮气：${heavy.storedNitro} 瓶（保留）\n碰撞后集气锁定：${heavy.energyLockTime.toFixed(2)} 秒`;
+for(const button of document.querySelectorAll('button'))button.addEventListener('click',async()=>{try{audio.setVolumes(0,.4);audio.start();await audio.context.resume();audio.resetCollisionSound();audio.collision(Number(button.dataset.strength),button.dataset.kind);status.textContent=button.textContent+' · 已播放';}catch(error){status.textContent='播放失败：'+error.message;}});
+window.addEventListener('error',event=>status.textContent='错误：'+event.message);
+</script></html>
+

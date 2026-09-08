@@ -1,0 +1,11 @@
+{
+  "key": "tree-slender",
+  "model": "/art/coast-rebuild/tree-slender.glb",
+  "indirect": "/art/coast-rebuild/tree-slender-indirect.png",
+  "lighting": "asset-local diffuse indirect only; direct sun excluded",
+  "triangles": 554,
+  "atlasSize": 512,
+  "height": 7.473508358001709,
+  "width": 3.050681710243225,
+  "depth": 1.800040364265442
+}

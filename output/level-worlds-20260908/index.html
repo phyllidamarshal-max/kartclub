@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KART CLUB · 九种世界</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#eff1e7;color:#173d31;font:14px/1.6 system-ui,sans-serif}header,main{max-width:1536px;padding:26px 30px;margin:auto}header{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #c7d2bf}h1{font-size:29px;margin:4px 0}header small{letter-spacing:3px;font-size:10px}#status{color:#5b715c}#grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}article{background:#faf9f0;border:1px solid #c8d2c0;border-radius:12px;overflow:hidden}article img{width:100%;display:block;aspect-ratio:16/9;background:#ceded5}article div{padding:15px 18px}h2{margin:0;font-size:18px;display:flex;justify-content:space-between}h2 span{font-size:10px;font-weight:500;padding:3px 7px;background:#e5ecd7;border-radius:5px}p{margin:6px 0;color:#62765f;font-size:12px}a{color:#204f3b;font-weight:700;text-decoration:none}footer{padding:20px 30px;color:#677561;max-width:1536px;margin:auto}#renderer{display:none}@media(max-width:850px){#grid{grid-template-columns:1fr}header{display:block}}.error{color:#ad3024}
+</style>
+<header><div><small>KART CLUB / WORLD TOUR</small><h1>九种世界 · 九种挑战</h1><span id="status">正在逐关渲染实际游戏场景…</span></div><a href="/">返回可玩的游戏 ↗</a></header>
+<main><div id="grid"></div></main><footer>全部图片由当前游戏的 Three.js 场景实时渲染。路线、地标和材质直接来自游戏；场景参考《跑跑卡丁车》的主题关卡思路，使用原创模型。绿色箭头为加速带，金色沙带会减速，浅蓝冰面降低抓地力。</footer>
+<canvas id="renderer"></canvas>
+<script type="module">
+import {World,loadContent} from '/client/world.ts';
+import {TRACKS} from '/shared/track.ts';
+import {getLevel} from '/shared/levels.ts';
+const content=await loadContent(),grid=document.querySelector('#grid'),status=document.querySelector('#status');
+for(const [i,track] of TRACKS.entries()) {
+  const level=getLevel(track.id),card=document.createElement('article');
+  card.innerHTML=`<img alt="${level.name}实际场景"><div><h2>${String(i+1).padStart(2,'0')} / ${level.name}<span>${level.label}</span></h2><p>${level.brief}</p><p>${level.landmark}</p><a href="/?track=${track.id}">进入赛道 ↗</a></div>`;
+  grid.append(card); let world;
+  try {
+    world=new World(document.querySelector('#renderer'),content,track,true);
+    await world.loadAssets();world.renderer.setSize(960,540,false);world.render([],'',0,true);
+    card.querySelector('img').src=world.canvas.toDataURL('image/png');
+    card.dataset.track=track.id;
+    status.textContent=`已渲染 ${i+1} / ${TRACKS.length} 个实际场景`;
+  } catch(e) {card.classList.add('error');card.querySelector('p').textContent=String(e);console.error(e);}
+  finally{world?.dispose();}
+  await new Promise(resolve=>setTimeout(resolve,120));
+}
+status.textContent='九关实际场景已准备好 · 点击任意赛道开始体验';
+</script></html>

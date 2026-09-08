@@ -1,0 +1,45 @@
+✔ AC06 two bottles plus full energy refills only the consumed inventory slot (6.066ms)
+✔ AC08 a fresh press in final 150ms chains once; early held input never queues (0.7312ms)
+✔ AC03 fast near-zero-slip steering cannot charge simply by holding drift (0.172ms)
+✔ AC14 reset waits 1.5s, preserves resources and never advances a reversed car (0.239ms)
+✔ AC10 projected teleport cannot grant any progress or energy (0.1814ms)
+✔ finish cancels eligibility and queued input without consuming resources (0.1085ms)
+✔ AC04 holding drift after real recovery cannot postpone or renew the mini window (2.1329ms)
+✔ AC04/05 a real drift recovers once and needs a new throttle press (2.1747ms)
+✔ AC07 nitro overrides mini without multiplying acceleration or speed caps (2.1363ms)
+✔ AC09 nitro wall impact removes speed, preserves its clock and cancels mini/buffer (0.2932ms)
+✔ AC03/10 reverse, wall pressure and stopped steering generate no energy (4.0137ms)
+✔ AC02 same tick input at 30/60/120 render schedules produces identical state within 1e-7 (16.8395ms)
+✔ ordinary throttle cannot creep above configured normal maximum (0.3467ms)
+✔ AC12 legal mountain branch traverses and merges with continuous canonical progress (10.513ms)
+✔ reference 40-tick clean high-slip bend earns only a modest fraction of a bottle (0.4962ms)
+✔ coast-harbor offers a smooth shorter route that can be entered, driven and rejoined (23.8717ms)
+✔ coast-harbor cannot enter its shortcut through a disconnected middle section (0.5246ms)
+✔ coast-breakwater offers a smooth shorter route that can be entered, driven and rejoined (14.2664ms)
+✔ coast-breakwater cannot enter its shortcut through a disconnected middle section (0.1652ms)
+✔ city-factory offers a smooth shorter route that can be entered, driven and rejoined (26.2422ms)
+✔ city-factory cannot enter its shortcut through a disconnected middle section (0.1633ms)
+✔ city-nightshift offers a smooth shorter route that can be entered, driven and rejoined (14.508ms)
+✔ city-nightshift cannot enter its shortcut through a disconnected middle section (0.1683ms)
+✔ coast-harbor permits a late choice anywhere inside the open junction (0.7652ms)
+✔ city-factory permits a late choice anywhere inside the open junction (0.4632ms)
+✔ coast-harbor has no invisible side wall inside the open shortcut merge (2.4529ms)
+✔ coast-breakwater has no invisible side wall inside the open shortcut merge (0.296ms)
+✔ city-factory has no invisible side wall inside the open shortcut merge (0.2176ms)
+✔ city-nightshift has no invisible side wall inside the open shortcut merge (0.1846ms)
+✔ mountain has no invisible side wall inside the open shortcut merge (0.2055ms)
+✔ forest bridge retains real outer boundaries away from the junctions (0.3022ms)
+✔ a kart straddling the paved junction is legal even when neither road alone contains its body (0.5976ms)
+✔ forest exit keeps progressing without reset from bridge point 70, lane -2.4 (39.0034ms)
+✔ forest exit keeps progressing without reset from bridge point 70, lane 0 (30.9279ms)
+✔ forest exit keeps progressing without reset from bridge point 70, lane 2.4 (38.5845ms)
+✔ forest exit keeps progressing without reset from bridge point 75, lane 2.4 (25.5ms)
+✔ forest exit keeps progressing without reset from bridge point 79, lane 2.4 (30.5998ms)
+ℹ tests 37
+ℹ suites 0
+ℹ pass 37
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1832.8093

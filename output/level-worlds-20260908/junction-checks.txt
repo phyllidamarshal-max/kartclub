@@ -1,0 +1,37 @@
+✔ every difficulty can earn drift nitro and use recovery boosts through legal driving (432.4824ms)
+✖ expert driving charges and spends nitro on every route, including while boosting (2734.4493ms)
+✔ coast-harbor has no invisible side wall inside the open shortcut merge (2.9989ms)
+✔ coast-breakwater has no invisible side wall inside the open shortcut merge (0.4412ms)
+✔ city-factory has no invisible side wall inside the open shortcut merge (0.4987ms)
+✔ city-nightshift has no invisible side wall inside the open shortcut merge (0.2903ms)
+✔ mountain has no invisible side wall inside the open shortcut merge (0.3405ms)
+✔ forest bridge retains real outer boundaries away from the junctions (0.4717ms)
+✔ a kart straddling the paved junction is legal even when neither road alone contains its body (1.8397ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 8
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3462.5522
+
+✖ failing tests:
+
+test at tests\ai-mastery.test.ts:1:729
+✖ expert driving charges and spends nitro on every route, including while boosting (2734.4493ms)
+  AssertionError [ERR_ASSERTION]: faster laps must not increase total solo impacts
+      at TestContext.<anonymous> (C:\Users\teery\Documents\币相关\跑跑卡丁车\tests\ai-mastery.test.ts:69:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

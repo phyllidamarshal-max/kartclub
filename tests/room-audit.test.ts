@@ -81,6 +81,19 @@ test("actual reset and resource transitions emit once instead of following timer
   tick();
   tick();
   assert.equal(car.miniUses, 1);
+  assert.ok(car.ghostTime > 0);
+  assert.equal(
+    room.items!.players.driver.uses,
+    0,
+    "respawn protection cannot be used for a free item attack",
+  );
+  assert.equal(events().filter((e) => e.type === "item-use").length, 0);
+  send("driver", "input", { ...EMPTY_INPUT, seq: 4 });
+  for (let i = 0; i < 180 && car.ghostTime > 0; i++) tick();
+  assert.equal(car.ghostTime, 0);
+  send("driver", "input", { ...EMPTY_INPUT, seq: 5, item: true });
+  tick();
+  tick();
   assert.equal(room.items!.players.driver.uses, 1);
   const logged = events();
   for (const type of ["reset-start", "nitro-use", "mini-use", "item-use"]) {

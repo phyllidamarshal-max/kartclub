@@ -1,3 +1,8 @@
+import {
+  collisionSoundProfile,
+  type CollisionKind,
+} from "./collision-audio.ts";
+
 export class GameAudio {
   context: AudioContext | null = null;
   music: GainNode | null = null;
@@ -9,6 +14,7 @@ export class GameAudio {
   musicVolume = 0.35;
   sfxVolume = 0.4;
   external: HTMLAudioElement | null = null;
+  private lastCollisionTime = -Infinity;
   start(url: string | null = null) {
     if (this.context) {
       void this.context.resume();
@@ -111,5 +117,70 @@ export class GameAudio {
   beep(final = false) {
     if (this.context)
       this.tone(final ? 880 : 440, 0.2, 0.4, "sine", this.effects!);
+  }
+  collision(strength: number, kind: CollisionKind) {
+    const c = this.context;
+    if (!c || c.state !== "running" || !this.effects) return;
+    const profile = collisionSoundProfile(strength, kind);
+    if (profile.strength <= 0 || c.currentTime - this.lastCollisionTime < 0.12)
+      return;
+    this.lastCollisionTime = c.currentTime;
+
+    const body = c.createOscillator(),
+      bodyFilter = c.createBiquadFilter(),
+      bodyGain = c.createGain(),
+      bodyEnd = c.currentTime + profile.bodyDuration;
+    body.type = "sine";
+    body.frequency.setValueAtTime(profile.bodyFrequency * 1.35, c.currentTime);
+    body.frequency.exponentialRampToValueAtTime(profile.bodyFrequency, bodyEnd);
+    bodyFilter.type = "lowpass";
+    bodyFilter.frequency.value = 320;
+    bodyGain.gain.setValueAtTime(profile.bodyGain, c.currentTime);
+    bodyGain.gain.exponentialRampToValueAtTime(0.001, bodyEnd);
+    body.connect(bodyFilter).connect(bodyGain).connect(this.effects);
+    body.addEventListener(
+      "ended",
+      () => {
+        body.disconnect();
+        bodyFilter.disconnect();
+        bodyGain.disconnect();
+      },
+      { once: true },
+    );
+    body.start(c.currentTime);
+    body.stop(bodyEnd + 0.01);
+
+    const sampleCount = Math.max(
+        1,
+        Math.ceil(c.sampleRate * profile.contactDuration),
+      ),
+      buffer = c.createBuffer(1, sampleCount, c.sampleRate),
+      samples = buffer.getChannelData(0);
+    for (let i = 0; i < samples.length; i++)
+      samples[i] = (Math.random() * 2 - 1) * (1 - i / samples.length);
+    const contact = c.createBufferSource(),
+      contactFilter = c.createBiquadFilter(),
+      contactGain = c.createGain(),
+      contactEnd = c.currentTime + profile.contactDuration;
+    contact.buffer = buffer;
+    contactFilter.type = "lowpass";
+    contactFilter.frequency.value = profile.contactLowpass;
+    contactGain.gain.setValueAtTime(profile.contactGain, c.currentTime);
+    contactGain.gain.exponentialRampToValueAtTime(0.001, contactEnd);
+    contact.connect(contactFilter).connect(contactGain).connect(this.effects);
+    contact.addEventListener(
+      "ended",
+      () => {
+        contact.disconnect();
+        contactFilter.disconnect();
+        contactGain.disconnect();
+      },
+      { once: true },
+    );
+    contact.start(c.currentTime);
+    contact.stop(contactEnd + 0.01);
+  }
+  resetCollisionSound() {
+    this.lastCollisionTime = -Infinity;
   }
 }

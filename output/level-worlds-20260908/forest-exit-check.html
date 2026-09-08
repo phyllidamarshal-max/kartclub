@@ -1,0 +1,21 @@
+<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>巨木森林 · 木桥出口验证</title>
+<style>*{box-sizing:border-box}body{margin:0;background:#173f32;color:#fffbea;font:14px/1.6 system-ui}canvas{display:block;width:100vw;height:100vh}header{position:absolute;top:24px;left:26px;padding:20px 24px;background:#103828ed;border:1px solid #c5d8a44d;border-radius:14px;max-width:calc(100vw - 52px)}small{color:#b5cf96;letter-spacing:2px}h1{font-size:23px;margin:3px 0 10px}p{margin:4px 0}b{color:#d0f092}a,button{color:#113525;background:#d4eca6;border:0;border-radius:8px;padding:9px 14px;font:inherit;text-decoration:none;cursor:pointer;display:inline-block;margin:10px 8px 0 0}#status{color:#d0f092}</style>
+<canvas id="scene"></canvas><header><small>KART CLUB / DRIVING CHECK</small><h1>巨木森林 · 木桥出口</h1><p id="status">正在准备实际驾驶场景…</p><p id="stats">木桥右侧驶出 → 接回主路 → 持续前进</p><p>验证中始终不使用重置。</p><button id="replay">重播验证</button><a href="/?track=mountain">进入巨木森林 ↗</a></header>
+<script type="module">
+import {World,loadContent} from '/client/world.ts';
+import {getTrack} from '/shared/track.ts';
+import {spawnCar,stepCar} from '/shared/race.ts';
+import {aiInput} from '/shared/ai.ts';
+const track=getTrack('mountain'),world=new World(document.querySelector('canvas'),await loadContent(),track);
+await world.loadAssets();world.setQuality('high');let car,elapsed,accumulator=0,last=performance.now(),finished=false;
+const status=document.querySelector('#status'),stats=document.querySelector('#stats');
+function restart(){const p=track.shortcut[70],lane=2.4;car=spawnCar(0,'exit-proof',track);Object.assign(car,{x:p.x+Math.cos(p.heading)*lane,z:p.z-Math.sin(p.heading)*lane,heading:p.heading,routeBranch:'shortcut',speed:24,vx:Math.sin(p.heading)*24,vz:Math.cos(p.heading)*24,lastT:p.t,progress:p.t});car.lastX=car.x;car.lastZ=car.z;elapsed=0;finished=false;accumulator=0;last=performance.now();status.textContent='驾驶中 · 从木桥右侧接回主路';}
+document.querySelector('#replay').onclick=()=>{if(finished){restart();requestAnimationFrame(frame);}else restart();};restart();
+function frame(now){const dt=Math.min(.25,(now-last)/1000);last=now;accumulator+=dt;
+while(accumulator>=1/60&&!finished){const input=aiInput({...car,routeBranch:'main'},track,'normal',elapsed);stepCar(car,{...input,reset:false},1/60,track);elapsed+=1/60;accumulator-=1/60;
+if(car.progress>.70||elapsed>=20){finished=true;status.textContent=car.progress>.70?'验证通过 · 已驶过出口并继续前进':'验证失败 · 出口进度未正常推进';}}
+if(finished)accumulator=0;
+stats.textContent=`${car.routeBranch==='main'?'主路':'木桥近道'} · 赛道进度 ${(car.progress*100).toFixed(1)}% · ${Math.round(car.speed*3.6)} km/h · 重置 0 次`;
+world.render([car],car.id,dt,false);if(!finished)requestAnimationFrame(frame);}
+requestAnimationFrame(frame);addEventListener('pagehide',()=>world.dispose(),{once:true});
+</script></html>

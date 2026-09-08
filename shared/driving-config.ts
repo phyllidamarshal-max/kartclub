@@ -1,6 +1,6 @@
 // Rule snapshot: seconds, radians and world units. All nested groups are immutable.
 export const DRIVING_CONFIG = Object.freeze({
-  version: "driving-v2",
+  version: "driving-v3.2",
   tickRate: 60,
   vehicle: Object.freeze({
     maxSpeed: 43,
@@ -18,9 +18,15 @@ export const DRIVING_CONFIG = Object.freeze({
     angleMax: (65 * Math.PI) / 180,
     recoverAngle: (8 * Math.PI) / 180,
     eligibility: 0.25,
+    longDuration: 0.75,
     drag: 0.13,
   }),
-  energy: Object.freeze({ perSecond: 300, capacity: 100 }),
+  energy: Object.freeze({
+    perSecond: 120,
+    capacity: 100,
+    settleTime: 0.45,
+    initialEfficiency: 0.35,
+  }),
   nitro: Object.freeze({
     capacity: 2,
     duration: 3,
@@ -35,5 +41,12 @@ export const DRIVING_CONFIG = Object.freeze({
     acceleration: 1.15,
   }),
   reset: Object.freeze({ wait: 1.5, protection: 1 }),
-  collision: Object.freeze({ severeImpact: 0.35 }),
+  collision: Object.freeze({
+    severeImpact: 0.35,
+    minImpact: 0.065,
+    cooldown: 0.35,
+    energyLossMin: 12,
+    energyLossMax: 60,
+    chargeLock: 0.55,
+  }),
 });

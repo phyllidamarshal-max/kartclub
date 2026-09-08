@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KART CLUB — scene lighting review</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f7f3e8;color:#173e32;font:14px system-ui}header{padding:16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}button,select,a{padding:10px;border:1px solid #a8b7a2;border-radius:7px;background:#fffdf4;color:#173e32;font:inherit}button{cursor:pointer}h1{font-size:16px;margin:0 18px 0 0}figure{margin:0 16px 18px}figcaption{font-size:12px;margin-bottom:8px}canvas{width:100%;height:auto;display:block}#status{margin:0 16px 16px;font-size:12px;white-space:pre-wrap}#ui{display:none;width:1536px;height:864px;border:0;transform-origin:0 0}#ui-wrap{margin:0 16px;overflow:hidden} .views{display:flex;gap:8px}
+</style>
+<header><h1>KART CLUB / Scene lighting review</h1><select id="track" aria-label="Track"></select><button id="front">Front</button><button id="rear">Rear</button><button id="overview">Overview</button><button id="compare">Save comparison PNG</button><button id="lobby">Lobby 1536 × 864</button><button id="race">Race HUD</button><a href="/">Play game</a></header>
+<div style="margin:0 16px 12px;display:flex;gap:8px"><button id="mobile">Lobby 406 × 479</button><button id="mobile-race">Race 406 × 479</button><button id="gallery">Nine worlds</button></div>
+<p id="status">Ready to load the actual game renderer.</p>
+<figure id="picture"><figcaption>Supplied reference above · actual game geometry below. Matching art direction is assessed separately from race physics.</figcaption><canvas id="comparison" style="display:none"></canvas><img id="rendered-comparison" alt="Reference above and actual 3D game below" style="width:100%;height:auto"></figure>
+<div id="ui-wrap"><iframe id="ui" title="Actual game UI"></iframe></div>
+<script type="module">
+import * as THREE from 'three';
+import { World, loadContent } from '../../client/world.ts';
+import { TRACKS, getTrack, trackPoint } from '../../shared/track.ts';
+import { getLevel } from '../../shared/levels.ts';
+import { spawnCar } from '../../shared/race.ts';
+const $=s=>document.querySelector(s),output=$('#comparison'),ctx=output.getContext('2d'),source=new Image(),renderCanvas=document.createElement('canvas');
+const select=$('#track'); for(const track of TRACKS)select.add(new Option(`${getLevel(track.id).biome} / ${track.id}`,track.id));
+const content=await loadContent(); let world,view='front',stamp=0;
+async function render(){
+  const run=++stamp; $('#ui').style.display='none'; $('#picture').style.display='block';
+  $('#status').textContent='Building actual geometry…';
+  await new Promise(requestAnimationFrame);
+  const track=getTrack(select.value);
+  if(!world||world.track.id!==track.id){world?.dispose();world=new World(renderCanvas,content,track,true);await world.loadAssets();}
+  if(run!==stamp)return;
+  const t=track.id==='coast'?.24:getLevel(track.id).preview.t;
+  const p=trackPoint(t,track),forward=new THREE.Vector3(Math.sin(p.heading),0,Math.cos(p.heading)),right=new THREE.Vector3(Math.cos(p.heading),0,-Math.sin(p.heading)),anchor=new THREE.Vector3(p.x,p.y,p.z);
+  const cars=[0,1,2].map((slot)=>{
+    const car=spawnCar(slot,`review-${slot}`,track),q=trackPoint(t+(slot?(view==='front'?-1:1)*(slot===1?9:15)/track.length:0),track);
+    const offset=slot===1?-2.8:slot===2?2.8:0;
+    Object.assign(car,{x:q.x+Math.cos(q.heading)*offset,z:q.z-Math.sin(q.heading)*offset,heading:q.heading,ghostTime:0});return car;
+  });
+  const width=1280,height=view==='front'?854:512;
+  world.renderer.setSize(width,height,false);world.camera.aspect=width/height;
+  world.render(cars,cars[0].id,0,false);
+  if(view==='overview'){
+    world.camera.position.copy(anchor).addScaledVector(forward,-28).addScaledVector(right,-30);world.camera.position.y+=23;
+    world.camera.lookAt(anchor.clone().addScaledVector(forward,30));world.camera.fov=58;
+  }else{
+    world.camera.position.copy(anchor).addScaledVector(forward,view==='front'?8.3:-10.5).addScaledVector(right,view==='front'?.5:-.7);
+    world.camera.position.y+=view==='front'?2.9:3.4;
+    const aim=anchor.clone().addScaledVector(forward,view==='front'?-1.8:6);aim.y+=1.9;
+    world.camera.lookAt(aim);world.camera.fov=view==='front'?43:52;
+  }
+  world.camera.updateProjectionMatrix();world.renderer.render(world.scene,world.camera);
+  source.src=view==='front'?'../reference-upgrade-20260908/reference-front.jpg':'../reference-upgrade-20260908/reference-rear.png';await source.decode();if(run!==stamp)return;
+  output.width=width;output.height=height*2+58;
+  ctx.fillStyle='#173e32';ctx.fillRect(0,0,width,output.height);ctx.fillStyle='#fffbea';ctx.font='17px system-ui';ctx.fillText('SUPPLIED REFERENCE',18,23);
+  ctx.drawImage(source,0,29,width,height);ctx.fillText('ACTUAL GAME RENDERER',18,height+52);
+  // Render and copy in the same event turn; preserveDrawingBuffer stays disabled in the game.
+  world.renderer.render(world.scene,world.camera);ctx.drawImage(renderCanvas,0,height+58,width,height);
+  $('#rendered-comparison').src=output.toDataURL('image/png');
+  const info=world.renderer.info;
+  $('#status').textContent=`${track.id} · ${view} · ${width} × ${height} · ${info.render.calls} draw calls · ${info.render.triangles.toLocaleString()} triangles · ${info.memory.geometries} geometries`;
+}
+for(const name of ['front','rear','overview'])$('#'+name).onclick=()=>{view=name;render().catch(report);}; select.onchange=()=>render().catch(report);
+$('#compare').onclick=()=>{const a=document.createElement('a');a.download=`kart-club-${select.value}-${view}-comparison.png`;a.href=output.toDataURL('image/png');a.click();};
+let uiWidth=1536,uiHeight=864;
+function showUI(url,width=1536,height=864){stamp++;world?.dispose();world=null;$('#picture').style.display='none';const frame=$('#ui');uiWidth=width;uiHeight=height;frame.style.width=`${width}px`;frame.style.height=`${height}px`;frame.style.display='block';frame.src=url;fit();$('#status').textContent=`Actual ${width} × ${height} application, scaled to fit this review panel.`;}
+function fit(){const frame=$('#ui'),width=Math.min(uiWidth,$('#ui-wrap').clientWidth);frame.style.transform=`scale(${width/uiWidth})`;$('#ui-wrap').style.height=`${width*uiHeight/uiWidth}px`;}
+new ResizeObserver(fit).observe($('#ui-wrap'));
+$('#lobby').onclick=()=>showUI('/');$('#race').onclick=()=>showUI('/?autostart=1');
+$('#mobile').onclick=()=>showUI('/',406,479);$('#mobile-race').onclick=()=>showUI('/?autostart=1',406,479);
+$('#gallery').onclick=async()=>{
+  stamp++;world?.dispose();world=null;$('#ui').src='about:blank';$('#ui').style.display='none';$('#picture').style.display='block';
+  output.width=1440;output.height=888;ctx.fillStyle='#173e32';ctx.fillRect(0,0,1440,888);
+  try{for(let i=0;i<TRACKS.length;i++){
+    const track=TRACKS[i];$('#status').textContent=`Rendering world ${i+1} / 9: ${getLevel(track.id).biome}`;await new Promise(requestAnimationFrame);
+    const preview=new World(renderCanvas,content,track,true);try{await preview.loadAssets();preview.render([],'',0,true);ctx.drawImage(renderCanvas,(i%3)*480,Math.floor(i/3)*296,480,270);ctx.fillStyle='#fffbea';ctx.font='15px system-ui';ctx.fillText(getLevel(track.id).biome.toUpperCase(),(i%3)*480+14,Math.floor(i/3)*296+289);}finally{preview.dispose();}
+  }$('#rendered-comparison').src=output.toDataURL('image/png');$('#status').textContent='All nine worlds — actual game scenery, materials and lighting.';}catch(error){report(error);}
+};
+function report(error){$('#status').textContent=error.stack||error.message;console.error(error);}
+render().catch(report);
+addEventListener('pagehide',()=>world?.dispose());
+</script></html>
+

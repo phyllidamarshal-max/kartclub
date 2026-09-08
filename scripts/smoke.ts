@@ -67,9 +67,9 @@ try {
           c = s?.cars.find((c) => c.id === r.sessionId);
         if (c && s?.phase === "racing")
           r.send("input", {
-            ...(trackId === "tide-coast-v1"
+            ...(trackId === "tide-coast-v1" && raceMode !== "items"
               ? pilot(c)
-              : aiInput(c, getTrack(trackId), "normal", s.elapsed)),
+              : aiInput(c, getTrack(trackId), "normal", s.elapsed, s.cars, s.items)),
             seq: ++seq[i],
           });
       }),

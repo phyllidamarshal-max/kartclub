@@ -1,0 +1,11 @@
+{
+  "key": "tree-round",
+  "model": "/art/coast-rebuild/tree-round.glb",
+  "indirect": "/art/coast-rebuild/tree-round-indirect.png",
+  "lighting": "asset-local diffuse indirect only; direct sun excluded",
+  "triangles": 554,
+  "atlasSize": 512,
+  "height": 6.451766490936279,
+  "width": 3.8231433629989624,
+  "depth": 2.716670274734497
+}

@@ -1,0 +1,28 @@
+✔ specific dynamic sentences take precedence over generic count suffixes (0.9499ms)
+✔ language metadata exposes the six supported locales and Arabic direction (0.5644ms)
+✔ every catalog source has a complete six-locale entry with matching placeholders (3.3732ms)
+✔ all exported tracks, challenges, modes, difficulties, items, and training hints are localized (0.4773ms)
+✔ tr translates exact phrases, interpolates names safely, and matches dynamic source patterns (1.4411ms)
+✔ tr localizes English economy errors while preserving account identifiers (0.1446ms)
+✔ tr localizes driving controls and English HUD states (0.0752ms)
+✔ setLanguage persists valid choices, updates document metadata, and safely falls back from invalid values (0.2932ms)
+✔ localize switches text and attributes in place and recognizes externally refreshed Chinese HUD text (0.4153ms)
+✔ localize skips scripts, form values, and data-no-i18n descendants (0.1819ms)
+✔ localize translates visible option labels without changing form values (0.1184ms)
+✔ form hints switch languages while entered and default values remain literal (0.2053ms)
+40-tick charge 19.837752152782382
+✔ a quick point drift earns less than a committed clean drift and neither fills a bottle (2.7987ms)
+✔ a full gauge waits for drift release and cannot mint repeated bottles while drift stays held (0.6394ms)
+✔ wall impacts deduct current charge by severity, retain bottles and interrupt mini eligibility (0.4555ms)
+✔ holding a full gauge into a collision cannot convert it before the impact penalty (0.1399ms)
+✔ one contact episode does not drain repeatedly and stationary overlap corrections are free (1.2034ms)
+✔ post-impact lockout prevents immediately earning charge again or repeatedly charging against a wall (0.4787ms)
+✔ charge stays locked after the impact shake has faded even on a clean exit (0.9301ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 302.5651

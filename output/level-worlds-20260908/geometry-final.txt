@@ -1,0 +1,32 @@
+✔ coast renders the variable road and keeps branch junctions unobstructed (107.4912ms)
+✔ coast-harbor renders the variable road and keeps branch junctions unobstructed (193.4953ms)
+✔ coast-breakwater renders the variable road and keeps branch junctions unobstructed (161.4188ms)
+✔ city renders the variable road and keeps branch junctions unobstructed (85.0787ms)
+✔ city-factory renders the variable road and keeps branch junctions unobstructed (198.7802ms)
+✔ city-nightshift renders the variable road and keeps branch junctions unobstructed (188.7939ms)
+✔ mountain renders the variable road and keeps branch junctions unobstructed (158.6964ms)
+✔ mountain-pass renders the variable road and keeps branch junctions unobstructed (67.028ms)
+✔ mountain-summit renders the variable road and keeps branch junctions unobstructed (80.7247ms)
+✔ driving-surface zones are clipped to a narrow road including their arrows (15.9698ms)
+✔ coast-harbor has no invisible side wall inside the open shortcut merge (2.4097ms)
+✔ coast-breakwater has no invisible side wall inside the open shortcut merge (0.3713ms)
+✔ city-factory has no invisible side wall inside the open shortcut merge (0.2768ms)
+✔ city-nightshift has no invisible side wall inside the open shortcut merge (0.2383ms)
+✔ mountain has no invisible side wall inside the open shortcut merge (0.263ms)
+✔ forest bridge retains real outer boundaries away from the junctions (0.3444ms)
+✔ a kart straddling the paved junction is legal even when neither road alone contains its body (0.9187ms)
+✔ forest exit keeps progressing without reset from bridge point 70, lane -2.4 (40.2173ms)
+✔ forest exit keeps progressing without reset from bridge point 70, lane 0 (30.5528ms)
+✔ forest exit keeps progressing without reset from bridge point 70, lane 2.4 (32.4803ms)
+✔ forest exit keeps progressing without reset from bridge point 75, lane 2.4 (26.2536ms)
+✔ forest exit keeps progressing without reset from bridge point 79, lane 2.4 (28.4762ms)
+✔ finished track definitions reject mutations at every nested level (1.9807ms)
+✔ explicitly cloned custom tracks retain their independent geometry and query support (0.937ms)
+ℹ tests 24
+ℹ suites 0
+ℹ pass 24
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1888.7954

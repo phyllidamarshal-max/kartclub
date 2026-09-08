@@ -1,0 +1,12 @@
+
+> kart-club@0.3.0 smoke
+> tsx scripts/smoke.ts
+
+C:\Users\teery\Documents\币相关\跑跑卡丁车\scripts\smoke.ts:33
+    if (Date.now() - readyStart > 7000) throw Error(log);
+                                              ^
+
+Error
+    at <anonymous> (C:\Users\teery\Documents\币相关\跑跑卡丁车\scripts\smoke.ts:33:47)
+
+Node.js v24.16.0

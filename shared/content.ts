@@ -10,6 +10,8 @@ export interface Content {
   sceneModel: string | null;
   musicUrl: string | null;
   modelScale: number;
+  roadTexture?: string;
+  grassTexture?: string;
   challenges: {
     id: string;
     title: string;
@@ -42,7 +44,10 @@ export function validateContent(value: unknown): Content {
     !Number.isFinite(c.modelScale) ||
     c.modelScale <= 0 ||
     c.modelScale >= 100 ||
-    ![c.characterModel, c.sceneModel, c.musicUrl].every(asset)
+    ![c.characterModel, c.sceneModel, c.musicUrl].every(asset) ||
+    ![c.roadTexture, c.grassTexture].every(
+      (v) => v === undefined || (typeof v === "string" && asset(v)),
+    )
   )
     throw Error(
       "content.json 无效：需要正确版本、名称、4 种十六进制颜色、有效比例和本地资源路径",

@@ -1,0 +1,53 @@
+✔ zero-distance overlap separates exactly without NaN or free energy (1.5546ms)
+✔ rear contact transfers bounded momentum and never adds kinetic energy (0.7955ms)
+✔ wall contact retains tangent velocity and removes strong outward normal velocity (0.2199ms)
+✔ reset waits then grants one second of contact grace which held reset cannot extend (1.2862ms)
+✔ cars overlapping at a road boundary separate while both stay on road (0.3712ms)
+✔ finished cars are ignored by vehicle contacts (0.7539ms)
+✔ invalid timestep cannot corrupt vehicle state (0.1295ms)
+✔ track obstacles stop a car from passing through their centre (0.2041ms)
+✔ side contact pushes moderately without changing the common forward velocity (0.2174ms)
+✔ a four-car boundary pileup fully separates and stays finite under repeated contacts (5.2864ms)
+✔ obstacle sweep catches movement that crosses the entire obstacle in one step (0.1755ms)
+✔ custom road widths and the mountain shortcut constrain car centres (0.3723ms)
+✔ obstacle boundary allows tangent movement with 0 penetration (0.9979ms)
+✔ obstacle boundary allows outward movement with 0 penetration (3.4239ms)
+✔ obstacle boundary allows tangent movement with 1e-12 penetration (1.5865ms)
+✔ obstacle boundary allows outward movement with 1e-12 penetration (1.5113ms)
+✔ microscopic obstacle penetration still blocks inward velocity 63 (0.3578ms)
+✔ microscopic obstacle penetration still blocks inward velocity 200 (0.1557ms)
+✔ AC06 two bottles plus full energy refills only the consumed inventory slot (5.5178ms)
+✔ AC08 a fresh press in final 150ms chains once; early held input never queues (0.7271ms)
+✔ AC03 fast near-zero-slip steering cannot charge simply by holding drift (0.2492ms)
+✔ AC14 reset waits 1.5s, preserves resources and never advances a reversed car (0.3287ms)
+✔ AC10 projected teleport cannot grant any progress or energy (0.185ms)
+✔ finish cancels eligibility and queued input without consuming resources (0.1028ms)
+✔ AC04 holding drift after real recovery cannot postpone or renew the mini window (3.0926ms)
+✔ AC04/05 a real drift recovers once and needs a new throttle press (3.4499ms)
+✔ AC07 nitro overrides mini without multiplying acceleration or speed caps (3.3364ms)
+✔ AC09 nitro wall impact removes speed, preserves its clock and cancels mini/buffer (0.4274ms)
+✔ AC03/10 reverse, wall pressure and stopped steering generate no energy (4.7384ms)
+✔ AC02 same tick input at 30/60/120 render schedules produces identical state within 1e-7 (16.957ms)
+✔ ordinary throttle cannot creep above configured normal maximum (0.321ms)
+✔ AC12 legal mountain branch traverses and merges with continuous canonical progress (6.4874ms)
+✔ reference 40-tick clean high-slip bend earns only a modest fraction of a bottle (0.4712ms)
+40-tick charge 19.837752152782382
+✔ a quick point drift earns less than a committed clean drift and neither fills a bottle (3.9468ms)
+✔ a full gauge waits for drift release and cannot mint repeated bottles while drift stays held (0.9658ms)
+✔ wall impacts deduct current charge by severity, retain bottles and interrupt mini eligibility (0.5627ms)
+✔ holding a full gauge into a collision cannot convert it before the impact penalty (0.1379ms)
+✔ one contact episode does not drain repeatedly and stationary overlap corrections are free (1.1601ms)
+✔ straight driving, held Shift without a slide, and a fully aligned recovery never lose gauge on a wall (0.4558ms)
+✔ unfinished drift recovery still loses gauge if the sliding kart hits a wall (0.2525ms)
+✔ two non-drifting karts can collide without losing either gauge (0.3192ms)
+✔ a straight nitro run hitting an obstacle retains gauge and bottles (0.5037ms)
+✔ post-impact lockout prevents immediately earning charge again or repeatedly charging against a wall (1.5656ms)
+✔ charge stays locked after the impact shake has faded even on a clean exit (3.1828ms)
+ℹ tests 44
+ℹ suites 0
+ℹ pass 44
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 285.194

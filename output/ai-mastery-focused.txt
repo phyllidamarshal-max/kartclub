@@ -1,0 +1,54 @@
+✔ AI steers toward an available box when its inventory is empty (2.4537ms)
+✔ AI avoids an armed trap in its driving corridor instead of boosting into it (0.5745ms)
+✔ unavailable or already collected boxes do not distract the AI (0.2869ms)
+✔ every difficulty can earn drift nitro and use recovery boosts through legal driving (230.8486ms)
+✔ expert driving charges and spends nitro on every route, including while boosting (955.7576ms)
+coast easy 100.2
+coast normal 91.4
+coast hard 89.7
+coast-harbor easy 117.3
+coast-harbor normal 108.5
+coast-harbor hard 107.9
+coast-breakwater easy 122.6
+coast-breakwater normal 114.9
+coast-breakwater hard 112.2
+city easy 143.4
+city normal 130.8
+city hard 127.3
+city-factory easy 164.5
+city-factory normal 150.1
+city-factory hard 146.1
+city-nightshift easy 159.4
+city-nightshift normal 146.0
+city-nightshift hard 142.5
+mountain easy 148.3
+mountain normal 136.1
+mountain hard 133.6
+mountain-pass easy 152.0
+mountain-pass normal 144.1
+mountain-pass hard 141.9
+mountain-summit easy 163.2
+mountain-summit normal 151.6
+mountain-summit hard 148.2
+four-item-race coast 97.0 uses [ 19, 15, 9, 10 ]
+four-item-race coast-harbor 114.1 uses [ 11, 11, 3, 7 ]
+four-item-race coast-breakwater 119.6 uses [ 14, 3, 19, 6 ]
+four-item-race city 140.2 uses [ 8, 22, 5, 4 ]
+four-item-race city-factory 157.4 uses [ 15, 13, 15, 24 ]
+four-item-race city-nightshift 154.0 uses [ 12, 16, 5, 17 ]
+four-item-race mountain 146.8 uses [ 22, 16, 18, 13 ]
+four-item-race mountain-pass 152.5 uses [ 17, 21, 15, 15 ]
+four-item-race mountain-summit 160.1 uses [ 22, 24, 6, 19 ]
+eight-car summit final 163.6
+✔ AI completes three legal-input laps on each track at every difficulty (2610.6462ms)
+✔ four AI race with actual collisions and all item mechanics on every circuit (12631.0796ms)
+✔ AI reacts to a nearby rival with an overtaking lane and safe closing speed (3.1271ms)
+✔ eight expert AI complete the narrow summit final with overtaking, contacts and items (3108.7434ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 18641.941

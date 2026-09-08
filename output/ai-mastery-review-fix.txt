@@ -1,0 +1,26 @@
+✔ AI steers toward an available box when its inventory is empty (2.3016ms)
+✔ AI avoids an armed trap in its driving corridor instead of boosting into it (0.4314ms)
+✔ unavailable or already collected boxes do not distract the AI (0.1568ms)
+✔ a nearer harmless trap cannot hide a second trap directly ahead (0.2876ms)
+✔ missile fires only at a target accepted by the item engine (1.3248ms)
+✔ missile rejects a rival on a vertically separated road (0.2973ms)
+✔ missile judges the engine-selected nearest target and waits out protection (0.4008ms)
+✔ missile clears a protected target when an item box pickup is imminent (0.2142ms)
+✔ shield responds to an incoming missile or nearby trap and avoids waste (0.2395ms)
+✔ shield ignores attacks that cannot arrive and traps outside our path (0.1785ms)
+✔ shield accounts for trap arming time before committing (0.1364ms)
+✔ shield frees capacity near a usable future box only (0.1833ms)
+✔ boost waits for a safe straight or corner exit (0.2781ms)
+✔ trap is used for a close pursuer but not an unrelated distant car (0.2843ms)
+✔ trap requires a pursuer to be physically behind on our path (0.1339ms)
+✔ hard AI can clear a trap at a narrow upcoming bend (0.2258ms)
+✔ release frames, absent state, and inactive cars never press an item (0.178ms)
+✔ decision is a pure computation (0.1811ms)
+ℹ tests 18
+ℹ suites 0
+ℹ pass 18
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 889.6862

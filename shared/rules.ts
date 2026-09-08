@@ -1,7 +1,7 @@
 import { EMPTY_INPUT, sanitizeInput, type Car, type Input } from "./race.ts";
 export const VERSIONS = Object.freeze({
-  trackVersion: "routes-0.2.0",
-  rulesVersion: "pons-rules-0.3.0",
+  trackVersion: "routes-0.4.0",
+  rulesVersion: "pons-rules-0.4.1",
   performanceClass: "standard-v1",
   assistClass: "manual-v1",
 });

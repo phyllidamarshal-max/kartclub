@@ -1,0 +1,38 @@
+[
+  {
+    "outside": [],
+    "overflow": false,
+    "overlaps": [],
+    "viewport": [
+      1280,
+      720
+    ]
+  },
+  {
+    "outside": [],
+    "overflow": false,
+    "overlaps": [],
+    "viewport": [
+      1440,
+      900
+    ]
+  },
+  {
+    "outside": [],
+    "overflow": false,
+    "overlaps": [],
+    "viewport": [
+      1920,
+      1080
+    ]
+  },
+  {
+    "outside": [],
+    "overflow": false,
+    "overlaps": [],
+    "viewport": [
+      2560,
+      1270
+    ]
+  }
+]

@@ -1,0 +1,85 @@
+.skill-feedback {
+  position: absolute;
+  inset-inline-end: 24px;
+  bottom: 292px;
+  padding: 12px 16px;
+  font-size: 14px;
+  color: var(--color-accent);
+  max-width: 264px;
+  pointer-events: none;
+}
+.skill-feedback[data-warning="true"] {
+  color: #ecc8a1;
+}
+.skill-feedback[hidden] {
+  display: none;
+}
+.performance-review {
+  border-top: 1px solid var(--color-border);
+  padding-top: 16px;
+  margin-top: 16px;
+  text-align: start;
+}
+.performance-review h3 {
+  margin: 0 0 8px;
+  font-size: 20px;
+}
+.performance-review p {
+  font-size: 14px;
+  line-height: 1.5;
+}
+.performance-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+.performance-grid div {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.performance-grid span {
+  font-size: 14px;
+  color: var(--color-text-muted);
+  overflow-wrap: anywhere;
+}
+.performance-grid b {
+  font-size: 24px;
+  color: var(--color-brand);
+  font-variant-numeric: tabular-nums;
+}
+.event-failed {
+  color: #a33823;
+  font-weight: 700;
+}
+#practice-corner {
+  display: block;
+  width: 100%;
+  margin-block: 12px;
+}
+.race-feedback {
+  bottom: 348px;
+}
+@media (max-width: 900px) {
+  .skill-feedback {
+    inset-inline-end: 16px;
+    max-width: 224px;
+  }
+  .performance-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 600px) {
+  .skill-feedback {
+    inset-inline-end: 8px;
+    bottom: 248px;
+    max-width: 180px;
+    font-size: 12px;
+    padding: 8px 12px;
+  }
+  .race-feedback {
+    bottom: 304px;
+  }
+}

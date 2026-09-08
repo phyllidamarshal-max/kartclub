@@ -30,7 +30,7 @@ test("four AI race with actual collisions and all item mechanics on every circui
     while (now < 360 && cars.some((c) => !c.finished)) {
       now += 1 / 60;
       const inputs = Object.fromEntries(
-        cars.map((c) => [c.id, aiInput(c, t, "normal", now, cars)]),
+        cars.map((c) => [c.id, aiInput(c, t, "normal", now, cars, w)]),
       );
       for (const c of cars) {
         stepCar(c, inputs[c.id], 1 / 60, t);
@@ -80,7 +80,7 @@ test("eight expert AI complete the narrow summit final with overtaking, contacts
   while (now < 360 && cars.some((c) => !c.finished)) {
     now += 1 / 60;
     const inputs = Object.fromEntries(
-      cars.map((c) => [c.id, aiInput(c, t, "hard", now, cars)]),
+      cars.map((c) => [c.id, aiInput(c, t, "hard", now, cars, w)]),
     );
     for (const c of cars) {
       stepCar(c, inputs[c.id], 1 / 60, t);

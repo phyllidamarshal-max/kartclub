@@ -1,0 +1,11 @@
+{
+  "key": "tree-oak",
+  "model": "/art/coast-rebuild/tree-oak.glb",
+  "indirect": "/art/coast-rebuild/tree-oak-indirect.png",
+  "lighting": "asset-local diffuse indirect only; direct sun excluded",
+  "triangles": 672,
+  "atlasSize": 512,
+  "height": 7.151597023010254,
+  "width": 3.9620367288589478,
+  "depth": 2.5262234210968018
+}

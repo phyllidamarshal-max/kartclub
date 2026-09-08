@@ -1,0 +1,11 @@
+{
+  "key": "shrub-cluster",
+  "model": "/art/coast-rebuild/shrub-cluster.glb",
+  "indirect": "/art/coast-rebuild/shrub-cluster-indirect.png",
+  "lighting": "asset-local diffuse indirect only; direct sun excluded",
+  "triangles": 320,
+  "atlasSize": 512,
+  "height": 1.1622394183650613,
+  "width": 2.0845344066619873,
+  "depth": 1.4677363634109497
+}

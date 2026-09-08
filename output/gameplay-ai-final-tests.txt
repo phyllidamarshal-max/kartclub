@@ -1,0 +1,106 @@
+✔ AI brakes for an outward corner exit but accelerates once aligned (1.7159ms)
+✔ expert city laps avoid the wall when accelerating out of the narrowing turn (163.597ms)
+✔ AI steers toward an available box when its inventory is empty (2.7363ms)
+✔ AI avoids an armed trap in its driving corridor instead of boosting into it (0.5766ms)
+✔ unavailable or already collected boxes do not distract the AI (0.195ms)
+✔ a nearer harmless trap cannot hide a second trap directly ahead (0.3322ms)
+✔ missile fires only at a target accepted by the item engine (1.5239ms)
+✔ missile rejects a rival on a vertically separated road (0.3534ms)
+✔ missile judges the engine-selected nearest target and waits out protection (0.5297ms)
+✔ missile clears a protected target when an item box pickup is imminent (0.8364ms)
+✔ shield responds to an incoming missile or nearby trap and avoids waste (0.3429ms)
+✔ shield ignores attacks that cannot arrive and traps outside our path (0.2053ms)
+✔ shield accounts for trap arming time before committing (0.1623ms)
+✔ shield frees capacity near a usable future box only (0.1929ms)
+✔ boost waits for a safe straight or corner exit (0.1724ms)
+✔ trap is used for a close pursuer but not an unrelated distant car (0.3171ms)
+✔ trap requires a pursuer to be physically behind on our path (0.1651ms)
+✔ hard AI can clear a trap at a narrow upcoming bend (0.2664ms)
+✔ release frames, absent state, and inactive cars never press an item (0.1332ms)
+✔ decision is a pure computation (0.2092ms)
+✔ missile rejects a physically adjacent rival far ahead in canonical race metres (0.2056ms)
+✔ missile waits while the target shield covers the real impact radius (0.1454ms)
+✔ shield sees radius-based imminent hits but does not waste existing hit protection (0.1331ms)
+✔ shield ignores a trap that expires before the kart reaches it (0.1257ms)
+✔ every difficulty can earn drift nitro and use recovery boosts through legal driving (357.6159ms)
+✔ expert driving charges and spends nitro on every route, including while boosting (2234.4346ms)
+{"track":"coast","difficulty":"normal","before":{"time":121.89999999999436,"collisions":0,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":91.43333333332943,"collisions":0,"resets":0,"nitro":5,"mini":15,"drift":591.9284239345045}}
+{"track":"coast-harbor","difficulty":"normal","before":{"time":140.0500000000036,"collisions":0,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":110.29999999999502,"collisions":0,"resets":0,"nitro":5,"mini":30,"drift":523.5046090038184}}
+{"track":"coast-breakwater","difficulty":"normal","before":{"time":143.41666666667294,"collisions":6,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":117.43333333332795,"collisions":3,"resets":0,"nitro":5,"mini":40,"drift":574.9004428759802}}
+{"track":"city","difficulty":"normal","before":{"time":173.86666666669717,"collisions":3,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":131.93333333333047,"collisions":0,"resets":0,"nitro":10,"mini":35,"drift":1004.8842940017078}}
+{"track":"city-factory","difficulty":"normal","before":{"time":193.15000000004585,"collisions":0,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":152.51666666668018,"collisions":3,"resets":0,"nitro":10,"mini":44,"drift":1089.642664799688}}
+{"track":"city-nightshift","difficulty":"normal","before":{"time":211.783333333394,"collisions":4,"resets":1,"nitro":0,"mini":0,"drift":0},"after":{"time":149.05000000001075,"collisions":6,"resets":0,"nitro":11,"mini":28,"drift":1148.2140085065514}}
+{"track":"mountain","difficulty":"normal","before":{"time":176.61666666669936,"collisions":0,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":136.2166666666672,"collisions":0,"resets":0,"nitro":7,"mini":27,"drift":748.8613270534295}}
+{"track":"mountain-pass","difficulty":"normal","before":{"time":192.55000000004537,"collisions":14,"resets":2,"nitro":0,"mini":0,"drift":0},"after":{"time":151.81666666667962,"collisions":12,"resets":0,"nitro":4,"mini":35,"drift":497.291553259789}}
+{"track":"mountain-summit","difficulty":"normal","before":{"time":205.25000000005548,"collisions":18,"resets":2,"nitro":0,"mini":0,"drift":0},"after":{"time":159.0666666666854,"collisions":9,"resets":0,"nitro":7,"mini":40,"drift":728.328733430378}}
+{"track":"coast","difficulty":"hard","before":{"time":109.88333333332838,"collisions":0,"resets":0,"nitro":0,"mini":0,"drift":0.7549801901065282},"after":{"time":89.4999999999962,"collisions":0,"resets":0,"nitro":6,"mini":16,"drift":602.3181540935481}}
+{"track":"coast-harbor","difficulty":"hard","before":{"time":129.3333333333284,"collisions":3,"resets":0,"nitro":0,"mini":3,"drift":43.124870532870034},"after":{"time":107.99999999999515,"collisions":0,"resets":0,"nitro":7,"mini":27,"drift":703.4819528215965}}
+{"track":"coast-breakwater","difficulty":"hard","before":{"time":133.51666666666506,"collisions":9,"resets":0,"nitro":0,"mini":0,"drift":30.625280868561166},"after":{"time":113.28333333332819,"collisions":0,"resets":0,"nitro":7,"mini":38,"drift":704.319780837634}}
+{"track":"city","difficulty":"hard","before":{"time":160.61666666668663,"collisions":3,"resets":0,"nitro":0,"mini":6,"drift":21.197515023160857},"after":{"time":126.94999999999408,"collisions":0,"resets":0,"nitro":12,"mini":33,"drift":1211.0634671266537}}
+{"track":"city-factory","difficulty":"hard","before":{"time":179.2333333333681,"collisions":7,"resets":0,"nitro":0,"mini":3,"drift":30.05729035326617},"after":{"time":147.8500000000098,"collisions":3,"resets":0,"nitro":13,"mini":31,"drift":1394.953090349814}}
+{"track":"city-nightshift","difficulty":"hard","before":{"time":203.45000000005405,"collisions":8,"resets":2,"nitro":0,"mini":3,"drift":2.9254133432403164},"after":{"time":144.6000000000072,"collisions":6,"resets":0,"nitro":13,"mini":27,"drift":1363.6737467646735}}
+{"track":"mountain","difficulty":"hard","before":{"time":159.78333333335263,"collisions":0,"resets":0,"nitro":0,"mini":0,"drift":13.221690469822624},"after":{"time":133.61666666666514,"collisions":0,"resets":0,"nitro":8,"mini":21,"drift":882.135846109304}}
+{"track":"mountain-pass","difficulty":"hard","before":{"time":216.58333333339783,"collisions":19,"resets":7,"nitro":0,"mini":0,"drift":55.86901886630187},"after":{"time":146.6833333333422,"collisions":9,"resets":0,"nitro":6,"mini":28,"drift":663.1995738007498}}
+{"track":"mountain-summit","difficulty":"hard","before":{"time":199.28333333338406,"collisions":19,"resets":2,"nitro":0,"mini":0,"drift":14.660733411085662},"after":{"time":152.63333333334694,"collisions":6,"resets":0,"nitro":9,"mini":41,"drift":954.3916399710944}}
+✔ AI keeps accelerating during nitro on a clear straight instead of braking at its cruising cap (2.0082ms)
+✔ new competitive AI is materially faster on every route using unchanged legal physics (6005.3842ms)
+✔ expert AI earns and spends real drift nitro and uses recovery mini boosts (178.3052ms)
+✔ AI decisions do not mutate vehicle or rival physics and remain repeatable (1.8903ms)
+✔ AI escapes a glancing obstacle contact instead of driving indefinitely against it (39.359ms)
+✔ competitive AI follows an occupied shortcut and rejoins the main road without resetting (1079.8649ms)
+✔ fixed tiers expose immutable deterministic personalities for the HUD (1.1116ms)
+✔ distant player progress never changes inputs and decisions cannot grant physics/resources (1.5337ms)
+✔ personalities choose different legal overtake lanes while braking for close traffic (1.1952ms)
+✔ attacking expert selects and legally finishes a smooth shortcut without a reset (169.4878ms)
+✔ attacking drivers reject a discontinuous mountain entry instead of stalling (175.4138ms)
+✔ technical expert completes an earned consecutive drift without sacrificing every mini (106.5353ms)
+✔ expert only spends an earned chain window on a safe turn (16.8344ms)
+coast easy 100.4
+coast normal 91.4
+coast hard 89.5
+coast-harbor easy 118.4
+coast-harbor normal 110.3
+coast-harbor hard 108.0
+coast-breakwater easy 124.6
+coast-breakwater normal 117.4
+coast-breakwater hard 113.3
+city easy 144.7
+city normal 131.9
+city hard 126.9
+city-factory easy 165.7
+city-factory normal 152.5
+city-factory hard 147.9
+city-nightshift easy 161.6
+city-nightshift normal 149.1
+city-nightshift hard 144.6
+mountain easy 149.0
+mountain normal 136.2
+mountain hard 133.6
+mountain-pass easy 160.0
+mountain-pass normal 151.8
+mountain-pass hard 146.7
+mountain-summit easy 170.2
+mountain-summit normal 159.1
+mountain-summit hard 152.6
+four-item-race coast 96.1 uses [ 16, 13, 15, 18 ]
+four-item-race coast-harbor 112.0 uses [ 13, 17, 8, 10 ]
+four-item-race coast-breakwater 124.4 uses [ 17, 20, 2, 17 ]
+four-item-race city 140.5 uses [ 19, 8, 17, 16 ]
+four-item-race city-factory 163.0 uses [ 22, 16, 16, 15 ]
+four-item-race city-nightshift 154.0 uses [ 2, 22, 13, 13 ]
+four-item-race mountain 143.5 uses [ 16, 19, 11, 22 ]
+four-item-race mountain-pass 161.7 uses [ 17, 19, 17, 20 ]
+four-item-race mountain-summit 167.9 uses [ 20, 21, 23, 17 ]
+eight-car summit final 166.5
+✔ AI completes three legal-input laps on each track at every difficulty (4997.4291ms)
+✔ four AI race with actual collisions and all item mechanics on every circuit (16237.2831ms)
+✔ AI reacts to a nearby rival with an overtaking lane and safe closing speed (0.552ms)
+✔ eight expert AI complete the narrow summit final with overtaking, contacts and items (3612.0264ms)
+ℹ tests 43
+ℹ suites 0
+ℹ pass 43
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 36605.8398

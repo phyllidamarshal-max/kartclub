@@ -1,0 +1,29 @@
+<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>KART CLUB — visual review</title>
+<style>*{box-sizing:border-box}body{margin:0;background:#14292d;color:#ecf1e6;font:14px system-ui}header{display:flex;align-items:center;gap:12px;padding:14px 20px}button{background:#c0fa67;color:#183331;border:0;border-radius:5px;padding:8px 14px;cursor:pointer}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:0 20px}.pane{overflow:hidden;position:relative;background:#203b40;aspect-ratio:1672/941}.pane img{width:100%;height:100%;object-fit:contain}h2{font-size:13px;font-weight:500}iframe{border:0;transform-origin:0 0;position:absolute;top:0;left:0;width:1672px;height:941px}canvas{display:block;width:100%;height:100%}footer{padding:14px 20px;color:#bac9c5;font-size:12px}</style>
+<header><b>KART CLUB / visual comparison</b><button data-view="lobby">Lobby</button><button data-view="race">Race HUD</button><button data-view="front">Kart front</button><button data-view="rear">Kart rear</button></header>
+<div class="grid"><section><h2>Reference</h2><div class="pane"><img id="reference" src="../ui-concepts-20260907/01-赛事大厅.png"></div></section><section><h2>Actual renderer / application</h2><div class="pane" id="actual"><iframe src="/"></iframe></div></section></div>
+<footer>Reference and application use the same 1672 × 941 layout for UI comparison. Model views use the live game geometry; hidden reference details are reconstructed.</footer>
+<script type="module">
+import * as THREE from 'three';
+import { createKartModel } from '../../client/kart-model.ts';
+const actual=document.querySelector('#actual'),ref=document.querySelector('#reference');
+let renderer;
+function fit(){const f=actual.querySelector('iframe');if(f)f.style.transform=`scale(${actual.clientWidth/1672})`;}
+new ResizeObserver(fit).observe(actual);
+document.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+  renderer?.dispose();renderer=null;actual.replaceChildren();const mode=b.dataset.view;
+  if(mode==='lobby'||mode==='race'){
+    ref.src=`../ui-concepts-20260907/${mode==='lobby'?'01-赛事大厅':'02-比赛界面'}.png`;
+    const f=document.createElement('iframe');f.src=mode==='lobby'?'/':'/?autostart=1';actual.append(f);fit();return;
+  }
+  ref.src=mode==='front'?'reference-front.png':'reference-rear.png';
+  const canvas=document.createElement('canvas');actual.append(canvas);
+  renderer=new THREE.WebGLRenderer({canvas,antialias:true});renderer.setSize(1000,563,false);renderer.setPixelRatio(1);
+  renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.12;renderer.shadowMap.enabled=true;
+  const scene=new THREE.Scene();scene.background=new THREE.Color('#a8d5d7');scene.add(new THREE.HemisphereLight('#dbeff5','#8f8655',1.65));
+  const sun=new THREE.DirectionalLight('#fff0cb',3.2);sun.position.set(-4,7,5);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);scene.add(sun);
+  const floor=new THREE.Mesh(new THREE.PlaneGeometry(100,100),new THREE.MeshStandardMaterial({color:'#4f514b',roughness:1}));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);
+  const kart=createKartModel('#a8c82c');scene.add(kart);
+  const camera=new THREE.PerspectiveCamera(38,1000/563,.1,100);camera.position.set(mode==='front'?.5:-3,4.1,mode==='front'?9.2:-8.5);camera.lookAt(0,1.5,.1);renderer.render(scene,camera);
+});fit();
+</script></html>

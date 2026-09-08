@@ -1,0 +1,112 @@
+✔ coast-harbor has no invisible side wall inside the open shortcut merge (2.4292ms)
+✔ coast-breakwater has no invisible side wall inside the open shortcut merge (0.28ms)
+✔ city-factory has no invisible side wall inside the open shortcut merge (0.2228ms)
+✔ city-nightshift has no invisible side wall inside the open shortcut merge (0.1628ms)
+✔ mountain has no invisible side wall inside the open shortcut merge (0.1969ms)
+✔ forest bridge retains real outer boundaries away from the junctions (0.2814ms)
+✔ a kart straddling the paved junction is legal even when neither road alone contains its body (0.5441ms)
+✖ forest exit keeps progressing without reset from bridge point 70, lane -2.4 (75.3452ms)
+✖ forest exit keeps progressing without reset from bridge point 70, lane 0 (57.0153ms)
+✖ forest exit keeps progressing without reset from bridge point 70, lane 2.4 (60.7419ms)
+✖ forest exit keeps progressing without reset from bridge point 75, lane 2.4 (59.6153ms)
+✖ forest exit keeps progressing without reset from bridge point 79, lane 2.4 (61.7009ms)
+ℹ tests 12
+ℹ suites 0
+ℹ pass 7
+ℹ fail 5
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 524.3347
+
+✖ failing tests:
+
+test at tests\shortcut-junctions.test.ts:1:2289
+✖ forest exit keeps progressing without reset from bridge point 70, lane -2.4 (75.3452ms)
+  AssertionError [ERR_ASSERTION]: exit progress frozen at 0.62
+      at TestContext.<anonymous> (C:\Users\teery\Documents\币相关\跑跑卡丁车\tests\shortcut-junctions.test.ts:59:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:897:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests\shortcut-junctions.test.ts:1:2289
+✖ forest exit keeps progressing without reset from bridge point 70, lane 0 (57.0153ms)
+  AssertionError [ERR_ASSERTION]: exit progress frozen at 0.62
+      at TestContext.<anonymous> (C:\Users\teery\Documents\币相关\跑跑卡丁车\tests\shortcut-junctions.test.ts:59:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:897:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests\shortcut-junctions.test.ts:1:2289
+✖ forest exit keeps progressing without reset from bridge point 70, lane 2.4 (60.7419ms)
+  AssertionError [ERR_ASSERTION]: exit progress frozen at 0.62
+      at TestContext.<anonymous> (C:\Users\teery\Documents\币相关\跑跑卡丁车\tests\shortcut-junctions.test.ts:59:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:897:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests\shortcut-junctions.test.ts:1:2289
+✖ forest exit keeps progressing without reset from bridge point 75, lane 2.4 (59.6153ms)
+  AssertionError [ERR_ASSERTION]: exit progress frozen at 0.62
+      at TestContext.<anonymous> (C:\Users\teery\Documents\币相关\跑跑卡丁车\tests\shortcut-junctions.test.ts:59:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:897:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests\shortcut-junctions.test.ts:1:2289
+✖ forest exit keeps progressing without reset from bridge point 79, lane 2.4 (61.7009ms)
+  AssertionError [ERR_ASSERTION]: exit progress frozen at 0.62
+      at TestContext.<anonymous> (C:\Users\teery\Documents\币相关\跑跑卡丁车\tests\shortcut-junctions.test.ts:59:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:897:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

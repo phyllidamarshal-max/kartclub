@@ -1,0 +1,34 @@
+✔ specific dynamic sentences take precedence over generic count suffixes (1.2905ms)
+✔ language metadata exposes the six supported locales and Arabic direction (1.0725ms)
+✔ every catalog source has a complete six-locale entry with matching placeholders (4.9511ms)
+✔ all exported tracks, challenges, modes, difficulties, items, and training hints are localized (0.5843ms)
+✔ tr translates exact phrases, interpolates names safely, and matches dynamic source patterns (1.759ms)
+✔ tr localizes English economy errors while preserving account identifiers (0.1767ms)
+✔ tr localizes driving controls and English HUD states (0.0877ms)
+✔ setLanguage persists valid choices, updates document metadata, and safely falls back from invalid values (0.2778ms)
+✔ localize switches text and attributes in place and recognizes externally refreshed Chinese HUD text (0.6094ms)
+✔ localize skips scripts, form values, and data-no-i18n descendants (0.4205ms)
+✔ localize translates visible option labels without changing form values (0.2748ms)
+✔ form hints switch languages while entered and default values remain literal (0.2567ms)
+✔ kart model has the expected low, wide composition and named controls (26.9316ms)
+✔ every rendered part owns disposable Three.js resources (8.9705ms)
+✔ a local first finish keeps the solo race open for later AI finishers (2.015ms)
+✔ unfinished solo racers become DNF only at deadline; noncompetitive modes may end locally (0.285ms)
+✔ a stale solo result only blocks the solo result screen (0.1258ms)
+✔ repeated drops preserve the first reconnect deadline (0.153ms)
+✔ 144 Hz rendering advances smoothly between 60 Hz startup physics ticks (4.0672ms)
+✔ idle poses stay exact and interpolation never mutates authoritative physics (0.663ms)
+✔ heading uses the short arc and resets snap instead of sliding through the map (0.1999ms)
+✔ changing tracks releases the sky reflection target exactly once (1.3939ms)
+✔ world replacement disposes instance buffers, shared assets and both shadow targets once (1.9821ms)
+✔ a pending characterModel is released without attaching after world replacement (0.7296ms)
+✔ a pending sceneModel is released without attaching after world replacement (0.2493ms)
+✔ a world disposed while textures load never starts a model request (0.2115ms)
+ℹ tests 26
+ℹ suites 0
+ℹ pass 26
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 343.4818

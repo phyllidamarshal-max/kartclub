@@ -1,0 +1,112 @@
+40-tick charge 19.837752152782382
+✔ a quick point drift earns less than a committed clean drift and neither fills a bottle (3.4061ms)
+✔ a full gauge waits for drift release and cannot mint repeated bottles while drift stays held (0.657ms)
+✔ wall impacts deduct current charge by severity, retain bottles and interrupt mini eligibility (0.4869ms)
+✔ holding a full gauge into a collision cannot convert it before the impact penalty (0.1265ms)
+✖ one contact episode does not drain repeatedly and stationary overlap corrections are free (1.0271ms)
+✖ straight driving, held Shift without a slide, and a fully aligned recovery never lose gauge on a wall (0.3136ms)
+✔ unfinished drift recovery still loses gauge if the sliding kart hits a wall (0.1536ms)
+✖ two non-drifting karts can collide without losing either gauge (0.3026ms)
+✖ a straight nitro run hitting an obstacle retains gauge and bottles (0.3123ms)
+✔ post-impact lockout prevents immediately earning charge again or repeatedly charging against a wall (0.4431ms)
+✔ charge stays locked after the impact shake has faded even on a clean exit (0.9084ms)
+ℹ tests 11
+ℹ suites 0
+ℹ pass 7
+ℹ fail 4
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 224.2623
+
+✖ failing tests:
+
+test at tests\nitro-collision.test.ts:109:1
+✖ one contact episode does not drain repeatedly and stationary overlap corrections are free (1.0271ms)
+  AssertionError [ERR_ASSERTION]: the other driver is not drifting
+  + actual - expected
+  
+  + 33.20855614973263
+  - 90
+  
+      at TestContext.<anonymous> (C:\Users\teery\Documents\币相关\跑跑卡丁车\tests\nitro-collision.test.ts:120:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:897:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 33.20855614973263,
+    expected: 90,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\nitro-collision.test.ts:137:1
+✖ straight driving, held Shift without a slide, and a fully aligned recovery never lose gauge on a wall (0.3136ms)
+  AssertionError [ERR_ASSERTION]: straight
+  + actual - expected
+  
+  + 35.13437456651658
+  - 80
+  
+      at TestContext.<anonymous> (C:\Users\teery\Documents\币相关\跑跑卡丁车\tests\nitro-collision.test.ts:140:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:897:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 35.13437456651658,
+    expected: 80,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\nitro-collision.test.ts:154:1
+✖ two non-drifting karts can collide without losing either gauge (0.3026ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 23.20855614973263
+  - 80
+  
+      at TestContext.<anonymous> (C:\Users\teery\Documents\币相关\跑跑卡丁车\tests\nitro-collision.test.ts:159:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:897:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 23.20855614973263,
+    expected: 80,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\nitro-collision.test.ts:163:1
+✖ a straight nitro run hitting an obstacle retains gauge and bottles (0.3123ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  20 !== 80
+  
+      at TestContext.<anonymous> (C:\Users\teery\Documents\币相关\跑跑卡丁车\tests\nitro-collision.test.ts:168:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:897:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 20,
+    expected: 80,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

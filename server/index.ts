@@ -7,6 +7,7 @@ import { Economy } from "./economy.ts";
 import { Auth } from "./auth.ts";
 import {RaceRecords} from "./race-records.ts";
 import { KartRoom } from "./room.ts";
+import { VERSIONS } from "../shared/rules.ts";
 const data =
   process.env.PONS_DATA_DIR ||
   path.join(path.dirname(fileURLToPath(import.meta.url)), "../data");
@@ -26,7 +27,7 @@ const server = new Server({
       next();
     });
     app.get("/api/health", (_req, res) =>
-      res.json({ ok: true, mode: "simulation", version: "0.3.0" }),
+      res.json({ ok: true, mode: "simulation", version: "0.3.0", rulesVersion: VERSIONS.rulesVersion }),
     );
     app.get("/api/pool", (_req, res) => res.json(economy.pool()));
     app.post("/api/account", (_req, res) => {

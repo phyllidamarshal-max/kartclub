@@ -21,6 +21,11 @@ test("finished track definitions reject mutations at every nested level", () => 
       assert.equal(Reflect.set(p, "z", 999999), false);
     for (const p of track.obstacles)
       assert.equal(Reflect.set(p, "radius", 0), false);
+    if (track.widthProfile) {
+      assert.equal(Reflect.set(track.widthProfile, "length", 0), false);
+      for (const p of track.widthProfile)
+        assert.equal(Reflect.set(p, "width", 1), false);
+    }
     assert.deepEqual(nearestTrack(point.x, point.z, track), before);
   }
   assert.equal(Reflect.set(TRACKS, "length", 0), false);
@@ -33,7 +38,13 @@ test("explicitly cloned custom tracks retain their independent geometry and quer
   const clone = structuredClone(original);
   assert.equal(Reflect.set(clone, "width", 12), true);
   const points = clone.points.map((p) => ({ ...p, x: p.x + 1000 }));
-  const custom = { ...clone, points, shortcut: [], obstacles: [] };
+  const custom = {
+    ...clone,
+    points,
+    widthProfile: undefined,
+    shortcut: [],
+    obstacles: [],
+  };
   const p = points[42];
   assert.equal(nearestTrack(p.x, p.z, custom).distance, 0);
   assert.equal(nearestTrack(p.x, p.z, custom).roadWidth, 12);

@@ -19,6 +19,7 @@
     "@colyseus/core": "0.18.11",
     "@colyseus/sdk": "0.18.2",
     "@colyseus/ws-transport": "0.18.2",
+    "@phosphor-icons/core": "2.1.1",
     "express": "5.2.1",
     "three": "0.185.1"
   },

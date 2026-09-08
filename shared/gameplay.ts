@@ -1,4 +1,10 @@
+import {
+  challengeGrade,
+  type ChallengeMetrics,
+  type EventKind,
+} from "./challenge-events.ts";
 import { getTrack } from "./track.ts";
+import type { Item } from "./items.ts";
 export type RaceMode = "race" | "items" | "time" | "practice";
 export type Difficulty = "easy" | "normal" | "hard";
 export interface MatchConfig {
@@ -30,6 +36,11 @@ export function validateMatch(raw: Record<string, unknown> = {}): MatchConfig {
   };
 }
 export interface Challenge {
+  event?: EventKind;
+  startDelay?: number;
+  sectorSeconds?: number[];
+  techniqueCorners?: readonly number[];
+  startingItem?: Item;
   id: string;
   title: string;
   description: string;
@@ -48,140 +59,166 @@ export interface Challenge {
 export const CHALLENGES: Challenge[] = [
   {
     id: "coast-race",
-    title: "晴湾杯 · 起步争先",
-    description: "三圈竞速进入前两名，累计有效漂移集气 100 点。",
+    title: "海岸启程 · 干净争先",
+    description: "完成三圈并进入前三。加星：达到目标时间；碰撞不超过两次。",
     trackId: "coast",
     mode: "race",
     difficulty: "normal",
     laps: 3,
-    limit: 0,
-    gold: 112,
-    rank: 2,
-    uses: 0,
-    drift: 100,
+    rank: 3,
     opponents: 3,
+    event: "race",
+    limit: 0,
+    gold: 0,
+    uses: 0,
+    drift: 0,
   },
   {
     id: "coast-time",
-    title: "港口驾照 · 刹车入弯",
-    description: "港口折返三圈 ≤ 165 秒，累计漂移集气 160 点。",
+    title: "港口时钟 · 分段冲刺",
+    description: "一圈通过三个计时门，每段必须在倒计时结束前到达。",
     trackId: "coast-harbor",
     mode: "time",
     difficulty: "normal",
-    laps: 3,
-    limit: 165,
-    gold: 135,
+    laps: 1,
     rank: 0,
-    uses: 0,
-    drift: 160,
     opponents: 0,
+    event: "sectors",
+    limit: 0,
+    gold: 0,
+    uses: 0,
+    drift: 0,
   },
   {
     id: "coast-items",
-    title: "防波堤 · 连弯反击",
-    description: "连续 S 弯道具赛进入前两名，使用至少 4 次道具。",
+    title: "沙漠反击 · 精准出手",
+    description:
+      "携带一枚导弹出发。两圈进入前三，并用道具成功减速对手至少一次。",
     trackId: "coast-breakwater",
     mode: "items",
     difficulty: "normal",
-    laps: 3,
-    limit: 0,
-    gold: 145,
-    rank: 2,
-    uses: 4,
-    drift: 0,
+    laps: 2,
+    rank: 3,
     opponents: 3,
+    event: "attack",
+    startingItem: "missile",
+    limit: 0,
+    gold: 0,
+    uses: 0,
+    drift: 0,
   },
   {
     id: "city-race",
-    title: "街区杯 · 六车混战",
-    description: "对抗五名 AI，三圈进入前两名，漂移集气 200 点。",
+    title: "街区追击 · 延迟出发",
+    description: "对手提前四秒出发，两圈追回前三。",
     trackId: "city",
     mode: "race",
-    difficulty: "normal",
-    laps: 3,
-    limit: 0,
-    gold: 153,
-    rank: 2,
-    uses: 0,
-    drift: 200,
+    difficulty: "easy",
+    laps: 2,
+    rank: 3,
     opponents: 5,
+    event: "pursuit",
+    limit: 0,
+    gold: 0,
+    uses: 0,
+    drift: 0,
+    startDelay: 4,
   },
   {
     id: "city-time",
-    title: "工业折返 · 精准驾照",
-    description: "窄路折返三圈 ≤ 205 秒，累计漂移集气 240 点。",
+    title: "工业驾照 · 漂移衔接",
+    description:
+      "两圈内在指定的两个弯道各完成一次干净漂移，并使用两次小喷。连弯衔接可获额外星级。",
     trackId: "city-factory",
     mode: "time",
     difficulty: "hard",
-    laps: 3,
-    limit: 205,
-    gold: 173,
+    laps: 2,
     rank: 0,
-    uses: 0,
-    drift: 240,
     opponents: 0,
+    event: "technique",
+    techniqueCorners: [0.24375, 0.60625],
+    limit: 0,
+    gold: 0,
+    uses: 0,
+    drift: 0,
   },
   {
     id: "city-items",
-    title: "午夜高架 · 道具争冠",
-    description: "对抗五名 AI 并夺冠，使用至少 5 次道具。",
+    title: "星环防线 · 防守突围",
+    description: "两圈进入前四。用护盾挡住一次攻击可获额外星级。",
     trackId: "city-nightshift",
     mode: "items",
-    difficulty: "hard",
-    laps: 3,
-    limit: 0,
-    gold: 163,
-    rank: 1,
-    uses: 5,
-    drift: 0,
+    difficulty: "normal",
+    laps: 2,
+    rank: 4,
     opponents: 5,
+    event: "defense",
+    startingItem: "shield",
+    limit: 0,
+    gold: 0,
+    uses: 0,
+    drift: 0,
   },
   {
     id: "mountain-race",
-    title: "云岭杯 · 八车争锋",
-    description: "挑战七名专家 AI，进入前两名，漂移集气 260 点。",
+    title: "森林试炼 · 稳定控车",
+    description: "三圈进入前三，碰撞不超过八次。",
     trackId: "mountain",
     mode: "race",
-    difficulty: "hard",
+    difficulty: "normal",
     laps: 3,
+    rank: 3,
+    opponents: 3,
+    event: "clean",
     limit: 0,
-    gold: 153,
-    rank: 2,
+    gold: 0,
     uses: 0,
-    drift: 260,
-    opponents: 7,
+    drift: 0,
   },
   {
     id: "mountain-time",
-    title: "云岭九曲 · 耐力驾照",
-    description: "连续发卡弯四圈 ≤ 250 秒，漂移集气 360 点。",
+    title: "冰川耐力 · 四圈考验",
+    description: "四圈限时挑战，稳定完成长距离驾驶；连弯衔接可获额外星级。",
     trackId: "mountain-pass",
     mode: "time",
     difficulty: "hard",
     laps: 4,
-    limit: 250,
-    gold: 215,
     rank: 0,
-    uses: 0,
-    drift: 360,
     opponents: 0,
+    event: "endurance",
+    limit: 0,
+    gold: 0,
+    uses: 0,
+    drift: 0,
   },
   {
     id: "mountain-items",
-    title: "巅峰试炼 · 最终决赛",
-    description: "在最窄的山路击败七名专家 AI，夺冠并使用 6 次道具。",
+    title: "矿山决赛 · 专家争冠",
+    description: "三圈击败七名专家夺冠。成功攻击或防御两次可获额外星级。",
     trackId: "mountain-summit",
     mode: "items",
     difficulty: "hard",
     laps: 3,
-    limit: 0,
-    gold: 178,
     rank: 1,
-    uses: 6,
-    drift: 0,
     opponents: 7,
+    event: "final",
+    limit: 0,
+    gold: 0,
+    uses: 0,
+    drift: 0,
   },
 ];
+// Authored against driving-v3.2 / routes-0.4.0 measured runs, not route-length estimates.
+// See docs/gameplay-phase-one-report.md for reference pace and the human-sample limitation.
+const goldSeconds = [96, 40, 84, 96, 106, 108, 146, 204, 160];
+CHALLENGES.forEach((q, i) => {
+  q.gold = goldSeconds[i];
+});
+CHALLENGES[1].sectorSeconds = [17, 16, 17];
+CHALLENGES[1].limit = 50;
+CHALLENGES[4].limit = 130;
+CHALLENGES[7].limit = 240;
+
 export function isUnlocked(
   index: number,
   progress: Record<string, { stars: number }>,
@@ -200,20 +237,25 @@ export function starsFor(
   drift: number,
   uses: number,
   finished: boolean,
+  metrics?: ChallengeMetrics,
 ) {
-  if (
-    !finished ||
-    !Number.isFinite(time) ||
-    (q.limit > 0 && time > q.limit) ||
-    (q.rank > 0 && rank > q.rank) ||
-    uses < q.uses ||
-    drift < q.drift
-  )
-    return 0;
-  if (time <= q.gold && (q.rank === 0 || rank === 1)) return 3;
-  if (time <= q.gold * 1.2 && (q.rank === 0 || rank <= 2)) return 2;
-  return 1;
+  return challengeGrade(
+    q,
+    metrics ?? {
+      finished,
+      time,
+      rank,
+      collisions: 99,
+      cleanDrifts: 0,
+      miniUses: 0,
+      driftChains: 0,
+      usefulHits: 0,
+      blocks: 0,
+      failed: false,
+    },
+  );
 }
+
 export const MODE_NAMES: Record<RaceMode, string> = {
   race: "竞速赛",
   items: "道具赛",

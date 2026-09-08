@@ -1,0 +1,91 @@
+✔ zero-distance overlap separates exactly without NaN or free energy (1.8524ms)
+✔ rear contact transfers bounded momentum and never adds kinetic energy (0.8824ms)
+✔ wall contact retains tangent velocity and removes strong outward normal velocity (0.2334ms)
+✔ reset waits then grants one second of contact grace which held reset cannot extend (1.4646ms)
+✔ cars overlapping at a road boundary separate while both stay on road (0.479ms)
+✔ finished cars are ignored by vehicle contacts (0.8158ms)
+✔ invalid timestep cannot corrupt vehicle state (0.2025ms)
+✔ track obstacles stop a car from passing through their centre (0.1986ms)
+✔ side contact pushes moderately without changing the common forward velocity (0.2424ms)
+✔ a four-car boundary pileup fully separates and stays finite under repeated contacts (6.6171ms)
+✔ obstacle sweep catches movement that crosses the entire obstacle in one step (0.2722ms)
+✔ custom road widths and the mountain shortcut constrain car centres (0.5333ms)
+✔ obstacle boundary allows tangent movement with 0 penetration (1.5132ms)
+✔ obstacle boundary allows outward movement with 0 penetration (2.9814ms)
+✔ obstacle boundary allows tangent movement with 1e-12 penetration (1.222ms)
+✔ obstacle boundary allows outward movement with 1e-12 penetration (1.6121ms)
+✔ microscopic obstacle penetration still blocks inward velocity 63 (0.4602ms)
+✔ microscopic obstacle penetration still blocks inward velocity 200 (0.1563ms)
+✔ AC06 two bottles plus full energy refills only the consumed inventory slot (6.8793ms)
+✔ AC08 a fresh press in final 150ms chains once; early held input never queues (0.7359ms)
+✔ AC03 fast near-zero-slip steering cannot charge simply by holding drift (0.1893ms)
+✔ AC14 reset waits 1.5s, preserves resources and never advances a reversed car (0.2705ms)
+✔ AC10 projected teleport cannot grant any progress or energy (0.1848ms)
+✔ finish cancels eligibility and queued input without consuming resources (0.1175ms)
+✔ AC04 holding drift after real recovery cannot postpone or renew the mini window (2.5326ms)
+✔ AC04/05 a real drift recovers once and needs a new throttle press (1.7461ms)
+✔ AC07 nitro overrides mini without multiplying acceleration or speed caps (2.0145ms)
+✔ AC09 nitro wall impact removes speed, preserves its clock and cancels mini/buffer (0.3016ms)
+✔ AC03/10 reverse, wall pressure and stopped steering generate no energy (4.2877ms)
+✔ AC02 same tick input at 30/60/120 render schedules produces identical state within 1e-7 (20.0439ms)
+✔ ordinary throttle cannot creep above configured normal maximum (0.1716ms)
+✔ AC12 legal mountain branch traverses and merges with continuous canonical progress (8.8089ms)
+✖ reference 40-tick clean high-slip bend earns half to one bottle at this world scale (1.1437ms)
+40-tick charge 19.837752152782382
+✔ a short clean drift earns a modest charge, requiring several controlled drifts for a bottle (2.7809ms)
+✖ a full gauge waits for drift release and cannot mint repeated bottles while drift stays held (1.3761ms)
+✔ wall impacts deduct current charge by severity, retain bottles and interrupt mini eligibility (0.5084ms)
+✔ holding a full gauge into a collision cannot convert it before the impact penalty (0.1326ms)
+✔ one contact episode does not drain repeatedly and stationary overlap corrections are free (0.804ms)
+✔ post-impact lockout prevents immediately earning charge again or repeatedly charging against a wall (0.4753ms)
+legal-input training {"seconds":32.549999999999436,"laps":1,"energyEarned":125.60356927153522,"nitro":1,"mini":5}
+✔ five-step coast teaching can complete from a fresh kart using only legal driving inputs (33.7701ms)
+ℹ tests 40
+ℹ suites 0
+ℹ pass 38
+ℹ fail 2
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 350.8154
+
+✖ failing tests:
+
+test at tests\driving-resources.test.ts:326:1
+✖ reference 40-tick clean high-slip bend earns half to one bottle at this world scale (1.1437ms)
+  AssertionError [ERR_ASSERTION]: charge 19.837752152782382
+      at TestContext.<anonymous> (C:\Users\teery\Documents\币相关\跑跑卡丁车\tests\driving-resources.test.ts:335:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:897:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests\nitro-collision.test.ts:37:1
+✖ a full gauge waits for drift release and cannot mint repeated bottles while drift stays held (1.3761ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (C:\Users\teery\Documents\币相关\跑跑卡丁车\tests\nitro-collision.test.ts:42:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

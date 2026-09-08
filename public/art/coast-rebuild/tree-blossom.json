@@ -1,0 +1,11 @@
+{
+  "key": "tree-blossom",
+  "model": "/art/coast-rebuild/tree-blossom.glb",
+  "indirect": "/art/coast-rebuild/tree-blossom-indirect.png",
+  "lighting": "asset-local diffuse indirect only; direct sun excluded",
+  "triangles": 554,
+  "atlasSize": 512,
+  "height": 6.341986656188965,
+  "width": 3.2730319499969482,
+  "depth": 2.310972809791565
+}

@@ -1,0 +1,1001 @@
+{
+  "description": "Current vs preceding AI, all hard, identical legal resources and physics; not human performance data.",
+  "records": [
+    {
+      "challenge": "coast-race",
+      "track": "coast",
+      "mode": "race",
+      "seed": 537,
+      "newGridSide": 0,
+      "meanDecisionMsForEight": 0.05209178590354975,
+      "maxDecisionTickMs": 1.6012000000000626,
+      "standings": [
+        {
+          "rank": 1,
+          "revision": "after",
+          "slot": 0,
+          "finished": true,
+          "time": 89.61038663937994,
+          "nitro": 6,
+          "items": 0
+        },
+        {
+          "rank": 2,
+          "revision": "after",
+          "slot": 2,
+          "finished": true,
+          "time": 90.13435431802534,
+          "nitro": 5,
+          "items": 0
+        },
+        {
+          "rank": 3,
+          "revision": "after",
+          "slot": 6,
+          "finished": true,
+          "time": 91.82566985210413,
+          "nitro": 3,
+          "items": 0
+        },
+        {
+          "rank": 4,
+          "revision": "after",
+          "slot": 4,
+          "finished": true,
+          "time": 91.97108697062649,
+          "nitro": 3,
+          "items": 0
+        },
+        {
+          "rank": 5,
+          "revision": "before",
+          "slot": 1,
+          "finished": true,
+          "time": 93.2689694177432,
+          "nitro": 2,
+          "items": 0
+        },
+        {
+          "rank": 6,
+          "revision": "before",
+          "slot": 5,
+          "finished": true,
+          "time": 93.5714970905291,
+          "nitro": 1,
+          "items": 0
+        },
+        {
+          "rank": 7,
+          "revision": "before",
+          "slot": 3,
+          "finished": true,
+          "time": 93.81471907490227,
+          "nitro": 1,
+          "items": 0
+        },
+        {
+          "rank": 8,
+          "revision": "before",
+          "slot": 7,
+          "finished": true,
+          "time": 94.33889650565177,
+          "nitro": 1,
+          "items": 0
+        }
+      ]
+    },
+    {
+      "challenge": "coast-race",
+      "track": "coast",
+      "mode": "race",
+      "seed": 42,
+      "newGridSide": 1,
+      "meanDecisionMsForEight": 0.04307059031460199,
+      "maxDecisionTickMs": 0.4044000000001233,
+      "standings": [
+        {
+          "rank": 1,
+          "revision": "after",
+          "slot": 7,
+          "finished": true,
+          "time": 92.01755252898695,
+          "nitro": 3,
+          "items": 0
+        },
+        {
+          "rank": 2,
+          "revision": "after",
+          "slot": 5,
+          "finished": true,
+          "time": 92.39024899918945,
+          "nitro": 2,
+          "items": 0
+        },
+        {
+          "rank": 3,
+          "revision": "after",
+          "slot": 3,
+          "finished": true,
+          "time": 93.26644184541438,
+          "nitro": 2,
+          "items": 0
+        },
+        {
+          "rank": 4,
+          "revision": "after",
+          "slot": 1,
+          "finished": true,
+          "time": 93.47401706762167,
+          "nitro": 3,
+          "items": 0
+        },
+        {
+          "rank": 5,
+          "revision": "before",
+          "slot": 6,
+          "finished": true,
+          "time": 93.8215290678213,
+          "nitro": 1,
+          "items": 0
+        },
+        {
+          "rank": 6,
+          "revision": "before",
+          "slot": 0,
+          "finished": true,
+          "time": 93.84976106296362,
+          "nitro": 1,
+          "items": 0
+        },
+        {
+          "rank": 7,
+          "revision": "before",
+          "slot": 4,
+          "finished": true,
+          "time": 94.12218464903977,
+          "nitro": 1,
+          "items": 0
+        },
+        {
+          "rank": 8,
+          "revision": "before",
+          "slot": 2,
+          "finished": true,
+          "time": 94.28563906342323,
+          "nitro": 0,
+          "items": 0
+        }
+      ]
+    },
+    {
+      "challenge": "coast-items",
+      "track": "coast-breakwater",
+      "mode": "items",
+      "seed": 537,
+      "newGridSide": 0,
+      "meanDecisionMsForEight": 0.058348622754490057,
+      "maxDecisionTickMs": 1.0920999999998457,
+      "standings": [
+        {
+          "rank": 1,
+          "revision": "after",
+          "slot": 6,
+          "finished": true,
+          "time": 115.09341073590404,
+          "nitro": 6,
+          "items": 7
+        },
+        {
+          "rank": 2,
+          "revision": "after",
+          "slot": 4,
+          "finished": true,
+          "time": 119.52466748235939,
+          "nitro": 3,
+          "items": 11
+        },
+        {
+          "rank": 3,
+          "revision": "after",
+          "slot": 0,
+          "finished": true,
+          "time": 120.62410523374557,
+          "nitro": 4,
+          "items": 14
+        },
+        {
+          "rank": 4,
+          "revision": "before",
+          "slot": 1,
+          "finished": true,
+          "time": 123.05743181835345,
+          "nitro": 3,
+          "items": 9
+        },
+        {
+          "rank": 5,
+          "revision": "before",
+          "slot": 5,
+          "finished": true,
+          "time": 123.05924003926707,
+          "nitro": 3,
+          "items": 15
+        },
+        {
+          "rank": 6,
+          "revision": "before",
+          "slot": 7,
+          "finished": true,
+          "time": 123.9292109168378,
+          "nitro": 2,
+          "items": 8
+        },
+        {
+          "rank": 7,
+          "revision": "before",
+          "slot": 3,
+          "finished": true,
+          "time": 124.74137579643993,
+          "nitro": 2,
+          "items": 12
+        },
+        {
+          "rank": 8,
+          "revision": "after",
+          "slot": 2,
+          "finished": true,
+          "time": 125.24230123132358,
+          "nitro": 4,
+          "items": 7
+        }
+      ]
+    },
+    {
+      "challenge": "coast-items",
+      "track": "coast-breakwater",
+      "mode": "items",
+      "seed": 42,
+      "newGridSide": 1,
+      "meanDecisionMsForEight": 0.8592430871590115,
+      "maxDecisionTickMs": 109.85630000000037,
+      "standings": [
+        {
+          "rank": 1,
+          "revision": "after",
+          "slot": 1,
+          "finished": true,
+          "time": 113.25934922421763,
+          "nitro": 7,
+          "items": 3
+        },
+        {
+          "rank": 2,
+          "revision": "after",
+          "slot": 7,
+          "finished": true,
+          "time": 115.89195231308997,
+          "nitro": 6,
+          "items": 12
+        },
+        {
+          "rank": 3,
+          "revision": "after",
+          "slot": 3,
+          "finished": true,
+          "time": 117.69670814733064,
+          "nitro": 4,
+          "items": 13
+        },
+        {
+          "rank": 4,
+          "revision": "before",
+          "slot": 6,
+          "finished": true,
+          "time": 120.06653525362728,
+          "nitro": 2,
+          "items": 16
+        },
+        {
+          "rank": 5,
+          "revision": "after",
+          "slot": 5,
+          "finished": true,
+          "time": 121.49439827263541,
+          "nitro": 4,
+          "items": 9
+        },
+        {
+          "rank": 6,
+          "revision": "before",
+          "slot": 0,
+          "finished": true,
+          "time": 123.2659622687664,
+          "nitro": 2,
+          "items": 9
+        },
+        {
+          "rank": 7,
+          "revision": "before",
+          "slot": 2,
+          "finished": true,
+          "time": 125.0631860285099,
+          "nitro": 1,
+          "items": 9
+        },
+        {
+          "rank": 8,
+          "revision": "before",
+          "slot": 4,
+          "finished": true,
+          "time": 125.23939335159388,
+          "nitro": 2,
+          "items": 7
+        }
+      ]
+    },
+    {
+      "challenge": "city-race",
+      "track": "city",
+      "mode": "race",
+      "seed": 537,
+      "newGridSide": 0,
+      "meanDecisionMsForEight": 2.061678093625224,
+      "maxDecisionTickMs": 195.78210000000036,
+      "standings": [
+        {
+          "rank": 1,
+          "revision": "after",
+          "slot": 0,
+          "finished": true,
+          "time": 127.1966260231245,
+          "nitro": 12,
+          "items": 0
+        },
+        {
+          "rank": 2,
+          "revision": "after",
+          "slot": 2,
+          "finished": true,
+          "time": 128.4621329412563,
+          "nitro": 11,
+          "items": 0
+        },
+        {
+          "rank": 3,
+          "revision": "after",
+          "slot": 6,
+          "finished": true,
+          "time": 129.38457609109946,
+          "nitro": 10,
+          "items": 0
+        },
+        {
+          "rank": 4,
+          "revision": "after",
+          "slot": 4,
+          "finished": true,
+          "time": 130.56373397515222,
+          "nitro": 8,
+          "items": 0
+        },
+        {
+          "rank": 5,
+          "revision": "before",
+          "slot": 7,
+          "finished": true,
+          "time": 135.79494798698917,
+          "nitro": 3,
+          "items": 0
+        },
+        {
+          "rank": 6,
+          "revision": "before",
+          "slot": 3,
+          "finished": true,
+          "time": 136.80738739822206,
+          "nitro": 3,
+          "items": 0
+        },
+        {
+          "rank": 7,
+          "revision": "before",
+          "slot": 1,
+          "finished": true,
+          "time": 137.04815548810978,
+          "nitro": 3,
+          "items": 0
+        },
+        {
+          "rank": 8,
+          "revision": "before",
+          "slot": 5,
+          "finished": true,
+          "time": 137.76701813198773,
+          "nitro": 2,
+          "items": 0
+        }
+      ]
+    },
+    {
+      "challenge": "city-race",
+      "track": "city",
+      "mode": "race",
+      "seed": 42,
+      "newGridSide": 1,
+      "meanDecisionMsForEight": 1.2491567776170198,
+      "maxDecisionTickMs": 481.01890000000276,
+      "standings": [
+        {
+          "rank": 1,
+          "revision": "after",
+          "slot": 3,
+          "finished": true,
+          "time": 130.19456147815959,
+          "nitro": 9,
+          "items": 0
+        },
+        {
+          "rank": 2,
+          "revision": "after",
+          "slot": 5,
+          "finished": true,
+          "time": 134.15623815074355,
+          "nitro": 5,
+          "items": 0
+        },
+        {
+          "rank": 3,
+          "revision": "after",
+          "slot": 7,
+          "finished": true,
+          "time": 134.97436764874394,
+          "nitro": 4,
+          "items": 0
+        },
+        {
+          "rank": 4,
+          "revision": "after",
+          "slot": 1,
+          "finished": true,
+          "time": 135.64972871335976,
+          "nitro": 5,
+          "items": 0
+        },
+        {
+          "rank": 5,
+          "revision": "before",
+          "slot": 0,
+          "finished": true,
+          "time": 136.54921239766054,
+          "nitro": 4,
+          "items": 0
+        },
+        {
+          "rank": 6,
+          "revision": "before",
+          "slot": 4,
+          "finished": true,
+          "time": 137.0641852564433,
+          "nitro": 2,
+          "items": 0
+        },
+        {
+          "rank": 7,
+          "revision": "before",
+          "slot": 6,
+          "finished": true,
+          "time": 137.81173852438775,
+          "nitro": 3,
+          "items": 0
+        },
+        {
+          "rank": 8,
+          "revision": "before",
+          "slot": 2,
+          "finished": true,
+          "time": 138.1845416679547,
+          "nitro": 1,
+          "items": 0
+        }
+      ]
+    },
+    {
+      "challenge": "city-items",
+      "track": "city-nightshift",
+      "mode": "items",
+      "seed": 537,
+      "newGridSide": 0,
+      "meanDecisionMsForEight": 0.33868970096186934,
+      "maxDecisionTickMs": 23.53660000000673,
+      "standings": [
+        {
+          "rank": 1,
+          "revision": "after",
+          "slot": 6,
+          "finished": true,
+          "time": 141.4853920891814,
+          "nitro": 12,
+          "items": 15
+        },
+        {
+          "rank": 2,
+          "revision": "after",
+          "slot": 4,
+          "finished": true,
+          "time": 146.91428712916274,
+          "nitro": 12,
+          "items": 5
+        },
+        {
+          "rank": 3,
+          "revision": "after",
+          "slot": 2,
+          "finished": true,
+          "time": 148.3141398618837,
+          "nitro": 11,
+          "items": 18
+        },
+        {
+          "rank": 4,
+          "revision": "after",
+          "slot": 0,
+          "finished": true,
+          "time": 151.45676804163142,
+          "nitro": 8,
+          "items": 17
+        },
+        {
+          "rank": 5,
+          "revision": "before",
+          "slot": 7,
+          "finished": true,
+          "time": 153.05982609543045,
+          "nitro": 4,
+          "items": 10
+        },
+        {
+          "rank": 6,
+          "revision": "before",
+          "slot": 3,
+          "finished": true,
+          "time": 156.52056989224675,
+          "nitro": 4,
+          "items": 8
+        },
+        {
+          "rank": 7,
+          "revision": "before",
+          "slot": 1,
+          "finished": true,
+          "time": 156.59349704534046,
+          "nitro": 5,
+          "items": 15
+        },
+        {
+          "rank": 8,
+          "revision": "before",
+          "slot": 5,
+          "finished": true,
+          "time": 159.3969205681584,
+          "nitro": 6,
+          "items": 2
+        }
+      ]
+    },
+    {
+      "challenge": "city-items",
+      "track": "city-nightshift",
+      "mode": "items",
+      "seed": 42,
+      "newGridSide": 1,
+      "meanDecisionMsForEight": 2.562984273183031,
+      "maxDecisionTickMs": 1115.189400000003,
+      "standings": [
+        {
+          "rank": 1,
+          "revision": "after",
+          "slot": 1,
+          "finished": true,
+          "time": 143.1246485740188,
+          "nitro": 12,
+          "items": 4
+        },
+        {
+          "rank": 2,
+          "revision": "after",
+          "slot": 5,
+          "finished": true,
+          "time": 145.80036317273593,
+          "nitro": 11,
+          "items": 14
+        },
+        {
+          "rank": 3,
+          "revision": "after",
+          "slot": 7,
+          "finished": true,
+          "time": 147.56663109693605,
+          "nitro": 9,
+          "items": 7
+        },
+        {
+          "rank": 4,
+          "revision": "after",
+          "slot": 3,
+          "finished": true,
+          "time": 150.93709524907499,
+          "nitro": 10,
+          "items": 17
+        },
+        {
+          "rank": 5,
+          "revision": "before",
+          "slot": 2,
+          "finished": true,
+          "time": 152.60156267175685,
+          "nitro": 5,
+          "items": 12
+        },
+        {
+          "rank": 6,
+          "revision": "before",
+          "slot": 4,
+          "finished": true,
+          "time": 155.37215046460446,
+          "nitro": 5,
+          "items": 9
+        },
+        {
+          "rank": 7,
+          "revision": "before",
+          "slot": 0,
+          "finished": true,
+          "time": 157.98910589104676,
+          "nitro": 6,
+          "items": 11
+        },
+        {
+          "rank": 8,
+          "revision": "before",
+          "slot": 6,
+          "finished": true,
+          "time": 159.5900417801235,
+          "nitro": 5,
+          "items": 6
+        }
+      ]
+    },
+    {
+      "challenge": "mountain-race",
+      "track": "mountain",
+      "mode": "race",
+      "seed": 537,
+      "newGridSide": 0,
+      "meanDecisionMsForEight": 0.09983705875450992,
+      "maxDecisionTickMs": 9.753200000006473,
+      "standings": [
+        {
+          "rank": 1,
+          "revision": "after",
+          "slot": 2,
+          "finished": true,
+          "time": 133.3872365237382,
+          "nitro": 8,
+          "items": 0
+        },
+        {
+          "rank": 2,
+          "revision": "after",
+          "slot": 0,
+          "finished": true,
+          "time": 134.74287428198622,
+          "nitro": 7,
+          "items": 0
+        },
+        {
+          "rank": 3,
+          "revision": "after",
+          "slot": 4,
+          "finished": true,
+          "time": 136.883462625429,
+          "nitro": 5,
+          "items": 0
+        },
+        {
+          "rank": 4,
+          "revision": "after",
+          "slot": 6,
+          "finished": true,
+          "time": 139.4115383690718,
+          "nitro": 3,
+          "items": 0
+        },
+        {
+          "rank": 5,
+          "revision": "before",
+          "slot": 3,
+          "finished": true,
+          "time": 141.4639068385595,
+          "nitro": 2,
+          "items": 0
+        },
+        {
+          "rank": 6,
+          "revision": "before",
+          "slot": 7,
+          "finished": true,
+          "time": 141.59894412363198,
+          "nitro": 0,
+          "items": 0
+        },
+        {
+          "rank": 7,
+          "revision": "before",
+          "slot": 5,
+          "finished": true,
+          "time": 141.833172160837,
+          "nitro": 1,
+          "items": 0
+        },
+        {
+          "rank": 8,
+          "revision": "before",
+          "slot": 1,
+          "finished": true,
+          "time": 142.11200348496055,
+          "nitro": 0,
+          "items": 0
+        }
+      ]
+    },
+    {
+      "challenge": "mountain-race",
+      "track": "mountain",
+      "mode": "race",
+      "seed": 42,
+      "newGridSide": 1,
+      "meanDecisionMsForEight": 0.08345092669111066,
+      "maxDecisionTickMs": 5.836800000004587,
+      "standings": [
+        {
+          "rank": 1,
+          "revision": "after",
+          "slot": 1,
+          "finished": true,
+          "time": 133.58712738959224,
+          "nitro": 7,
+          "items": 0
+        },
+        {
+          "rank": 2,
+          "revision": "after",
+          "slot": 3,
+          "finished": true,
+          "time": 134.31935976515075,
+          "nitro": 6,
+          "items": 0
+        },
+        {
+          "rank": 3,
+          "revision": "after",
+          "slot": 5,
+          "finished": true,
+          "time": 135.9739717446683,
+          "nitro": 6,
+          "items": 0
+        },
+        {
+          "rank": 4,
+          "revision": "after",
+          "slot": 7,
+          "finished": true,
+          "time": 136.76972533665653,
+          "nitro": 4,
+          "items": 0
+        },
+        {
+          "rank": 5,
+          "revision": "before",
+          "slot": 2,
+          "finished": true,
+          "time": 138.5670905863709,
+          "nitro": 4,
+          "items": 0
+        },
+        {
+          "rank": 6,
+          "revision": "before",
+          "slot": 0,
+          "finished": true,
+          "time": 139.89333448375197,
+          "nitro": 2,
+          "items": 0
+        },
+        {
+          "rank": 7,
+          "revision": "before",
+          "slot": 4,
+          "finished": true,
+          "time": 140.96260696002244,
+          "nitro": 1,
+          "items": 0
+        },
+        {
+          "rank": 8,
+          "revision": "before",
+          "slot": 6,
+          "finished": true,
+          "time": 141.1765415964185,
+          "nitro": 2,
+          "items": 0
+        }
+      ]
+    },
+    {
+      "challenge": "mountain-items",
+      "track": "mountain-summit",
+      "mode": "items",
+      "seed": 537,
+      "newGridSide": 0,
+      "meanDecisionMsForEight": 0.10391731849087708,
+      "maxDecisionTickMs": 15.273600000000442,
+      "standings": [
+        {
+          "rank": 1,
+          "revision": "after",
+          "slot": 2,
+          "finished": true,
+          "time": 151.56346007385298,
+          "nitro": 8,
+          "items": 5
+        },
+        {
+          "rank": 2,
+          "revision": "after",
+          "slot": 0,
+          "finished": true,
+          "time": 156.5561453976326,
+          "nitro": 6,
+          "items": 21
+        },
+        {
+          "rank": 3,
+          "revision": "after",
+          "slot": 4,
+          "finished": true,
+          "time": 157.7720236563089,
+          "nitro": 8,
+          "items": 23
+        },
+        {
+          "rank": 4,
+          "revision": "after",
+          "slot": 6,
+          "finished": true,
+          "time": 158.30671056230176,
+          "nitro": 7,
+          "items": 17
+        },
+        {
+          "rank": 5,
+          "revision": "before",
+          "slot": 3,
+          "finished": true,
+          "time": 166.48241359401206,
+          "nitro": 2,
+          "items": 12
+        },
+        {
+          "rank": 6,
+          "revision": "before",
+          "slot": 5,
+          "finished": true,
+          "time": 166.82628216621643,
+          "nitro": 2,
+          "items": 10
+        },
+        {
+          "rank": 7,
+          "revision": "before",
+          "slot": 1,
+          "finished": true,
+          "time": 168.94110938410918,
+          "nitro": 1,
+          "items": 11
+        },
+        {
+          "rank": 8,
+          "revision": "before",
+          "slot": 7,
+          "finished": true,
+          "time": 169.17702623901653,
+          "nitro": 2,
+          "items": 8
+        }
+      ]
+    },
+    {
+      "challenge": "mountain-items",
+      "track": "mountain-summit",
+      "mode": "items",
+      "seed": 42,
+      "newGridSide": 1,
+      "meanDecisionMsForEight": 0.10211701361869277,
+      "maxDecisionTickMs": 6.849900000001071,
+      "standings": [
+        {
+          "rank": 1,
+          "revision": "after",
+          "slot": 7,
+          "finished": true,
+          "time": 151.78620627220053,
+          "nitro": 9,
+          "items": 4
+        },
+        {
+          "rank": 2,
+          "revision": "after",
+          "slot": 5,
+          "finished": true,
+          "time": 153.21505402639002,
+          "nitro": 7,
+          "items": 17
+        },
+        {
+          "rank": 3,
+          "revision": "after",
+          "slot": 3,
+          "finished": true,
+          "time": 156.26021625662318,
+          "nitro": 6,
+          "items": 21
+        },
+        {
+          "rank": 4,
+          "revision": "before",
+          "slot": 4,
+          "finished": true,
+          "time": 161.0934252799962,
+          "nitro": 3,
+          "items": 18
+        },
+        {
+          "rank": 5,
+          "revision": "after",
+          "slot": 1,
+          "finished": true,
+          "time": 164.95789362599757,
+          "nitro": 6,
+          "items": 12
+        },
+        {
+          "rank": 6,
+          "revision": "before",
+          "slot": 6,
+          "finished": true,
+          "time": 169.11611702987193,
+          "nitro": 3,
+          "items": 13
+        },
+        {
+          "rank": 7,
+          "revision": "before",
+          "slot": 2,
+          "finished": true,
+          "time": 170.753863740157,
+          "nitro": 2,
+          "items": 13
+        },
+        {
+          "rank": 8,
+          "revision": "before",
+          "slot": 0,
+          "finished": true,
+          "time": 171.32331829299238,
+          "nitro": 3,
+          "items": 10
+        }
+      ]
+    }
+  ]
+}

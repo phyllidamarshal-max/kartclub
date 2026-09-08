@@ -1,0 +1,577 @@
+{
+  "generatedAt": "2026-09-08T04:02:35.521Z",
+  "step": 0.016666666666666666,
+  "unchangedPlayerPhysics": true,
+  "records": [
+    {
+      "challenge": "coast-race",
+      "track": "coast",
+      "laps": 3,
+      "cars": 4,
+      "runs": [
+        {
+          "seed": 537,
+          "before": {
+            "revision": "before",
+            "difficulty": "normal",
+            "finished": 4,
+            "first": 120.61978878678393,
+            "last": 122.88570510585556,
+            "median": 122.1099749001835,
+            "resets": 0,
+            "collisions": 0,
+            "nitro": 0,
+            "mini": 0,
+            "itemUses": 0
+          },
+          "after": {
+            "revision": "after",
+            "difficulty": "hard",
+            "finished": 4,
+            "first": 93.52341433709023,
+            "last": 94.6710073293744,
+            "median": 94.62649003195645,
+            "resets": 0,
+            "collisions": 45,
+            "nitro": 5,
+            "mini": 26,
+            "itemUses": 0
+          }
+        },
+        {
+          "seed": 42,
+          "before": {
+            "revision": "before",
+            "difficulty": "normal",
+            "finished": 4,
+            "first": 120.61978878678393,
+            "last": 122.88570510585556,
+            "median": 122.1099749001835,
+            "resets": 0,
+            "collisions": 0,
+            "nitro": 0,
+            "mini": 0,
+            "itemUses": 0
+          },
+          "after": {
+            "revision": "after",
+            "difficulty": "hard",
+            "finished": 4,
+            "first": 93.52341433709023,
+            "last": 94.6710073293744,
+            "median": 94.62649003195645,
+            "resets": 0,
+            "collisions": 45,
+            "nitro": 5,
+            "mini": 26,
+            "itemUses": 0
+          }
+        },
+        {
+          "seed": 2026,
+          "before": {
+            "revision": "before",
+            "difficulty": "normal",
+            "finished": 4,
+            "first": 120.61978878678393,
+            "last": 122.88570510585556,
+            "median": 122.1099749001835,
+            "resets": 0,
+            "collisions": 0,
+            "nitro": 0,
+            "mini": 0,
+            "itemUses": 0
+          },
+          "after": {
+            "revision": "after",
+            "difficulty": "hard",
+            "finished": 4,
+            "first": 93.52341433709023,
+            "last": 94.6710073293744,
+            "median": 94.62649003195645,
+            "resets": 0,
+            "collisions": 45,
+            "nitro": 5,
+            "mini": 26,
+            "itemUses": 0
+          }
+        }
+      ]
+    },
+    {
+      "challenge": "coast-items",
+      "track": "coast-breakwater",
+      "laps": 3,
+      "cars": 4,
+      "runs": [
+        {
+          "seed": 537,
+          "before": {
+            "revision": "before",
+            "difficulty": "normal",
+            "finished": 4,
+            "first": 140.50786845901942,
+            "last": 145.15196922348528,
+            "median": 145.10497602023148,
+            "resets": 0,
+            "collisions": 21,
+            "nitro": 0,
+            "mini": 0,
+            "itemUses": 62
+          },
+          "after": {
+            "revision": "after",
+            "difficulty": "hard",
+            "finished": 4,
+            "first": 117.20307158406565,
+            "last": 123.80890411692964,
+            "median": 122.1858024649665,
+            "resets": 0,
+            "collisions": 30,
+            "nitro": 11,
+            "mini": 90,
+            "itemUses": 40
+          }
+        },
+        {
+          "seed": 42,
+          "before": {
+            "revision": "before",
+            "difficulty": "normal",
+            "finished": 4,
+            "first": 141.38021599311446,
+            "last": 144.5943088120653,
+            "median": 143.8358417393484,
+            "resets": 0,
+            "collisions": 34,
+            "nitro": 0,
+            "mini": 0,
+            "itemUses": 54
+          },
+          "after": {
+            "revision": "after",
+            "difficulty": "hard",
+            "finished": 4,
+            "first": 118.25542551127326,
+            "last": 124.53354536525394,
+            "median": 121.00991209896348,
+            "resets": 0,
+            "collisions": 27,
+            "nitro": 10,
+            "mini": 78,
+            "itemUses": 39
+          }
+        },
+        {
+          "seed": 2026,
+          "before": {
+            "revision": "before",
+            "difficulty": "normal",
+            "finished": 4,
+            "first": 139.8375633101067,
+            "last": 145.52603877507937,
+            "median": 144.8203889628092,
+            "resets": 0,
+            "collisions": 17,
+            "nitro": 0,
+            "mini": 0,
+            "itemUses": 58
+          },
+          "after": {
+            "revision": "after",
+            "difficulty": "hard",
+            "finished": 4,
+            "first": 119.6062949833157,
+            "last": 123.29592409552377,
+            "median": 122.07791804532131,
+            "resets": 0,
+            "collisions": 22,
+            "nitro": 12,
+            "mini": 93,
+            "itemUses": 44
+          }
+        }
+      ]
+    },
+    {
+      "challenge": "city-race",
+      "track": "city",
+      "laps": 3,
+      "cars": 6,
+      "runs": [
+        {
+          "seed": 537,
+          "before": {
+            "revision": "before",
+            "difficulty": "normal",
+            "finished": 6,
+            "first": 171.9215074831036,
+            "last": 175.79859349305653,
+            "median": 175.01479265117794,
+            "resets": 0,
+            "collisions": 36,
+            "nitro": 0,
+            "mini": 0,
+            "itemUses": 0
+          },
+          "after": {
+            "revision": "after",
+            "difficulty": "hard",
+            "finished": 6,
+            "first": 134.9825723739884,
+            "last": 138.13671092708478,
+            "median": 137.90063618293084,
+            "resets": 0,
+            "collisions": 75,
+            "nitro": 14,
+            "mini": 91,
+            "itemUses": 0
+          }
+        },
+        {
+          "seed": 42,
+          "before": {
+            "revision": "before",
+            "difficulty": "normal",
+            "finished": 6,
+            "first": 171.9215074831036,
+            "last": 175.79859349305653,
+            "median": 175.01479265117794,
+            "resets": 0,
+            "collisions": 36,
+            "nitro": 0,
+            "mini": 0,
+            "itemUses": 0
+          },
+          "after": {
+            "revision": "after",
+            "difficulty": "hard",
+            "finished": 6,
+            "first": 134.9825723739884,
+            "last": 138.13671092708478,
+            "median": 137.90063618293084,
+            "resets": 0,
+            "collisions": 75,
+            "nitro": 14,
+            "mini": 91,
+            "itemUses": 0
+          }
+        },
+        {
+          "seed": 2026,
+          "before": {
+            "revision": "before",
+            "difficulty": "normal",
+            "finished": 6,
+            "first": 171.9215074831036,
+            "last": 175.79859349305653,
+            "median": 175.01479265117794,
+            "resets": 0,
+            "collisions": 36,
+            "nitro": 0,
+            "mini": 0,
+            "itemUses": 0
+          },
+          "after": {
+            "revision": "after",
+            "difficulty": "hard",
+            "finished": 6,
+            "first": 134.9825723739884,
+            "last": 138.13671092708478,
+            "median": 137.90063618293084,
+            "resets": 0,
+            "collisions": 75,
+            "nitro": 14,
+            "mini": 91,
+            "itemUses": 0
+          }
+        }
+      ]
+    },
+    {
+      "challenge": "city-items",
+      "track": "city-nightshift",
+      "laps": 3,
+      "cars": 6,
+      "runs": [
+        {
+          "seed": 537,
+          "before": {
+            "revision": "before",
+            "difficulty": "hard",
+            "finished": 6,
+            "first": 181.87526757489238,
+            "last": 188.36294056546282,
+            "median": 186.49909557538314,
+            "resets": 0,
+            "collisions": 58,
+            "nitro": 0,
+            "mini": 25,
+            "itemUses": 73
+          },
+          "after": {
+            "revision": "after",
+            "difficulty": "hard",
+            "finished": 6,
+            "first": 152.1399195745968,
+            "last": 159.3527082899425,
+            "median": 156.53365467806395,
+            "resets": 0,
+            "collisions": 54,
+            "nitro": 29,
+            "mini": 103,
+            "itemUses": 76
+          }
+        },
+        {
+          "seed": 42,
+          "before": {
+            "revision": "before",
+            "difficulty": "hard",
+            "finished": 6,
+            "first": 180.1035531954417,
+            "last": 189.6442365666798,
+            "median": 188.20349465750397,
+            "resets": 0,
+            "collisions": 51,
+            "nitro": 0,
+            "mini": 22,
+            "itemUses": 80
+          },
+          "after": {
+            "revision": "after",
+            "difficulty": "hard",
+            "finished": 6,
+            "first": 151.77480758753453,
+            "last": 159.75514228809163,
+            "median": 155.60404180378947,
+            "resets": 0,
+            "collisions": 62,
+            "nitro": 25,
+            "mini": 85,
+            "itemUses": 62
+          }
+        },
+        {
+          "seed": 2026,
+          "before": {
+            "revision": "before",
+            "difficulty": "hard",
+            "finished": 6,
+            "first": 179.24829578076458,
+            "last": 189.61499310468,
+            "median": 187.59601230853613,
+            "resets": 0,
+            "collisions": 38,
+            "nitro": 0,
+            "mini": 23,
+            "itemUses": 83
+          },
+          "after": {
+            "revision": "after",
+            "difficulty": "hard",
+            "finished": 6,
+            "first": 152.354885947732,
+            "last": 159.1362757435201,
+            "median": 156.70670009437174,
+            "resets": 0,
+            "collisions": 73,
+            "nitro": 25,
+            "mini": 90,
+            "itemUses": 70
+          }
+        }
+      ]
+    },
+    {
+      "challenge": "mountain-race",
+      "track": "mountain",
+      "laps": 3,
+      "cars": 8,
+      "runs": [
+        {
+          "seed": 537,
+          "before": {
+            "revision": "before",
+            "difficulty": "hard",
+            "finished": 8,
+            "first": 158.58474014617255,
+            "last": 163.77969738169733,
+            "median": 162.02483535763216,
+            "resets": 0,
+            "collisions": 44,
+            "nitro": 0,
+            "mini": 6,
+            "itemUses": 0
+          },
+          "after": {
+            "revision": "after",
+            "difficulty": "hard",
+            "finished": 8,
+            "first": 141.71135294393204,
+            "last": 142.67306371035974,
+            "median": 142.24107906966773,
+            "resets": 0,
+            "collisions": 135,
+            "nitro": 1,
+            "mini": 25,
+            "itemUses": 0
+          }
+        },
+        {
+          "seed": 42,
+          "before": {
+            "revision": "before",
+            "difficulty": "hard",
+            "finished": 8,
+            "first": 158.58474014617255,
+            "last": 163.77969738169733,
+            "median": 162.02483535763216,
+            "resets": 0,
+            "collisions": 44,
+            "nitro": 0,
+            "mini": 6,
+            "itemUses": 0
+          },
+          "after": {
+            "revision": "after",
+            "difficulty": "hard",
+            "finished": 8,
+            "first": 141.71135294393204,
+            "last": 142.67306371035974,
+            "median": 142.24107906966773,
+            "resets": 0,
+            "collisions": 135,
+            "nitro": 1,
+            "mini": 25,
+            "itemUses": 0
+          }
+        },
+        {
+          "seed": 2026,
+          "before": {
+            "revision": "before",
+            "difficulty": "hard",
+            "finished": 8,
+            "first": 158.58474014617255,
+            "last": 163.77969738169733,
+            "median": 162.02483535763216,
+            "resets": 0,
+            "collisions": 44,
+            "nitro": 0,
+            "mini": 6,
+            "itemUses": 0
+          },
+          "after": {
+            "revision": "after",
+            "difficulty": "hard",
+            "finished": 8,
+            "first": 141.71135294393204,
+            "last": 142.67306371035974,
+            "median": 142.24107906966773,
+            "resets": 0,
+            "collisions": 135,
+            "nitro": 1,
+            "mini": 25,
+            "itemUses": 0
+          }
+        }
+      ]
+    },
+    {
+      "challenge": "mountain-items",
+      "track": "mountain-summit",
+      "laps": 3,
+      "cars": 8,
+      "runs": [
+        {
+          "seed": 537,
+          "before": {
+            "revision": "before",
+            "difficulty": "hard",
+            "finished": 8,
+            "first": 183.5546781130163,
+            "last": 194.14284754564665,
+            "median": 187.69545629023673,
+            "resets": 2,
+            "collisions": 185,
+            "nitro": 0,
+            "mini": 0,
+            "itemUses": 102
+          },
+          "after": {
+            "revision": "after",
+            "difficulty": "hard",
+            "finished": 8,
+            "first": 161.21867375956734,
+            "last": 169.89669531185845,
+            "median": 167.1858052026398,
+            "resets": 0,
+            "collisions": 167,
+            "nitro": 17,
+            "mini": 132,
+            "itemUses": 103
+          }
+        },
+        {
+          "seed": 42,
+          "before": {
+            "revision": "before",
+            "difficulty": "hard",
+            "finished": 8,
+            "first": 175.5481570613634,
+            "last": 193.5314571112166,
+            "median": 186.83076027831763,
+            "resets": 3,
+            "collisions": 166,
+            "nitro": 0,
+            "mini": 2,
+            "itemUses": 114
+          },
+          "after": {
+            "revision": "after",
+            "difficulty": "hard",
+            "finished": 8,
+            "first": 161.33780584716052,
+            "last": 167.50772710396475,
+            "median": 166.0124601869539,
+            "resets": 0,
+            "collisions": 193,
+            "nitro": 14,
+            "mini": 114,
+            "itemUses": 84
+          }
+        },
+        {
+          "seed": 2026,
+          "before": {
+            "revision": "before",
+            "difficulty": "hard",
+            "finished": 8,
+            "first": 178.35354960239178,
+            "last": 192.10250055349005,
+            "median": 188.41063057919092,
+            "resets": 2,
+            "collisions": 172,
+            "nitro": 0,
+            "mini": 3,
+            "itemUses": 113
+          },
+          "after": {
+            "revision": "after",
+            "difficulty": "hard",
+            "finished": 8,
+            "first": 162.43561083085712,
+            "last": 167.17799595177246,
+            "median": 166.39939447294446,
+            "resets": 0,
+            "collisions": 167,
+            "nitro": 17,
+            "mini": 115,
+            "itemUses": 94
+          }
+        }
+      ]
+    }
+  ]
+}

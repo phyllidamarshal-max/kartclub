@@ -1,0 +1,11 @@
+{
+  "key": "rock-cluster",
+  "model": "/art/coast-rebuild/rock-cluster.glb",
+  "indirect": "/art/coast-rebuild/rock-cluster-indirect.png",
+  "lighting": "asset-local diffuse indirect only; direct sun excluded",
+  "triangles": 160,
+  "atlasSize": 512,
+  "height": 1.7420779466629028,
+  "width": 2.924316167831421,
+  "depth": 1.9176268577575684
+}

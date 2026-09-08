@@ -1,0 +1,154 @@
+[
+  {
+    "outside": [],
+    "overlaps": [],
+    "screen": "hud",
+    "viewport": [
+      1280,
+      720
+    ]
+  },
+  {
+    "outside": [],
+    "overlaps": [],
+    "screen": "hud",
+    "viewport": [
+      1440,
+      900
+    ]
+  },
+  {
+    "outside": [],
+    "overlaps": [],
+    "screen": "hud",
+    "viewport": [
+      1920,
+      1080
+    ]
+  },
+  {
+    "outside": [],
+    "overlaps": [],
+    "screen": "hud",
+    "viewport": [
+      2560,
+      1270
+    ]
+  },
+  {
+    "legacy": false,
+    "outside": [],
+    "pageOverflow": false,
+    "screen": "lobby",
+    "viewport": [
+      1280,
+      720
+    ]
+  },
+  {
+    "legacy": false,
+    "outside": [],
+    "pageOverflow": false,
+    "screen": "lobby",
+    "viewport": [
+      1440,
+      900
+    ]
+  },
+  {
+    "legacy": false,
+    "outside": [],
+    "pageOverflow": false,
+    "screen": "lobby",
+    "viewport": [
+      1920,
+      1080
+    ]
+  },
+  {
+    "legacy": false,
+    "outside": [],
+    "pageOverflow": false,
+    "screen": "lobby",
+    "viewport": [
+      2560,
+      1270
+    ]
+  },
+  {
+    "columns": "324.656px 324.672px 324.656px",
+    "contentOverflow": false,
+    "outside": [],
+    "screen": "setup",
+    "viewport": [
+      1280,
+      720
+    ]
+  },
+  {
+    "columns": "324.656px 324.672px 324.656px",
+    "contentOverflow": false,
+    "outside": [],
+    "screen": "setup",
+    "viewport": [
+      1440,
+      900
+    ]
+  },
+  {
+    "columns": "269.5px 269.5px 269.5px 269.5px",
+    "contentOverflow": false,
+    "outside": [],
+    "screen": "setup",
+    "viewport": [
+      1920,
+      1080
+    ]
+  },
+  {
+    "columns": "269.5px 269.5px 269.5px 269.5px",
+    "contentOverflow": false,
+    "outside": [],
+    "screen": "setup",
+    "viewport": [
+      2560,
+      1270
+    ]
+  },
+  {
+    "contentOverflow": false,
+    "outside": [],
+    "screen": "settings",
+    "viewport": [
+      1280,
+      720
+    ]
+  },
+  {
+    "contentOverflow": false,
+    "outside": [],
+    "screen": "settings",
+    "viewport": [
+      1440,
+      900
+    ]
+  },
+  {
+    "contentOverflow": false,
+    "outside": [],
+    "screen": "settings",
+    "viewport": [
+      1920,
+      1080
+    ]
+  },
+  {
+    "contentOverflow": false,
+    "outside": [],
+    "screen": "settings",
+    "viewport": [
+      2560,
+      1270
+    ]
+  }
+]

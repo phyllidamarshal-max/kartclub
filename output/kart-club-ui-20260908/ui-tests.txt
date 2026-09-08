@@ -1,0 +1,36 @@
+✔ right key rotates toward camera screen right for the +Z forward kart (0.6562ms)
+✔ remapped acceleration and permanent arrow fallback both work (0.1448ms)
+✔ specific dynamic sentences take precedence over generic count suffixes (1.0401ms)
+✔ language metadata exposes the six supported locales and Arabic direction (0.5413ms)
+✔ English system copy removes the legacy brand and describes test points honestly (1.2877ms)
+✔ tr reverse-maps branded English UI copy for language switching (0.1299ms)
+✔ core English shell, setup, settings, and HUD labels switch languages (0.882ms)
+✔ new race reports, practice copy, challenge events, and AI names render in English (0.3465ms)
+✔ brand cleanup preserves placeholders and never translates user names (1.0462ms)
+✔ every catalog source has a complete six-locale entry with matching placeholders (4.2727ms)
+✔ all exported tracks, challenges, modes, difficulties, items, and training hints are localized (0.4466ms)
+✔ tr translates exact phrases, interpolates names safely, and matches dynamic source patterns (0.2746ms)
+✔ tr localizes English economy errors while preserving account identifiers (0.093ms)
+✔ tr localizes driving controls and English HUD states (0.087ms)
+✔ setLanguage persists valid choices, updates document metadata, and safely falls back from invalid values (0.2632ms)
+✔ localize switches text and attributes in place and recognizes externally refreshed Chinese HUD text (0.4097ms)
+✔ localize skips scripts, form values, and data-no-i18n descendants (0.1402ms)
+✔ localize translates visible option labels without changing form values (0.1107ms)
+✔ form hints switch languages while entered and default values remain literal (0.1859ms)
+✔ all world metadata and interface phrases translate into all six languages (2.1737ms)
+✔ variable track width translates templates and rendered values consistently (1.7518ms)
+✔ the mine finale retains the seven opponents and six item uses in every translation (0.2134ms)
+✔ a local first finish keeps the solo race open for later AI finishers (1.5588ms)
+✔ unfinished solo racers become DNF only at deadline; noncompetitive modes may end locally (0.25ms)
+✔ a stale solo result only blocks the solo result screen (0.1001ms)
+✔ repeated drops preserve the first reconnect deadline (0.0829ms)
+✔ mountain minimap draws the shared shortcut as an open, narrower branch with aligned car marker (3.2683ms)
+✔ circuits without shortcuts retain closed minimap outlines (2.3655ms)
+ℹ tests 28
+ℹ suites 0
+ℹ pass 28
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 449.1692

@@ -13,9 +13,63 @@ function bareWorld() {
     renderer: { dispose() {} },
     itemMeshes: new Map(),
     propellers: [],
+    textureReady: Promise.resolve(),
   }) as World;
   return world;
 }
+
+test("static batching releases discarded materials but keeps resources referenced by other cells and dynamic meshes", () => {
+  const world = bareWorld();
+  const kept = new THREE.MeshStandardMaterial({ color: "#758549" });
+  const discarded = kept.clone(),
+    sharedAcrossCells = kept.clone();
+  const sharedGeometry = new THREE.BoxGeometry();
+  const released: string[] = [];
+  for (const [name, resource] of Object.entries({
+    kept,
+    discarded,
+    sharedAcrossCells,
+    sharedGeometry,
+  }))
+    resource.addEventListener("dispose", () => released.push(name));
+  for (const [x, material] of [
+    [1, kept],
+    [2, discarded],
+    [3, sharedAcrossCells],
+    [220, sharedAcrossCells],
+  ] as const) {
+    const mesh = new THREE.Mesh(sharedGeometry, material);
+    mesh.position.x = x;
+    world.scene.add(mesh);
+  }
+  const dynamic = new THREE.Mesh(sharedGeometry, kept);
+  dynamic.userData.dynamic = true;
+  world.scene.add(dynamic);
+  (world as unknown as { batchStatic(): void }).batchStatic();
+  assert.deepEqual(released, ["discarded"]);
+  assert.equal(dynamic.parent, world.scene);
+  assert.equal(
+    world.scene.children.filter((o) => o instanceof THREE.Mesh).length,
+    3,
+  );
+});
+
+test("changing tracks releases the sky reflection target exactly once", () => {
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: { removeEventListener() {} },
+  });
+  const world = bareWorld();
+  const target = new THREE.WebGLRenderTarget(16, 16);
+  let released = 0;
+  target.addEventListener("dispose", () => released++);
+  Object.assign(world, { environmentTarget: target });
+  world.scene.environment = target.texture;
+  world.dispose();
+  world.dispose();
+  assert.equal(released, 1);
+  assert.equal(world.scene.environment, null);
+});
 
 test("world replacement disposes instance buffers, shared assets and both shadow targets once", (t) => {
   Object.defineProperty(globalThis, "window", {
@@ -76,17 +130,23 @@ for (const asset of ["characterModel", "sceneModel"] as const) {
     let released = 0;
     geometry.addEventListener("dispose", () => released++);
     let resolve!: (gltf: GLTF) => void;
+    let signalStarted!: () => void;
+    const started = new Promise<void>((done) => {
+      signalStarted = done;
+    });
     t.mock.method(
       GLTFLoader.prototype,
       "loadAsync",
       () =>
         new Promise<GLTF>((done) => {
           resolve = done;
+          signalStarted();
         }),
     );
     const car = new THREE.Group();
     world.cars.set("local", car);
     const pending = world.loadAssets();
+    await started;
     world.dispose();
     resolve({ scene: model } as GLTF);
     await pending;
@@ -96,3 +156,24 @@ for (const asset of ["characterModel", "sceneModel"] as const) {
     assert.equal(world.scene.children.length, 0);
   });
 }
+
+test("a world disposed while textures load never starts a model request", async (t) => {
+  Object.defineProperty(globalThis, "window", {
+    configurable: true,
+    value: { removeEventListener() {} },
+  });
+  const world = bareWorld();
+  world.content.characterModel = "/pending.glb";
+  let finishTextures!: () => void;
+  Object.assign(world, {
+    textureReady: new Promise<void>((done) => {
+      finishTextures = done;
+    }),
+  });
+  const loader = t.mock.method(GLTFLoader.prototype, "loadAsync");
+  const pending = world.loadAssets();
+  world.dispose();
+  finishTextures();
+  await pending;
+  assert.equal(loader.mock.callCount(), 0);
+});

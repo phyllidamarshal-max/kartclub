@@ -1,0 +1,360 @@
+
+> kart-club@0.3.0 test
+> tsx --test tests/*.test.ts
+
+✔ AC13 nearby return road at height 0 cannot replace the current road or its wall (4.4204ms)
+✔ AC13 nearby return road at height 20 cannot replace the current road or its wall (0.6406ms)
+✔ continuous projection follows the connecting bend and can reverse through it (0.5449ms)
+✔ AI steers toward an available box when its inventory is empty (4.0154ms)
+✔ AI avoids an armed trap in its driving corridor instead of boosting into it (0.8712ms)
+✔ unavailable or already collected boxes do not distract the AI (0.3643ms)
+✔ a nearer harmless trap cannot hide a second trap directly ahead (0.4697ms)
+✔ missile fires only at a target accepted by the item engine (2.1909ms)
+✔ missile rejects a rival on a vertically separated road (0.5102ms)
+✔ missile judges the engine-selected nearest target and waits out protection (0.7353ms)
+✔ missile clears a protected target when an item box pickup is imminent (0.4692ms)
+✔ shield responds to an incoming missile or nearby trap and avoids waste (0.4534ms)
+✔ shield ignores attacks that cannot arrive and traps outside our path (0.325ms)
+✔ shield accounts for trap arming time before committing (0.2456ms)
+✔ shield frees capacity near a usable future box only (0.3438ms)
+✔ boost waits for a safe straight or corner exit (0.2784ms)
+✔ trap is used for a close pursuer but not an unrelated distant car (0.4658ms)
+✔ trap requires a pursuer to be physically behind on our path (0.2699ms)
+✔ hard AI can clear a trap at a narrow upcoming bend (2.3748ms)
+✔ release frames, absent state, and inactive cars never press an item (0.3181ms)
+✔ decision is a pure computation (0.3023ms)
+✔ every difficulty can earn drift nitro and use recovery boosts through legal driving (580.846ms)
+✖ expert driving charges and spends nitro on every route, including while boosting (8117.536ms)
+{"track":"coast","difficulty":"normal","before":{"time":121.89999999999436,"collisions":0,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":91.28333333332944,"collisions":0,"resets":0,"nitro":5,"mini":14,"drift":580.7042723440316}}
+{"track":"coast-harbor","difficulty":"normal","before":{"time":140.0500000000036,"collisions":0,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":109.88333333332838,"collisions":2,"resets":0,"nitro":4,"mini":32,"drift":482.5486140677311}}
+{"track":"coast-breakwater","difficulty":"normal","before":{"time":143.41666666667294,"collisions":6,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":113.21666666666152,"collisions":0,"resets":0,"nitro":6,"mini":48,"drift":613.3399124479358}}
+{"track":"city","difficulty":"normal","before":{"time":173.86666666669717,"collisions":3,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":132.24999999999739,"collisions":3,"resets":0,"nitro":9,"mini":36,"drift":922.2190827509855}}
+{"track":"city-factory","difficulty":"normal","before":{"time":193.15000000004585,"collisions":0,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":150.9166666666789,"collisions":2,"resets":0,"nitro":10,"mini":45,"drift":1073.0878281454686}}
+{"track":"city-nightshift","difficulty":"normal","before":{"time":211.783333333394,"collisions":5,"resets":2,"nitro":0,"mini":0,"drift":0},"after":{"time":146.433333333342,"collisions":10,"resets":0,"nitro":10,"mini":31,"drift":1061.1764112674232}}
+{"track":"mountain","difficulty":"normal","before":{"time":176.61666666669936,"collisions":0,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":136.00000000000037,"collisions":0,"resets":0,"nitro":6,"mini":29,"drift":682.842873951235}}
+{"track":"mountain-pass","difficulty":"normal","before":{"time":192.55000000004537,"collisions":14,"resets":2,"nitro":0,"mini":0,"drift":0},"after":{"time":144.71666666667397,"collisions":12,"resets":0,"nitro":5,"mini":45,"drift":574.8970343952191}}
+{"track":"mountain-summit","difficulty":"normal","before":{"time":205.25000000005548,"collisions":18,"resets":2,"nitro":0,"mini":0,"drift":0},"after":{"time":152.15000000001322,"collisions":15,"resets":0,"nitro":6,"mini":46,"drift":714.9053091639615}}
+{"track":"coast","difficulty":"hard","before":{"time":109.88333333332838,"collisions":0,"resets":0,"nitro":0,"mini":0,"drift":0.679313782989623},"after":{"time":89.81666666666285,"collisions":0,"resets":0,"nitro":6,"mini":15,"drift":604.1829329052854}}
+{"track":"coast-harbor","difficulty":"hard","before":{"time":129.3333333333284,"collisions":3,"resets":0,"nitro":0,"mini":3,"drift":38.11542565950971},"after":{"time":108.3166666666618,"collisions":1,"resets":0,"nitro":6,"mini":25,"drift":666.0776521212664}}
+{"track":"coast-breakwater","difficulty":"hard","before":{"time":133.4833333333317,"collisions":9,"resets":0,"nitro":0,"mini":0,"drift":26.732580411902624},"after":{"time":112.03333333332826,"collisions":0,"resets":0,"nitro":7,"mini":38,"drift":788.0808486554769}}
+{"track":"city","difficulty":"hard","before":{"time":160.61666666668663,"collisions":3,"resets":0,"nitro":0,"mini":6,"drift":18.219402363510778},"after":{"time":127.91666666666069,"collisions":1,"resets":0,"nitro":12,"mini":28,"drift":1255.8898622111808}}
+{"track":"city-factory","difficulty":"hard","before":{"time":179.2333333333681,"collisions":7,"resets":0,"nitro":0,"mini":3,"drift":26.559256653209747},"after":{"time":146.90000000000904,"collisions":6,"resets":0,"nitro":13,"mini":33,"drift":1316.8581507408614}}
+{"track":"city-nightshift","difficulty":"hard","before":{"time":203.45000000005405,"collisions":8,"resets":2,"nitro":0,"mini":3,"drift":2.6057107529817074},"after":{"time":143.15000000000606,"collisions":12,"resets":0,"nitro":11,"mini":31,"drift":1180.0517576185343}}
+{"track":"mountain","difficulty":"hard","before":{"time":159.78333333335263,"collisions":0,"resets":0,"nitro":0,"mini":0,"drift":11.524667924796642},"after":{"time":133.38333333333162,"collisions":0,"resets":0,"nitro":7,"mini":26,"drift":787.4232013618393}}
+{"track":"mountain-pass","difficulty":"hard","before":{"time":216.58333333339783,"collisions":19,"resets":7,"nitro":0,"mini":0,"drift":55.72748635242015},"after":{"time":142.38333333333878,"collisions":9,"resets":0,"nitro":7,"mini":41,"drift":775.5207702026325}}
+{"track":"mountain-summit","difficulty":"hard","before":{"time":199.28333333338406,"collisions":19,"resets":2,"nitro":0,"mini":0,"drift":12.679551165265693},"after":{"time":149.9333333333448,"collisions":16,"resets":0,"nitro":9,"mini":35,"drift":986.8341204392686}}
+✔ AI keeps accelerating during nitro on a clear straight instead of braking at its cruising cap (2.6535ms)
+✔ new competitive AI is materially faster on every route using unchanged legal physics (15211.2821ms)
+✔ expert AI earns and spends real drift nitro and uses recovery mini boosts (291.2662ms)
+✔ AI decisions do not mutate vehicle or rival physics and remain repeatable (2.5652ms)
+✔ AI escapes a glancing obstacle contact instead of driving indefinitely against it (47.7228ms)
+✔ competitive AI follows an occupied shortcut and rejoins the main road without resetting (842.4972ms)
+coast easy 100.3
+coast normal 91.3
+coast hard 89.8
+coast-harbor easy 118.5
+coast-harbor normal 109.9
+coast-harbor hard 108.3
+coast-breakwater easy 122.2
+coast-breakwater normal 113.2
+coast-breakwater hard 112.0
+city easy 143.6
+city normal 132.2
+city hard 127.9
+city-factory easy 164.7
+city-factory normal 150.9
+city-factory hard 146.9
+city-nightshift easy 158.9
+city-nightshift normal 146.4
+city-nightshift hard 143.2
+mountain easy 148.5
+mountain normal 136.0
+mountain hard 133.4
+mountain-pass easy 151.9
+mountain-pass normal 144.7
+mountain-pass hard 142.4
+mountain-summit easy 162.4
+mountain-summit normal 152.2
+mountain-summit hard 149.9
+four-item-race coast 97.2 uses [ 7, 8, 16, 1 ]
+four-item-race coast-harbor 114.2 uses [ 12, 7, 8, 2 ]
+four-item-race coast-breakwater 121.4 uses [ 10, 22, 10, 5 ]
+four-item-race city 136.6 uses [ 14, 13, 2, 14 ]
+four-item-race city-factory 163.9 uses [ 16, 22, 21, 18 ]
+four-item-race city-nightshift 154.1 uses [ 17, 19, 13, 9 ]
+four-item-race mountain 141.8 uses [ 17, 23, 7, 16 ]
+four-item-race mountain-pass 153.8 uses [ 22, 15, 22, 18 ]
+four-item-race mountain-summit 162.2 uses [ 20, 23, 14, 21 ]
+eight-car summit final 166.1
+✔ AI completes three legal-input laps on each track at every difficulty (12207.8505ms)
+✔ four AI race with actual collisions and all item mechanics on every circuit (25072.3741ms)
+✔ AI reacts to a nearby rival with an overtaking lane and safe closing speed (2.5026ms)
+✔ eight expert AI complete the narrow summit final with overtaking, contacts and items (10654.148ms)
+✔ replacement sample character loads with the actual glTF loader at kart scale (36.0034ms)
+✔ classic results expose original best times and drift without awarding new career stars (2.3922ms)
+✔ classic history tolerates missing and corrupt browser storage (0.3185ms)
+✔ new world rules preserve earned stars but start an independent best time (1.5836ms)
+✔ future changes archive the last version and never compare incompatible times (0.6216ms)
+✔ collision profile clamps unsafe input and scales heavy impacts (0.8678ms)
+✔ collision is silent without a running context (0.5373ms)
+✔ collision debounces contact episodes and reset permits a fresh sound (0.595ms)
+✔ collision schedules finite bounded voices through effects and cleans up (0.3713ms)
+✔ multiplayer prediction rollback cannot swallow the next confirmed collision (1.5827ms)
+✔ paused impacts are consumed silently and a new race can play its first hit (0.2519ms)
+✔ zero-distance overlap separates exactly without NaN or free energy (2.1675ms)
+✔ rear contact transfers bounded momentum and never adds kinetic energy (1.4186ms)
+✔ wall contact retains tangent velocity and removes strong outward normal velocity (0.4052ms)
+✔ reset waits then grants one second of contact grace which held reset cannot extend (4.0244ms)
+✔ cars overlapping at a road boundary separate while both stay on road (0.6187ms)
+✔ finished cars are ignored by vehicle contacts (1.115ms)
+✔ invalid timestep cannot corrupt vehicle state (0.2586ms)
+✔ track obstacles stop a car from passing through their centre (0.3228ms)
+✔ side contact pushes moderately without changing the common forward velocity (0.3145ms)
+✔ a four-car boundary pileup fully separates and stays finite under repeated contacts (7.2148ms)
+✔ obstacle sweep catches movement that crosses the entire obstacle in one step (0.2198ms)
+✔ custom road widths and the mountain shortcut constrain car centres (0.7264ms)
+✔ obstacle boundary allows tangent movement with 0 penetration (2.4439ms)
+✔ obstacle boundary allows outward movement with 0 penetration (3.8966ms)
+✔ obstacle boundary allows tangent movement with 1e-12 penetration (1.2031ms)
+✔ obstacle boundary allows outward movement with 1e-12 penetration (2.2744ms)
+✔ microscopic obstacle penetration still blocks inward velocity 63 (0.3773ms)
+✔ microscopic obstacle penetration still blocks inward velocity 200 (0.1738ms)
+✔ content allows replacing driver, scenery and palette without race rule changes (1.3271ms)
+✔ invalid assets, colors, duplicate challenges and fractional laps fail clearly (1.2736ms)
+✔ optional landscape textures support old content and reject invalid asset paths (0.4961ms)
+✔ right key rotates toward camera screen right for the +Z forward kart (0.878ms)
+✔ remapped acceleration and permanent arrow fallback both work (0.209ms)
+✔ AC06 two bottles plus full energy refills only the consumed inventory slot (8.3955ms)
+✔ AC08 a fresh press in final 150ms chains once; early held input never queues (2.1184ms)
+✔ AC03 fast near-zero-slip steering cannot charge simply by holding drift (0.2991ms)
+✔ AC14 reset waits 1.5s, preserves resources and never advances a reversed car (0.4656ms)
+✔ AC10 projected teleport cannot grant any progress or energy (0.3183ms)
+✔ finish cancels eligibility and queued input without consuming resources (0.1888ms)
+✔ AC04 holding drift after real recovery cannot postpone or renew the mini window (3.3914ms)
+✔ AC04/05 a real drift recovers once and needs a new throttle press (3.5077ms)
+✔ AC07 nitro overrides mini without multiplying acceleration or speed caps (4.1924ms)
+✔ AC09 nitro wall impact removes speed, preserves its clock and cancels mini/buffer (0.4488ms)
+✔ AC03/10 reverse, wall pressure and stopped steering generate no energy (6.5431ms)
+✔ AC02 same tick input at 30/60/120 render schedules produces identical state within 1e-7 (27.5746ms)
+✔ ordinary throttle cannot creep above configured normal maximum (0.3126ms)
+✔ AC12 legal mountain branch traverses and merges with continuous canonical progress (17.0887ms)
+✔ reference 40-tick clean high-slip bend earns only a modest fraction of a bottle (0.8899ms)
+✔ two independent processes cannot over-reserve the same remaining budget or double claim (764.6347ms)
+✔ new accounts and the simulated opening fund use integer minor units (24.6689ms)
+✔ reserve is atomic, debits entrants, and is repeatably idempotent (33.1302ms)
+✔ failed reservation rolls back both tickets and pool state (415.3564ms)
+✔ insufficient entrant bankroll rolls back every debit and reservation (206.7463ms)
+✔ settle rejects forged and duplicate finishers without changing a reservation (18.4212ms)
+✔ ordered partial finishers receive the specified split and remainder (16.8795ms)
+✔ empty results release the prize but retain ticket revenue (15.9177ms)
+✔ claim pays once and duplicate claim returns the same receipt (17.18ms)
+✔ cancel and explicit restart recovery refund active races (25.4837ms)
+✔ settled awards survive restart and cannot be cancelled (21.3572ms)
+✔ tax injection floors two percent and rejects overflow and idempotency conflicts (15.1589ms)
+✔ tax injection rejects a pool total that would cease to be a safe integer (52.8244ms)
+✔ malformed identifiers, amounts, and unknown matches are rejected (16.0853ms)
+✔ nine challenges unlock sequentially and only valid finishes award stars (1.2759ms)
+✔ shield blocks tracking hit, item press is edge-triggered, finished cars cannot collect (1.9738ms)
+✔ ghost interpolation follows stored pose and malformed recordings are rejected (0.3962ms)
+✔ four-lap solo career selection becomes a valid advertised online match (0.8567ms)
+✔ specific dynamic sentences take precedence over generic count suffixes (1.4976ms)
+✔ language metadata exposes the six supported locales and Arabic direction (0.9482ms)
+✔ every catalog source has a complete six-locale entry with matching placeholders (6.0321ms)
+✔ all exported tracks, challenges, modes, difficulties, items, and training hints are localized (0.6886ms)
+✔ tr translates exact phrases, interpolates names safely, and matches dynamic source patterns (2.4191ms)
+✔ tr localizes English economy errors while preserving account identifiers (0.2607ms)
+✔ tr localizes driving controls and English HUD states (0.1608ms)
+✔ setLanguage persists valid choices, updates document metadata, and safely falls back from invalid values (0.4196ms)
+✔ localize switches text and attributes in place and recognizes externally refreshed Chinese HUD text (0.7072ms)
+✔ localize skips scripts, form values, and data-no-i18n descendants (0.3084ms)
+✔ localize translates visible option labels without changing form values (0.2016ms)
+✔ form hints switch languages while entered and default values remain literal (0.2887ms)
+✔ same car cannot farm the same item band by reversing or changing lane during a lap (2.6926ms)
+✔ claiming a later lap never erases the item band's earlier-lap exclusion (0.5403ms)
+✔ a missile and trap burst applies one slowdown with one second of protection after recovery (3.1677ms)
+✔ shield consumption protects the same burst and never counts a damaging hit (0.5321ms)
+✔ resetTime excludes targeting and preserves shields under pre-existing attacks (0.473ms)
+✔ ghostTime excludes targeting and preserves shields under pre-existing attacks (0.232ms)
+✔ slowdown never accelerates an already slow car (0.2862ms)
+✔ kart model has the expected low, wide composition and named controls (55.0084ms)
+✔ every rendered part owns disposable Three.js resources (14.6078ms)
+✔ a car can complete the full circuit using only legal steering and throttle (43.8973ms)
+✔ rear grid cars require a full legal-input lap before finishing (58.7359ms)
+✔ legal reverse then forward driving cannot earn an early checkpoint (8.919ms)
+✔ lap crossing time is interpolated within its physics tick and sectors stay ordered (34.548ms)
+✔ all world metadata and interface phrases translate into all six languages (9.1101ms)
+✔ variable track width translates templates and rendered values consistently (2.2081ms)
+✔ the mine finale retains the seven opponents and six item uses in every translation (0.2189ms)
+✔ coast-harbor has distinct landmarks, reusable materials and unobstructed drivable space (450.2885ms)
+✔ coast-breakwater has distinct landmarks, reusable materials and unobstructed drivable space (843.6436ms)
+✔ city has distinct landmarks, reusable materials and unobstructed drivable space (676.4014ms)
+✔ city-factory has distinct landmarks, reusable materials and unobstructed drivable space (396.9177ms)
+✔ city-nightshift has distinct landmarks, reusable materials and unobstructed drivable space (173.9754ms)
+✖ mountain has distinct landmarks, reusable materials and unobstructed drivable space (4030.2954ms)
+✔ mountain-pass has distinct landmarks, reusable materials and unobstructed drivable space (2846.1245ms)
+✔ mountain-summit has distinct landmarks, reusable materials and unobstructed drivable space (2173.5971ms)
+✔ nine selectable routes expose nine different worlds and driving briefs (0.9999ms)
+✔ driving zones only affect their marked strip on the main road (0.3317ms)
+✔ marked boost, sand and ice change real physics without consuming earned nitro (2.7032ms)
+✔ server and local stepping remain deterministic across level surfaces (37.2159ms)
+✔ a local first finish keeps the solo race open for later AI finishers (2.3035ms)
+✔ unfinished solo racers become DNF only at deadline; noncompetitive modes may end locally (0.4271ms)
+✔ a stale solo result only blocks the solo result screen (0.1342ms)
+✔ repeated drops preserve the first reconnect deadline (0.1047ms)
+✔ mountain minimap draws the shared shortcut as an open, narrower branch with aligned car marker (5.136ms)
+✔ circuits without shortcuts retain closed minimap outlines (3.447ms)
+Room connection was closed unexpectedly (4002): 
+[Colyseus reconnection]: ⏳ will retry in 0.2 seconds...
+[Colyseus reconnection]: 🔄 Re-establishing sessionId '9YWujS9ZM' with roomId '177C93EF'... (attempt 1 of 15)
+[Colyseus reconnection]: ✅ reconnection successful!
+✔ two actual clients start a paid race, server owns movement, cancellation refunds (5816.1221ms)
+40-tick charge 19.837752152782382
+✔ a quick point drift earns less than a committed clean drift and neither fills a bottle (7.5008ms)
+✔ a full gauge waits for drift release and cannot mint repeated bottles while drift stays held (1.2508ms)
+✔ wall impacts deduct current charge by severity, retain bottles and interrupt mini eligibility (0.7958ms)
+✔ holding a full gauge into a collision cannot convert it before the impact penalty (0.2311ms)
+✔ one contact episode does not drain repeatedly and stationary overlap corrections are free (1.2092ms)
+✔ straight driving, held Shift without a slide, and a fully aligned recovery never lose gauge on a wall (0.3767ms)
+✔ unfinished drift recovery still loses gauge if the sliding kart hits a wall (0.1946ms)
+✔ two non-drifting karts can collide without losing either gauge (0.2006ms)
+✔ a straight nitro run hitting an obstacle retains gauge and bottles (0.3445ms)
+✔ post-impact lockout prevents immediately earning charge again or repeatedly charging against a wall (0.8474ms)
+✔ charge stays locked after the impact shake has faded even on a clean exit (2.8112ms)
+✔ throttle accelerates a vehicle and finite positions survive malformed input (7.9189ms)
+✔ idle drift cannot generate energy and empty boost cannot accelerate (3.7877ms)
+✔ nitro consumes a whole charge only on a new press (0.2885ms)
+✔ reset returns car to its validated checkpoint without granting progress (0.4541ms)
+✔ forward sequential travel completes a lap but skips/reverse crossings do not (0.4166ms)
+✔ reversing behind the start preserves signed distance and reset cannot teleport forward (0.3504ms)
+✔ rear grid cars start behind the line and complete only after crossing it (0.2432ms)
+✔ validated checkpoint never retreats while signed position may (0.1473ms)
+✔ track is closed with a finite tangent (0.1943ms)
+expired identity rejected at 9.91666666666674 race seconds
+✔ AC20 real SDK disconnect expires after ten seconds and cannot create a second race identity (14486.0424ms)
+✔ ghosts are compatible only inside a complete record context (1.065ms)
+✔ teaching advances only from actual driving events and can restart without granting resources (0.9399ms)
+✔ force-killed server recovers paid unfinished race and preserves account identity (2009.9479ms)
+✔ 144 Hz rendering advances smoothly between 60 Hz startup physics ticks (5.0585ms)
+✔ idle poses stay exact and interpolation never mutates authoritative physics (0.957ms)
+✔ heading uses the short arc and resets snap instead of sliding through the map (0.288ms)
+✔ ties share occupied prizes equally without ID advantage, retries cannot alter the tie (6.1171ms)
+✔ result records freeze exactly once and events deduplicate (0.7408ms)
+✔ coast renders the variable road and keeps branch junctions unobstructed (205.1221ms)
+✔ coast-harbor renders the variable road and keeps branch junctions unobstructed (339.18ms)
+✔ coast-breakwater renders the variable road and keeps branch junctions unobstructed (245.3532ms)
+✔ city renders the variable road and keeps branch junctions unobstructed (118.1274ms)
+✔ city-factory renders the variable road and keeps branch junctions unobstructed (244.783ms)
+✔ city-nightshift renders the variable road and keeps branch junctions unobstructed (253.8638ms)
+✔ mountain renders the variable road and keeps branch junctions unobstructed (204.1131ms)
+✔ mountain-pass renders the variable road and keeps branch junctions unobstructed (72.3556ms)
+✔ mountain-summit renders the variable road and keeps branch junctions unobstructed (91.8045ms)
+✔ driving-surface zones are clipped to a narrow road including their arrows (18.6565ms)
+✔ start audit preserves the item RNG seed while snapshots conceal it (6.4514ms)
+✔ actual reset and resource transitions emit once instead of following timer ticks (14.1912ms)
+✔ invalid-input audit samples per player per second and never stores raw packets (2.2107ms)
+✔ ready timeout cancels with a reason; countdown never moves or charges a kart (3.7419ms)
+✔ room results use the authoritative arrival timestamp for tied DNF progress (1.2868ms)
+✔ reversing updates the arrival time of the current legal progress (2.4768ms)
+✔ hard limit DNF freezes result once and excludes uncompleted progress from awards (0.5997ms)
+✔ ten rounds of fresh session IDs release departed cars and GPU objects (6.5563ms)
+✔ coast-harbor offers a smooth shorter route that can be entered, driven and rejoined (35.3875ms)
+✔ coast-harbor cannot enter its shortcut through a disconnected middle section (0.643ms)
+✔ coast-breakwater offers a smooth shorter route that can be entered, driven and rejoined (21.2578ms)
+✔ coast-breakwater cannot enter its shortcut through a disconnected middle section (0.3064ms)
+✔ city-factory offers a smooth shorter route that can be entered, driven and rejoined (33.349ms)
+✔ city-factory cannot enter its shortcut through a disconnected middle section (0.2536ms)
+✔ city-nightshift offers a smooth shorter route that can be entered, driven and rejoined (20.2429ms)
+✔ city-nightshift cannot enter its shortcut through a disconnected middle section (0.2714ms)
+✔ DNF equal progress uses current-progress arrival time, independent of player ID or total time (2.2757ms)
+✔ race deadline closes twenty seconds after AI finish and never passes the hard cap (0.4455ms)
+✔ unresolvable finishes tie, DNF stays ineligible and the deadline respects the hard cap (10.6945ms)
+✔ snapshots reject old races and ticks; performance versions isolate records (0.352ms)
+✔ input inbox retains a quick press/release once, rejects old frames, bounds future ticks (1.3292ms)
+✔ finished track definitions reject mutations at every nested level (2.7626ms)
+✖ explicitly cloned custom tracks retain their independent geometry and query support (4.0322ms)
+✔ three match-specific circuits are distinct, closed and longer than legacy (2.3598ms)
+✔ mountain has elevation, obstacles and a driveable shortcut preserving canonical progress (0.5231ms)
+✔ career routes have nine different real layouts with progressively narrower expert roads (1.3384ms)
+✔ AC13 neighbouring and elevated road segments cannot steal a continuous projection (0.3035ms)
+legal-input training {"seconds":31.049999999999518,"laps":1,"energyEarned":203.4103603486249,"nitro":2,"mini":6}
+✔ five-step coast teaching can complete from a fresh kart using only legal driving inputs (82.2238ms)
+✔ all nine roads vary materially within a lap with smooth closed transitions (43.9445ms)
+✔ item lanes remain reachable inside every narrowed road (1.8016ms)
+✔ narrow sections constrain cars at actual boundaries while wide sections permit passing lanes (3.1598ms)
+✔ changing tracks releases the sky reflection target exactly once (2.003ms)
+✔ world replacement disposes instance buffers, shared assets and both shadow targets once (3.0371ms)
+✔ a pending characterModel is released without attaching after world replacement (1.2748ms)
+✔ a pending sceneModel is released without attaching after world replacement (0.5733ms)
+✔ a world disposed while textures load never starts a model request (1.1006ms)
+ℹ tests 222
+ℹ suites 0
+ℹ pass 219
+ℹ fail 3
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 48461.1318
+
+✖ failing tests:
+
+test at tests\ai-mastery.test.ts:23:1
+✖ expert driving charges and spends nitro on every route, including while boosting (8117.536ms)
+  AssertionError [ERR_ASSERTION]: faster laps must not increase total solo impacts
+      at TestContext.<anonymous> (C:\Users\teery\Documents\币相关\跑跑卡丁车\tests\ai-mastery.test.ts:69:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests\level-scenery.test.ts:24:3
+✖ mountain has distinct landmarks, reusable materials and unobstructed drivable space (4030.2954ms)
+  AssertionError [ERR_ASSERTION]: forest surface intrudes at t=0.492, lateral=7.490162037037037
+  
+  1 !== 0
+  
+      at TestContext.<anonymous> (C:\Users\teery\Documents\币相关\跑跑卡丁车\tests\level-scenery.test.ts:87:18)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:897:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 1,
+    expected: 0,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests\track-immutability.test.ts:31:1
+✖ explicitly cloned custom tracks retain their independent geometry and query support (4.0322ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  + actual - expected
+  
+  + 13.009259259259258
+  - 12
+  
+      at TestContext.<anonymous> (C:\Users\teery\Documents\币相关\跑跑卡丁车\tests\track-immutability.test.ts:39:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 13.009259259259258,
+    expected: 12,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

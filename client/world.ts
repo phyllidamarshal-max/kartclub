@@ -1,13 +1,29 @@
 import * as THREE from "three";
+import { createKartModel } from "./kart-model.ts";
+import { batchKartModel } from "./kart-batching.ts";
+import { getLevel } from "../shared/levels.ts";
+import { buildLevelLandscape, decorateLevel } from "./level-scenery.ts";
+import { buildDrivingSurfaces } from "./level-surfaces.ts";
+import { addRoadWear, enhanceAsphalt } from "./road-surface.ts";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import {
+  buildLandscape,
+  decorateLandscape,
+  createSea,
+  createSky,
+  worldUV,
+} from "./scenery.ts";
 import {
   DEFAULT_TRACK,
   nearestTrack,
   type Track,
   trackPoint,
-  ROAD_WIDTH,
+  trackWidth,
+  trackWidthRange,
+  roadBoundaryOpen,
+  type Point,
   angleDiff,
 } from "../shared/track.ts";
 import type { Car } from "../shared/race.ts";
@@ -113,6 +129,258 @@ function disposeObjectResources(...roots: THREE.Object3D[]) {
   textures.forEach((t) => t.dispose());
   geometries.forEach((g) => g.dispose());
 }
+/** Road, markings and guardrails share the same varying-width profile as physics. */
+export function buildRoadGeometry(
+  scene: THREE.Scene,
+  track: Track,
+  roadMaterial: THREE.Material,
+) {
+  const level = getLevel(track.id),
+    curbA = mat("#f4e8cf"),
+    curbB = mat(level.accent);
+  const railMaterial = mat(level.rail),
+    lineMaterial = mat("#edf0de");
+  if (level.biome === "coast") {
+    railMaterial.color.set("#ab997d");
+    railMaterial.roughness = 0.96;
+  }
+  const interpolate = (a: Point, b: Point, f: number): Point => ({
+    x: a.x + (b.x - a.x) * f,
+    y: a.y + (b.y - a.y) * f,
+    z: a.z + (b.z - a.z) * f,
+    heading: a.heading + angleDiff(b.heading, a.heading) * f,
+    t: (a.t + ((b.t < a.t ? b.t + 1 : b.t) - a.t) * f) % 1,
+  });
+  for (const [points, branch, closed] of [
+    [track.points, "main", true],
+    [track.shortcut, "shortcut", false],
+  ] as const) {
+    if (points.length < 2) continue;
+    const count = points.length - (closed ? 0 : 1);
+    const width = (p: Point) =>
+      branch === "main" ? trackWidth(p.t, track) : (track.shortcutWidth ?? 7);
+    const edge = (p: Point, lateral: number, height: number) =>
+      new THREE.Vector3(
+        p.x + Math.cos(p.heading) * lateral,
+        p.y + height,
+        p.z - Math.sin(p.heading) * lateral,
+      );
+    const strip = (
+      name: string,
+      inner: (p: Point) => number,
+      outer: (p: Point) => number,
+      material: THREE.Material,
+      height: number,
+      side?: -1 | 1,
+      alternate = false,
+    ) => {
+      const vertices: number[] = [];
+      for (let i = 0; i < count; i++) {
+        const a = points[i],
+          b = points[(i + 1) % points.length];
+        if (alternate && Math.floor(i / 3) % 2) continue;
+        const subdivisions = side
+          ? Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.z - a.z) / 0.8))
+          : 1;
+        for (let j = 0; j < subdivisions; j++) {
+          const p = interpolate(a, b, j / subdivisions),
+            q = interpolate(a, b, (j + 1) / subdivisions);
+          if (
+            side &&
+            roadBoundaryOpen(interpolate(p, q, 0.5), side, track, branch, 0.4)
+          )
+            continue;
+          vertices.push(
+            ...edge(p, inner(p), height).toArray(),
+            ...edge(q, inner(q), height).toArray(),
+            ...edge(p, outer(p), height).toArray(),
+            ...edge(q, inner(q), height).toArray(),
+            ...edge(q, outer(q), height).toArray(),
+            ...edge(p, outer(p), height).toArray(),
+          );
+        }
+      }
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute(
+        "position",
+        new THREE.Float32BufferAttribute(vertices, 3),
+      );
+      geometry.computeVertexNormals();
+      worldUV(geometry, 4);
+      material.side = THREE.DoubleSide;
+      mesh(geometry, material, scene).name = name;
+    };
+    const branchRoad =
+      branch === "shortcut" && level.biome === "forest"
+        ? mat("#be925c")
+        : roadMaterial;
+    strip(
+      `${branch}-road`,
+      (p) => -width(p) / 2,
+      (p) => width(p) / 2,
+      branchRoad,
+      branch === "main" ? 0.03 : 0.04,
+    );
+    for (const side of [-1, 1] as const) {
+      strip(
+        `${branch}-shoulder`,
+        (p) => (side * width(p)) / 2,
+        (p) => side * (width(p) / 2 + 0.85),
+        curbA,
+        0.05,
+        side,
+      );
+      strip(
+        `${branch}-curb`,
+        (p) => (side * width(p)) / 2,
+        (p) => side * (width(p) / 2 + 0.85),
+        curbB,
+        0.064,
+        side,
+        true,
+      );
+      strip(
+        `${branch}-edge-line`,
+        (p) => side * (width(p) / 2 - 0.5),
+        (p) => side * (width(p) / 2 - 0.33),
+        lineMaterial,
+        0.055,
+        side,
+      );
+    }
+    if (branch === "main" && track.theme === "city")
+      strip(
+        "main-centre-line",
+        () => -0.065,
+        () => 0.065,
+        mat("#dfcf99"),
+        0.06,
+        undefined,
+        true,
+      );
+
+    // Short, end-to-end rail segments follow both the edge taper and road grade.
+    // Opening checks run on both ends and midpoint, so a junction never has a
+    // long beam sticking across its mouth; the maximum extra opening is 0.8 m.
+    const spans: { a: THREE.Vector3; b: THREE.Vector3 }[] = [],
+      posts: THREE.Vector3[] = [];
+    let sincePost = 0;
+    for (let i = 0; i < count; i++) {
+      const a = points[i],
+        b = points[(i + 1) % points.length];
+      const distance = Math.hypot(b.x - a.x, b.z - a.z),
+        pieces = Math.max(1, Math.ceil(distance / 0.8));
+      for (let j = 0; j < pieces; j++) {
+        const p = interpolate(a, b, j / pieces),
+          q = interpolate(a, b, (j + 1) / pieces),
+          m = interpolate(p, q, 0.5);
+        sincePost += distance / pieces;
+        const putPost = sincePost >= 4;
+        if (putPost) sincePost = 0;
+        for (const side of [-1, 1] as const) {
+          if (
+            [p, m, q].some((point) =>
+              roadBoundaryOpen(point, side, track, branch, 1.25),
+            )
+          )
+            continue;
+          spans.push({
+            a: edge(p, side * (width(p) / 2 + 1.25), 0),
+            b: edge(q, side * (width(q) / 2 + 1.25), 0),
+          });
+          if (putPost) posts.push(edge(p, side * (width(p) / 2 + 1.25), 0.8));
+        }
+      }
+    }
+    const rail = new THREE.InstancedMesh(
+      new THREE.BoxGeometry(1, 1, 1),
+      railMaterial,
+      spans.length * 2,
+    );
+    rail.name = `${branch}-guardrail`;
+    rail.castShadow = rail.receiveShadow = true;
+    const dummy = new THREE.Object3D(),
+      direction = new THREE.Vector3(),
+      axis = new THREE.Vector3(0, 0, 1);
+    let index = 0;
+    for (const { a, b } of spans) {
+      direction.copy(b).sub(a);
+      const length = direction.length();
+      dummy.quaternion.setFromUnitVectors(axis, direction.normalize());
+      dummy.scale.set(0.2, 0.26, length + 0.035);
+      for (const height of [0.64, 1.23]) {
+        dummy.position.copy(a).add(b).multiplyScalar(0.5);
+        dummy.position.y += height;
+        dummy.updateMatrix();
+        rail.setMatrixAt(index++, dummy.matrix);
+      }
+    }
+    rail.instanceMatrix.needsUpdate = true;
+    rail.computeBoundingSphere();
+    scene.add(rail);
+    const supports = new THREE.InstancedMesh(
+      new THREE.BoxGeometry(0.28, 1.6, 0.28),
+      railMaterial,
+      posts.length,
+    );
+    supports.name = `${branch}-guardrail-posts`;
+    supports.castShadow = supports.receiveShadow = true;
+    dummy.quaternion.identity();
+    dummy.scale.set(1, 1, 1);
+    posts.forEach((p, i) => {
+      dummy.position.copy(p);
+      dummy.updateMatrix();
+      supports.setMatrixAt(i, dummy.matrix);
+    });
+    supports.instanceMatrix.needsUpdate = true;
+    supports.computeBoundingSphere();
+    scene.add(supports);
+  }
+  const warning = mat("#ffc857"),
+    ink = mat("#29373c");
+  for (let i = 1; i < (track.widthProfile?.length ?? 0) - 1; i++) {
+    const before = track.widthProfile![i - 1],
+      stop = track.widthProfile![i];
+    if (
+      stop.width > before.width - 3 ||
+      stop.width > trackWidthRange(track).max * 0.76
+    )
+      continue;
+    const p = trackPoint(stop.t - 25 / track.length, track);
+    for (const side of [-1, 1] as const) {
+      const offset = side * (trackWidth(p.t, track) / 2 + 4.3),
+        x = p.x + Math.cos(p.heading) * offset,
+        z = p.z - Math.sin(p.heading) * offset;
+      const road = nearestTrack(x, z, track);
+      if (
+        road.distance < road.roadWidth / 2 + 2 ||
+        roadBoundaryOpen(p, side, track, "main", 4.3)
+      )
+        continue;
+      const sign = new THREE.Group();
+      sign.name = "narrow-road-warning";
+      sign.position.set(x, p.y, z);
+      sign.rotation.y = p.heading;
+      scene.add(sign);
+      box(sign, ink, 0, 1.5, 0, 0.16, 3, 0.16);
+      box(sign, warning, 0, 3.45, 0, 2.35, 2.35, 0.18).rotation.z = Math.PI / 4;
+      for (const face of [-1, 1])
+        for (const edgeSide of [-1, 1]) {
+          box(sign, ink, edgeSide * 0.5, 3.15, face * 0.11, 0.15, 0.65, 0.035);
+          box(
+            sign,
+            ink,
+            edgeSide * 0.34,
+            3.7,
+            face * 0.11,
+            0.15,
+            0.65,
+            0.035,
+          ).rotation.z = edgeSide * 0.42;
+        }
+    }
+  }
+}
 export class World {
   renderer: THREE.WebGLRenderer;
   scene = new THREE.Scene();
@@ -121,6 +389,7 @@ export class World {
   elapsed = 0;
   quality = "high";
   motion = 1;
+  private shotMode: "rear" | "front" | "side" | "wide" | "top" = "rear";
   private target = new THREE.Vector3();
   private perfStart = performance.now();
   private perfFrames = 0;
@@ -132,81 +401,172 @@ export class World {
   private skids: THREE.InstancedMesh;
   private scratch = new THREE.Object3D();
   private water: THREE.Mesh;
+  private seaMaterial: THREE.ShaderMaterial;
+  private sky: THREE.Mesh;
+  private sun: THREE.DirectionalLight;
+  private sunOffset = new THREE.Vector3(-45, 65, 30);
+  private roadMaterial: THREE.MeshStandardMaterial;
+  private grassMaterial: THREE.MeshStandardMaterial;
+  private textureReady: Promise<void>;
   private cameraReady = false;
   private disposed = false;
+  private environmentTarget?: THREE.WebGLRenderTarget;
   constructor(
     public canvas: HTMLCanvasElement,
     public content: Content,
     public track: Track = DEFAULT_TRACK,
+    private thumbnail = false,
   ) {
+    const level = getLevel(track.id);
     this.renderer = new THREE.WebGLRenderer({
       canvas,
       antialias: true,
       alpha: false,
       powerPreference: "high-performance",
     });
-    this.renderer.setPixelRatio(Math.min(devicePixelRatio, 1.75));
+    this.renderer.setPixelRatio(
+      thumbnail ? 1 : Math.min(devicePixelRatio, 1.75),
+    );
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFShadowMap;
+    this.renderer.shadowMap.type =
+      level.biome === "coast" ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.02;
-    this.scene.background = new THREE.Color("#91cbd1");
-    this.scene.fog = new THREE.Fog("#91cbd1", 450, 1100);
-    this.scene.add(new THREE.HemisphereLight("#ecfaff", "#778c80", 1.7));
-    const sun = new THREE.DirectionalLight("#fff0d6", 2.5);
-    sun.position.set(80, 160, -80);
+    this.renderer.toneMappingExposure = level.biome === "coast" ? 1.07 : 1.02;
+    this.scene.background = new THREE.Color(level.horizon);
+    this.scene.fog = new THREE.Fog(
+      level.horizon,
+      level.biome === "forest" ? 170 : 550,
+      level.biome === "forest" ? 650 : 1700,
+    );
+    this.scene.add(
+      new THREE.HemisphereLight(
+        level.biome === "coast" ? "#dceaf5" : level.horizon,
+        level.biome === "coast" ? "#b69c74" : level.ground,
+        level.ambient * (level.biome === "coast" ? 0.66 : 0.85),
+      ),
+    );
+    const sun = (this.sun = new THREE.DirectionalLight(
+      level.biome === "coast" ? "#ffe4bc" : "#fff0d2",
+      level.sun,
+    ));
+    if (level.biome === "coast") this.sunOffset.set(52, 72, -33);
+    sun.position.copy(this.sunOffset);
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
     Object.assign(sun.shadow.camera, {
-      left: -180,
-      right: 180,
-      top: 180,
-      bottom: -180,
+      left: -46,
+      right: 46,
+      top: 46,
+      bottom: -46,
       near: 1,
-      far: 450,
+      far: 200,
     });
-    sun.shadow.normalBias = 0.25;
+    sun.shadow.normalBias = level.biome === "coast" ? 0.018 : 0.025;
     sun.shadow.bias = -0.00015;
+    sun.shadow.radius = level.biome === "coast" ? 3 : 2;
     this.scene.add(sun);
-    this.water = mesh(
-      new THREE.PlaneGeometry(3000, 3000),
-      mat(content.ocean, 0.38),
+    this.scene.add(sun.target);
+    const sea = createSea(
       this.scene,
-      0,
-      -7,
-      0,
+      level.water ?? content.ocean,
+      level.biome === "mine",
     );
-    this.water.rotation.x = -Math.PI / 2;
-    mesh(
-      new THREE.CylinderGeometry(
-        this.track.radius,
-        this.track.radius - 12,
-        12,
-        64,
-      ),
-      mat("#d9c9a6"),
-      this.scene,
-      0,
-      -6.8,
-      0,
+    this.water = sea.sea;
+    this.water.visible = level.water !== null;
+    this.seaMaterial = sea.material;
+    this.sky = createSky(this.scene, this.track.theme, level);
+    // A small lighting-only scene supplies actual sky/ground reflections to paint
+    // and visors. It is baked once per world, never captured every animation frame.
+    const environment = new THREE.Scene();
+    createSky(environment, this.track.theme, level);
+    const ground = new THREE.Mesh(
+      new THREE.PlaneGeometry(5000, 5000),
+      new THREE.MeshBasicMaterial({ color: level.ground }),
     );
-    mesh(
-      new THREE.CylinderGeometry(
-        this.track.radius - 3,
-        this.track.radius - 2,
-        2,
-        64,
-      ),
-      mat(content.grass),
-      this.scene,
-      0,
-      -1.2,
-      0,
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.y = -12;
+    environment.add(ground);
+    const reflectionSun = new THREE.Mesh(
+      new THREE.SphereGeometry(9, 12, 8),
+      new THREE.MeshBasicMaterial({ color: new THREE.Color(3.5, 3.1, 2.5) }),
     );
+    reflectionSun.position.copy(sun.position);
+    environment.add(reflectionSun);
+    const pmrem = new THREE.PMREMGenerator(this.renderer);
+    try {
+      this.environmentTarget = pmrem.fromScene(environment, 0, 0.1, 2500, {
+        size: thumbnail ? 64 : 128,
+      });
+      this.scene.environment = this.environmentTarget.texture;
+      this.scene.environmentIntensity = 0.4;
+    } finally {
+      pmrem.dispose();
+      disposeObjectResources(environment);
+    }
+    this.roadMaterial = mat(level.road, level.biome === "ice" ? 0.3 : 0.94);
+    // Reference asphalt is a readable warm charcoal, with aggregate visible in shade.
+    if (level.biome === "coast") {
+      this.roadMaterial.color.set("#c4b9aa");
+      enhanceAsphalt(this.roadMaterial);
+    }
+    this.grassMaterial = mat(level.ground, 1);
+    if (level.biome === "coast") {
+      this.grassMaterial.color.set("#b2b765");
+      this.grassMaterial.onBeforeCompile = (shader) => {
+        shader.fragmentShader = shader.fragmentShader.replace(
+          "#include <map_fragment>",
+          `#include <map_fragment>
+          float meadowLuma = dot(diffuseColor.rgb, vec3(.2126,.7152,.0722));
+          diffuseColor.rgb = mix(vec3(meadowLuma), diffuseColor.rgb, .8);`,
+        );
+      };
+      this.grassMaterial.customProgramCacheKey = () =>
+        "coastal-meadow-muted-v2";
+    }
+    // Texture objects exist before batching so UVs and material grouping remain valid.
+    const loader = new THREE.TextureLoader();
+    const pendingTextures: Promise<void>[] = [];
+    const prepareTexture = (path: string) => {
+      let complete!: () => void, fail!: (error: Error) => void;
+      pendingTextures.push(
+        new Promise<void>((resolve, reject) => {
+          complete = resolve;
+          fail = reject;
+        }),
+      );
+      const texture = loader.load(path, complete, undefined, () =>
+        fail(Error("无法加载场景贴图")),
+      );
+      texture.colorSpace = THREE.SRGBColorSpace;
+      texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+      texture.anisotropy = Math.min(
+        8,
+        this.renderer.capabilities.getMaxAnisotropy(),
+      );
+      return texture;
+    };
+    if (!["ice", "space", "desert", "forest"].includes(level.biome))
+      this.roadMaterial.map = prepareTexture(
+        content.roadTexture || "/textures/coast-asphalt.png",
+      );
+    if (["coast", "forest"].includes(level.biome))
+      this.grassMaterial.map = prepareTexture(
+        content.grassTexture || "/textures/coast-grass.png",
+      );
+    this.textureReady = Promise.all(pendingTextures).then(() => undefined);
+    if (level.biome === "coast")
+      buildLandscape(this.scene, this.track, this.grassMaterial);
+    else buildLevelLandscape(this.scene, this.track, this.grassMaterial);
     this.buildTrack();
-    if (this.track.theme === "coast") this.decorate();
-    else this.decorateTheme();
+    if (level.biome === "coast") {
+      addRoadWear(this.scene, this.track);
+      this.scene.getObjectByName("coast-road-wear")!.userData.dynamic = true;
+    }
+    buildDrivingSurfaces(this.scene, this.track);
+    if (level.biome === "coast")
+      decorateLandscape(this.scene, this.track, () => this.random());
+    else decorateLevel(this.scene, this.track, () => this.random());
     this.batchStatic();
     this.skids = new THREE.InstancedMesh(
       new THREE.PlaneGeometry(0.22, 1.15),
@@ -227,9 +587,11 @@ export class World {
     }
     this.scene.add(this.skids);
     this.resize();
-    window.addEventListener("resize", this.onResize);
+    if (!thumbnail) window.addEventListener("resize", this.onResize);
   }
   async loadAssets() {
+    if (this.disposed) return;
+    await this.textureReady;
     if (this.disposed) return;
     const loader = new GLTFLoader();
     if (this.content.characterModel) {
@@ -277,131 +639,42 @@ export class World {
     return this.seeded / 4294967296;
   }
   private buildTrack() {
-    const roadMat = mat("#53616a"),
-      curbA = mat("#f7ece2"),
-      curbB = mat("#ea8a8f");
-    const makeStrip = (
-      inner: number,
-      outer: number,
-      m: THREE.Material,
-      y: number,
-      segmentFilter?: (i: number) => boolean,
-    ) => {
-      const vertices: number[] = [];
-      for (let i = 0; i < 720; i++) {
-        if (segmentFilter && !segmentFilter(i)) continue;
-        const p = this.track.points[i],
-          q = this.track.points[(i + 1) % 720];
-        const v = (a: typeof p, d: number) => [
-          a.x + Math.cos(a.heading) * d,
-          y + a.y,
-          a.z - Math.sin(a.heading) * d,
-        ];
-        vertices.push(
-          ...v(p, inner),
-          ...v(q, inner),
-          ...v(p, outer),
-          ...v(q, inner),
-          ...v(q, outer),
-          ...v(p, outer),
-        );
-      }
-      const g = new THREE.BufferGeometry();
-      g.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
-      g.computeVertexNormals();
-      const o = mesh(g, m, this.scene);
-      o.material.side = THREE.DoubleSide;
-      return o;
-    };
-    makeStrip(-this.track.width / 2, this.track.width / 2, roadMat, 0.03);
-    for (const side of [-1, 1]) {
-      makeStrip(
-        side * (this.track.width / 2),
-        side * (this.track.width / 2 + 0.9),
-        curbA,
-        0.05,
-      );
-      makeStrip(
-        side * (this.track.width / 2),
-        side * (this.track.width / 2 + 0.9),
-        curbB,
-        0.065,
-        (i) => Math.floor(i / 4) % 2 === 0,
-      );
-      makeStrip(
-        side * (this.track.width / 2 - 0.8),
-        side * (this.track.width / 2 - 0.65),
-        mat("#d2dad0"),
-        0.055,
-      );
-    }
-    makeStrip(-0.075, 0.075, mat("#adbbb4"), 0.06, (i) => i % 12 < 5);
-    const rail = new THREE.InstancedMesh(
-        new THREE.BoxGeometry(0.45, 1.1, this.track.length / 180 + 0.4),
-        mat("#e7dfca"),
-        360,
-      ),
-      dummy = new THREE.Object3D();
-    let k = 0;
-    for (let i = 0; i < 720; i += 4)
-      for (const side of [-1, 1]) {
-        const p = this.track.points[i];
-        dummy.position.set(
-          p.x + Math.cos(p.heading) * (this.track.width / 2 + 1.3),
-          p.y + 0.55,
-          p.z - Math.sin(p.heading) * (this.track.width / 2 + 1.3),
-        );
-        dummy.rotation.set(0, p.heading, 0);
-        dummy.updateMatrix();
-        rail.setMatrixAt(k++, dummy.matrix);
-      }
-    rail.castShadow = true;
-    rail.receiveShadow = true;
-    this.scene.add(rail);
+    const level = getLevel(this.track.id);
+    buildRoadGeometry(this.scene, this.track, this.roadMaterial);
     if (this.track.shortcut.length) {
-      const vertices: number[] = [];
-      for (let i = 0; i < this.track.shortcut.length - 1; i++) {
-        const a = this.track.shortcut[i],
-          b = this.track.shortcut[i + 1];
-        const v = (p: typeof a, d: number) => [
-          p.x + Math.cos(p.heading) * d,
-          p.y + 0.08,
-          p.z - Math.sin(p.heading) * d,
-        ];
-        vertices.push(
-          ...v(a, -3.5),
-          ...v(b, -3.5),
-          ...v(a, 3.5),
-          ...v(b, -3.5),
-          ...v(b, 3.5),
-          ...v(a, 3.5),
-        );
-      }
-      const geo = new THREE.BufferGeometry();
-      geo.setAttribute(
-        "position",
-        new THREE.Float32BufferAttribute(vertices, 3),
-      );
-      geo.computeVertexNormals();
-      const material = mat("#d6a058");
-      material.side = THREE.DoubleSide;
-      mesh(geo, material, this.scene);
       const p = this.track.shortcut[0];
-      const sign = mesh(
-        new THREE.PlaneGeometry(7, 2),
-        label("SHORTCUT / RISK", "#e3ad4f", "#29383c"),
-        this.scene,
-        p.x,
-        p.y + 4,
-        p.z,
+      const banner = new THREE.Group();
+      banner.name = "shortcut-entry-banner";
+      banner.position.set(p.x, p.y, p.z);
+      banner.rotation.y = p.heading;
+      this.scene.add(banner);
+      mesh(
+        new THREE.PlaneGeometry(this.track.shortcutWidth ?? 7, 1.7),
+        label("捷径 / SHORTCUT", "#e3ad4f", "#29383c"),
+        banner,
+        0,
+        7.5,
+        0,
       );
-      sign.rotation.y = p.heading;
     }
     for (const o of this.track.obstacles) {
       const p = nearestTrack(o.x, o.z, this.track);
       mesh(
-        new THREE.CylinderGeometry(o.radius * 0.8, o.radius, o.radius * 2, 8),
-        mat("#ed8a62"),
+        level.biome === "forest" || level.biome === "mine"
+          ? new THREE.IcosahedronGeometry(o.radius, 0)
+          : new THREE.CylinderGeometry(
+              o.radius * 0.8,
+              o.radius,
+              o.radius * 2,
+              8,
+            ),
+        mat(
+          level.biome === "mine"
+            ? "#9c70d1"
+            : level.biome === "forest"
+              ? "#7c7559"
+              : level.accent,
+        ),
         this.scene,
         o.x,
         p.y + o.radius,
@@ -409,6 +682,8 @@ export class World {
       );
     }
     const start = trackPoint(0, this.track),
+      startWidth = trackWidth(0, this.track),
+      gateHalf = startWidth / 2 + 2.2,
       gate = new THREE.Group();
     gate.position.set(start.x, start.y, start.z);
     gate.rotation.y = start.heading;
@@ -416,27 +691,29 @@ export class World {
     const white = mat("#ecf1d9"),
       dark = mat("#283944");
     for (const side of [-1, 1]) {
-      box(gate, dark, side * 10, 4.5, 0, 1, 9, 1);
-      box(gate, mat("#bcfa59"), side * 10, 3.5, 0, 1.2, 0.3, 1.2);
+      box(gate, dark, side * gateHalf, 4.5, 0, 1, 9, 1);
+      box(gate, mat(level.accent), side * gateHalf, 3.5, 0, 1.2, 0.3, 1.2);
     }
-    box(gate, dark, 0, 9, 0, 22, 2, 1.5, 0.3);
+    box(gate, dark, 0, 9, 0, gateHalf * 2 + 2, 2, 1.5, 0.3);
     mesh(
-      new THREE.PlaneGeometry(18, 1.6),
-      label("KART CLUB  /  START", "#283944", "#c5ff66"),
+      new THREE.PlaneGeometry(gateHalf * 2 - 1, 1.6),
+      label(`${level.biome.toUpperCase()}  /  START`, "#283944", level.accent),
       gate,
       0,
       9,
       0.8,
     );
-    for (let x = -8; x < 8; x++)
+    const columns = Math.ceil(startWidth),
+      tileWidth = startWidth / columns;
+    for (let x = 0; x < columns; x++)
       for (let z = 0; z < 2; z++) {
         const flag = box(
           gate,
           (x + z) % 2 === 0 ? white : dark,
-          x + 0.5,
+          (x + 0.5) * tileWidth - startWidth / 2,
           0.08,
           z - 0.5,
-          1,
+          tileWidth,
           0.035,
           1,
         );
@@ -449,257 +726,29 @@ export class World {
       g.rotation.y = p.heading;
       this.scene.add(g);
       for (const s of [-1, 1]) {
-        box(g, mat("#fff9dd"), s * 9.7, 1.8, 0, 0.15, 3.6, 0.15);
+        const side = s as -1 | 1,
+          lateral = side * (trackWidth(p.t, this.track) / 2 + 3.2);
+        const road = nearestTrack(
+          p.x + Math.cos(p.heading) * lateral,
+          p.z - Math.sin(p.heading) * lateral,
+          this.track,
+        );
+        if (
+          roadBoundaryOpen(p, side, this.track, "main", 3.2) ||
+          road.distance < road.roadWidth / 2 + 1.2
+        )
+          continue;
+        box(g, mat("#fff9dd"), lateral, 1.8, 0, 0.15, 3.6, 0.15);
         mesh(
           new THREE.PlaneGeometry(1.9, 1.2),
           label(String(i).padStart(2, "0"), "#324f57", "#fff7d8", 160, 100),
           g,
-          s * 9.7,
+          lateral,
           3.3,
           0,
         );
       }
     }
-  }
-  private decorate() {
-    const trunk = mat("#a48467"),
-      leaf = mat("#639c73"),
-      pink = mat("#eeabbc"),
-      cream = mat("#f7efd7");
-    for (let i = 0; i < 130; i++) {
-      const x = (this.random() - 0.5) * 285,
-        z = (this.random() - 0.5) * 260;
-      if (
-        Math.hypot(x, z) > 146 ||
-        this.track.points.some((p) => Math.hypot(p.x - x, p.z - z) < 15)
-      )
-        continue;
-      const g = new THREE.Group();
-      g.position.set(x, 0, z);
-      this.scene.add(g);
-      const h = 3 + this.random() * 5;
-      mesh(new THREE.CylinderGeometry(0.32, 0.5, h, 5), trunk, g, 0, h / 2, 0);
-      if (i % 3 === 0) {
-        for (let j = 0; j < 3; j++)
-          mesh(
-            new THREE.IcosahedronGeometry(h * 0.53, 1),
-            pink,
-            g,
-            (j - 1) * 1.5,
-            h + (j % 2),
-            0,
-          );
-      } else {
-        for (let j = 0; j < 6; j++) {
-          const l = mesh(
-            new THREE.ConeGeometry(1.3, h * 0.85, 4),
-            leaf,
-            g,
-            0,
-            h,
-            0,
-          );
-          l.rotation.set(Math.sin(j) * 0.65, (j * Math.PI) / 3, Math.PI * 0.35);
-        }
-      }
-    }
-    // Small resort architecture and boardwalks are original procedural assets.
-    for (let i = 0; i < 9; i++) {
-      const x = 25 + (i % 3) * 13,
-        z = 5 + Math.floor(i / 3) * 14;
-      const g = new THREE.Group();
-      g.position.set(x, 0, z);
-      this.scene.add(g);
-      box(g, mat(i % 2 ? "#e9b9a8" : "#eef0d7"), 0, 2.3, 0, 9, 4.6, 8, 0.25);
-      const roof = mesh(
-        new THREE.ConeGeometry(7.2, 3, 4),
-        mat("#6798a6"),
-        g,
-        0,
-        6,
-        0,
-      );
-      roof.rotation.y = Math.PI / 4;
-      box(g, mat("#344e60"), 0, 2.4, 4.03, 5, 2, 0.1);
-      box(g, cream, 0, 0.2, 5.5, 11, 0.4, 3);
-    }
-    const lighthouse = new THREE.Group();
-    lighthouse.position.set(-120, 0, -73);
-    this.scene.add(lighthouse);
-    mesh(
-      new THREE.CylinderGeometry(2.5, 4, 23, 12),
-      cream,
-      lighthouse,
-      0,
-      11.5,
-      0,
-    );
-    for (let y = 6; y < 20; y += 8)
-      mesh(
-        new THREE.CylinderGeometry(3.4 - y * 0.037, 3.7 - y * 0.037, 3, 12),
-        mat("#e8888a"),
-        lighthouse,
-        0,
-        y,
-        0,
-      );
-    mesh(
-      new THREE.CylinderGeometry(4, 4, 1, 12),
-      mat("#354d5c"),
-      lighthouse,
-      0,
-      23,
-      0,
-    );
-    mesh(
-      new THREE.CylinderGeometry(2.6, 2.6, 4, 10),
-      mat("#9edbdd"),
-      lighthouse,
-      0,
-      25,
-      0,
-    );
-    mesh(
-      new THREE.ConeGeometry(4, 3, 12),
-      mat("#e8888a"),
-      lighthouse,
-      0,
-      28.5,
-      0,
-    );
-    for (let i = 0; i < 3; i++) {
-      const g = new THREE.Group();
-      g.position.set(-45 - i * 15, 0, -15 + i * 15);
-      this.scene.add(g);
-      mesh(new THREE.CylinderGeometry(0.65, 1.2, 20, 8), cream, g, 0, 10, 0);
-      const p = new THREE.Group();
-      p.position.y = 20;
-      g.add(p);
-      mesh(new THREE.SphereGeometry(1.2, 10, 8), cream, p);
-      for (let k = 0; k < 3; k++) {
-        const blade = new THREE.Group();
-        blade.rotation.z = (k * Math.PI * 2) / 3;
-        box(blade, cream, 0, 5, 0, 0.9, 10, 0.25, 0.15);
-        p.add(blade);
-      }
-      this.propellers.push(p);
-    }
-    for (let i = 0; i < 4; i++) {
-      const p = trackPoint(0.14 + i * 0.22, this.track),
-        g = new THREE.Group();
-      g.position.set(
-        p.x + Math.cos(p.heading) * 16,
-        0,
-        p.z - Math.sin(p.heading) * 16,
-      );
-      g.rotation.y = p.heading;
-      this.scene.add(g);
-      for (const x of [-3, 3]) box(g, mat("#50716e"), x, 2, 0, 0.25, 4, 0.25);
-      mesh(
-        new THREE.PlaneGeometry(9, 3.2),
-        label(
-          ["TAKE THE LEAD", "FEEL THE TIDE", "STAY IN FLOW", "KART CLUB"][i],
-          i % 2 ? "#c7ff68" : "#e9aac3",
-          "#223b41",
-        ),
-        g,
-        0,
-        4,
-        0,
-      );
-    }
-    const waves = new THREE.Group();
-    this.scene.add(waves);
-    for (let i = 0; i < 100; i++) {
-      const x = (this.random() - 0.5) * 650,
-        z = (this.random() - 0.5) * 650;
-      if (Math.hypot(x, z) < 164) continue;
-      const o = mesh(
-        new THREE.PlaneGeometry(2 + this.random() * 9, 0.25),
-        new THREE.MeshBasicMaterial({
-          color: "#ade2d8",
-          transparent: true,
-          opacity: 0.35,
-        }),
-        waves,
-        x,
-        -6.94,
-        z,
-      );
-      o.rotation.x = -Math.PI / 2;
-      o.castShadow = false;
-    }
-    for (let i = 0; i < 12; i++) {
-      const cloud = new THREE.Group();
-      cloud.position.set(
-        (this.random() - 0.5) * 950,
-        60 + this.random() * 80,
-        -300 - this.random() * 250,
-      );
-      for (let j = 0; j < 3; j++)
-        mesh(
-          new THREE.IcosahedronGeometry(10 + this.random() * 12, 1),
-          mat("#e6f2e9"),
-          cloud,
-          j * 16,
-          0,
-          0,
-        ).scale.set(1.3, 0.5, 1);
-      this.scene.add(cloud);
-    }
-  }
-  private decorateTheme() {
-    const city = this.track.theme === "city";
-    this.scene.background = new THREE.Color(city ? "#495879" : "#b7cbd6");
-    this.scene.fog = new THREE.Fog(city ? "#495879" : "#b7cbd6", 200, 850);
-    const colors = city
-      ? ["#536680", "#778fa0", "#b5c9c3"]
-      : ["#668279", "#8b9d89", "#b5b5a1"];
-    for (let i = 0; i < 100; i++) {
-      const p = trackPoint(i / 100, this.track),
-        side = i % 2 ? -1 : 1,
-        offset = 25 + this.random() * 30;
-      const x = p.x + Math.cos(p.heading) * offset,
-        z = p.z - Math.sin(p.heading) * offset;
-      if (nearestTrack(x, z, this.track).distance < 18) continue;
-      const h = city ? 12 + this.random() * 40 : 8 + this.random() * 24;
-      if (city) {
-        box(this.scene, mat(colors[i % 3]), x, h / 2, z, 10, h, 12);
-        for (let y = 4; y < h; y += 6)
-          box(
-            this.scene,
-            mat(i % 2 ? "#db9be0" : "#9fe5df"),
-            x,
-            y,
-            z + 6.05,
-            7,
-            0.8,
-            0.15,
-          );
-      } else {
-        mesh(
-          new THREE.ConeGeometry(6 + this.random() * 8, h, 7),
-          mat(colors[i % 3]),
-          this.scene,
-          x,
-          h / 2 - 1,
-          z,
-        );
-      }
-    }
-    if (this.track.points.some((p) => p.y > 2))
-      for (let i = 0; i < 60; i++) {
-        const p = trackPoint(i / 60, this.track);
-        if (p.y > 2)
-          mesh(
-            new THREE.CylinderGeometry(1.2, 1.8, p.y, 7),
-            mat("#87978b"),
-            this.scene,
-            p.x,
-            p.y / 2,
-            p.z,
-          );
-      }
   }
   private batchStatic() {
     this.scene.updateMatrixWorld(true);
@@ -714,6 +763,7 @@ export class World {
     this.scene.traverse((o) => {
       if (
         !(o instanceof THREE.Mesh) ||
+        o.userData.dynamic ||
         o instanceof THREE.InstancedMesh ||
         Array.isArray(o.material)
       )
@@ -725,7 +775,18 @@ export class World {
         m.type,
         m.color?.getHexString(),
         m.roughness,
+        m.metalness,
+        m.emissive?.getHexString(),
+        m.emissiveIntensity,
         m.opacity,
+        m.transparent,
+        m.depthWrite,
+        m.vertexColors,
+        m.flatShading,
+        m.bumpMap?.uuid,
+        m.normalMap?.uuid,
+        o.castShadow,
+        o.receiveShadow,
         m.side,
         m.map?.uuid,
         Math.floor(o.matrixWorld.elements[12] / 100),
@@ -746,6 +807,7 @@ export class World {
       groups.set(key, b);
     });
     const oldGeo = new Set<THREE.BufferGeometry>();
+    const oldMaterials = new Set<THREE.Material>();
     for (const b of groups.values()) {
       const merged = mergeGeometries(b.geos);
       if (!merged) {
@@ -753,16 +815,26 @@ export class World {
         continue;
       }
       const o = new THREE.Mesh(merged, b.material);
-      o.castShadow = true;
-      o.receiveShadow = true;
+      o.castShadow = b.objects[0].castShadow;
+      o.receiveShadow = b.objects[0].receiveShadow;
       this.scene.add(o);
       for (const old of b.objects) {
         old.removeFromParent();
         oldGeo.add(old.geometry);
+        oldMaterials.add(old.material as THREE.Material);
       }
       b.geos.forEach((g) => g.dispose());
     }
+    // Equivalent materials can merge while one instance is still used by a
+    // different spatial cell, a dynamic mesh, or an instanced object.
+    this.scene.traverse((o) => {
+      if (!(o instanceof THREE.Mesh)) return;
+      oldGeo.delete(o.geometry);
+      for (const m of Array.isArray(o.material) ? o.material : [o.material])
+        oldMaterials.delete(m);
+    });
     oldGeo.forEach((g) => g.dispose());
+    oldMaterials.forEach((m) => m.dispose());
   }
   dispose() {
     if (this.disposed) return;
@@ -777,6 +849,9 @@ export class World {
     this.itemMeshes.clear();
     this.propellers.length = 0;
     this.customDriver = null;
+    this.scene.environment = null;
+    this.environmentTarget?.dispose();
+    this.environmentTarget = undefined;
     this.renderer.dispose();
   }
   private onResize = () => this.resize();
@@ -841,89 +916,8 @@ export class World {
     }
   }
   private kart(color: string) {
-    const g = new THREE.Group(),
-      paint = mat(color, 0.35),
-      dark = mat("#233541", 0.45),
-      rubber = mat("#1b262c"),
-      silver = mat("#cad7d3", 0.3);
-    box(g, dark, 0, 0.46, 0, 1.95, 0.28, 2.75, 0.14);
-    box(g, paint, 0, 0.73, 0.45, 1.72, 0.42, 2.5, 0.2);
-    box(g, paint, 0, 0.92, 1.25, 1.7, 0.42, 0.85, 0.19);
-    box(g, dark, 0, 0.57, 1.8, 2.2, 0.24, 0.3, 0.1);
-    for (const x of [-1.03, 1.03])
-      for (const z of [-0.85, 1]) {
-        const wheel = mesh(
-          new THREE.CylinderGeometry(0.53, 0.53, 0.48, 16),
-          rubber,
-          g,
-          x,
-          0.5,
-          z,
-        );
-        wheel.rotation.z = Math.PI / 2;
-        const hub = mesh(
-          new THREE.CylinderGeometry(0.28, 0.28, 0.49, 10),
-          silver,
-          g,
-          x,
-          0.5,
-          z,
-        );
-        hub.rotation.z = Math.PI / 2;
-      }
-    box(g, paint, 0, 1, -1.3, 2.25, 0.16, 0.65, 0.07);
-    for (const x of [-0.62, 0.62]) box(g, dark, x, 0.77, -1.3, 0.1, 0.45, 0.15);
-    box(g, mat("#f9ffe3"), 0, 0.96, 1.69, 0.62, 0.18, 0.08, 0.04);
-    box(g, dark, 0, 1, -0.25, 1.05, 0.75, 0.7, 0.12);
-    const driver = new THREE.Group();
-    driver.name = "driver";
-    g.add(driver);
-    mesh(
-      new THREE.SphereGeometry(0.49, 16, 12),
-      mat("#f3ece4"),
-      driver,
-      0,
-      1.42,
-      -0.13,
-    ).scale.set(0.85, 1, 0.8);
-    const helmet = mesh(
-      new THREE.SphereGeometry(0.61, 20, 16),
-      paint,
-      driver,
-      0,
-      2.03,
-      -0.08,
-    );
-    helmet.scale.set(1, 0.96, 1);
-    mesh(
-      new THREE.SphereGeometry(0.5, 16, 10, 0, Math.PI, 0, Math.PI),
-      mat("#233646", 0.16),
-      driver,
-      0,
-      2.06,
-      0.12,
-    ).scale.set(1, 0.58, 1);
-    box(driver, mat("#f5f6de"), 0, 2.59, -0.07, 0.14, 0.06, 0.8, 0.03);
-    for (const x of [-0.4, 0.4]) {
-      const arm = mesh(
-        new THREE.CapsuleGeometry(0.13, 0.46, 4, 8),
-        mat("#f4ecd9"),
-        driver,
-        x,
-        1.42,
-        0.37,
-      );
-      arm.rotation.x = -0.8;
-    }
-    const wheel = mesh(
-      new THREE.TorusGeometry(0.28, 0.055, 6, 16),
-      dark,
-      g,
-      0,
-      1.36,
-      0.64,
-    );
-    wheel.rotation.x = -0.5;
+    const g = batchKartModel(createKartModel(color));
+    const driver = g.getObjectByName("driver")!;
     const flame = mesh(
       new THREE.ConeGeometry(0.36, 2, 10),
       new THREE.MeshBasicMaterial({
@@ -977,9 +971,26 @@ export class World {
   resetCamera() {
     this.cameraReady = false;
   }
+  setShotMode(mode: string) {
+    this.shotMode = ["front", "side", "wide", "top", "rear"].includes(mode)
+      ? (mode as "rear" | "front" | "side" | "wide" | "top")
+      : "rear";
+    this.cameraReady = false;
+  }
+  previewPoint() {
+    return trackPoint(getLevel(this.track.id).preview.t, this.track);
+  }
+  captureThumbnail() {
+    this.renderer.render(this.scene, this.camera);
+    const output = document.createElement("canvas");
+    output.width = 480;
+    output.height = 270;
+    output.getContext("2d")!.drawImage(this.canvas, 0, 0, 480, 270);
+    return output.toDataURL("image/webp", 0.75);
+  }
   resize() {
-    const w = window.innerWidth,
-      h = window.innerHeight;
+    const w = this.thumbnail ? 480 : window.innerWidth,
+      h = this.thumbnail ? 270 : window.innerHeight;
     this.renderer.setSize(w, h, false);
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
@@ -1014,23 +1025,12 @@ export class World {
         this.cars.set(c.id, g);
         this.scene.add(g);
       }
-      g.position.set(
-        c.x,
-        nearestTrack(c.x, c.z, this.track).y +
-          Math.sin(this.elapsed * 22) *
-            Math.min(0.035, Math.abs(c.speed) * 0.002) *
-            this.motion,
-        c.z,
-      );
+      g.position.set(c.x, nearestTrack(c.x, c.z, this.track).y, c.z);
       g.visible =
         c.id === "ghost" ||
         c.ghostTime <= 0 ||
         Math.floor(this.elapsed * 12) % 3 !== 0;
-      g.rotation.set(
-        0,
-        c.heading,
-        c.drifting ? Math.sin(this.elapsed * 10) * 0.025 * this.motion : 0,
-      );
+      g.rotation.set(0, c.heading, 0);
       const flame = g.getObjectByName("flame")!;
       flame.visible = c.boostTime > 0 || c.miniTime > 0;
       flame.scale.y = 0.8 + Math.sin(this.elapsed * 40) * 0.25;
@@ -1051,31 +1051,137 @@ export class World {
     for (const [id, g] of this.cars) if (!seen.has(id)) g.visible = false;
     for (const p of this.propellers) p.rotation.z += dt * 0.5;
     if (preview) {
-      const a = this.elapsed * 0.025;
-      this.camera.position.set(
-        this.track.radius * 1.15 + Math.sin(a) * 15,
-        this.track.radius * 1.12,
-        this.track.radius * 1.3 + Math.cos(a) * 15,
-      );
-      this.target.set(-36, -30, 0);
+      const p = this.previewPoint(),
+        f = new THREE.Vector3(Math.sin(p.heading), 0, Math.cos(p.heading)),
+        r = new THREE.Vector3(Math.cos(p.heading), 0, -Math.sin(p.heading));
+      const anchor = new THREE.Vector3(p.x, p.y, p.z);
+      const narrow = !this.thumbnail && window.innerWidth < 760;
+      const screenRight = new THREE.Vector3()
+        .crossVectors(
+          new THREE.Vector3().subVectors(anchor, this.camera.position),
+          new THREE.Vector3(0, 1, 0),
+        )
+        .normalize();
+      if (this.thumbnail) {
+        const view = getLevel(this.track.id).preview;
+        this.camera.position
+          .copy(anchor)
+          .addScaledVector(f, -view.forward * 1.5)
+          .addScaledVector(r, view.side * 1.4);
+        this.camera.position.y += view.height;
+        this.target
+          .copy(anchor)
+          .addScaledVector(f, 30)
+          .addScaledVector(r, -Math.sign(view.side) * 12);
+        this.target.y += 5;
+        this.camera.fov = 58;
+      } else if (this.shotMode === "front") {
+        this.camera.position
+          .copy(anchor)
+          .addScaledVector(f, 9.5)
+          .addScaledVector(r, 0.6);
+        this.camera.position.y += 3.9;
+        this.target
+          .copy(anchor)
+          .addScaledVector(f, -1.8)
+          .addScaledVector(r, 0.2);
+        this.target.y += 1.5;
+        this.camera.fov = narrow ? 52 : 48;
+      } else if (this.shotMode === "side") {
+        this.camera.position
+          .copy(anchor)
+          .addScaledVector(f, 5.8)
+          .addScaledVector(r, 8.2);
+        this.camera.position.y += 4.1;
+        this.target
+          .copy(anchor)
+          .addScaledVector(screenRight, narrow ? 0.3 : -1.4);
+        this.target.y += 1.4;
+        this.camera.fov = narrow ? 50 : 46;
+      } else if (this.shotMode === "top") {
+        this.camera.position
+          .copy(anchor)
+          .addScaledVector(f, 1.8)
+          .addScaledVector(r, 0.8);
+        this.camera.position.y += 10.5;
+        this.target.copy(anchor);
+        this.target.y += 0.6;
+        this.camera.fov = narrow ? 52 : 50;
+      } else if (this.shotMode === "wide") {
+        this.camera.position
+          .copy(anchor)
+          .addScaledVector(f, 7.1)
+          .addScaledVector(r, 6.4);
+        this.camera.position.y += 5.0;
+        this.target.copy(anchor).addScaledVector(screenRight, -3.6);
+        this.target.y += 1.3;
+        this.camera.fov = narrow ? 56 : 54;
+      } else {
+        this.camera.position
+          .copy(anchor)
+          .addScaledVector(f, -10.5)
+          .addScaledVector(r, -3.6);
+        this.camera.position.y += 4.3;
+        screenRight
+          .crossVectors(
+            new THREE.Vector3().subVectors(anchor, this.camera.position),
+            new THREE.Vector3(0, 1, 0),
+          )
+          .normalize();
+        this.target
+          .copy(anchor)
+          .addScaledVector(f, 3)
+          .addScaledVector(
+            screenRight,
+            narrow ? -0.2 : document.documentElement.dir === "rtl" ? 2.9 : -2.9,
+          );
+        this.target.y += narrow ? 1.2 : 1.3;
+        this.camera.fov = narrow ? 49 : 44;
+      }
       this.camera.lookAt(this.target);
-      this.camera.fov = 46;
       this.cameraReady = false;
     } else {
       const c = cars.find((c) => c.id === localId);
       if (c) {
         const speed = Math.abs(c.speed),
-          distance = 8.5 + speed * 0.035;
-        const desired = new THREE.Vector3(
-          c.x - Math.sin(c.heading) * distance,
-          nearestTrack(c.x, c.z, this.track).y + 5.1 + speed * 0.018,
-          c.z - Math.cos(c.heading) * distance,
-        );
-        const aim = new THREE.Vector3(
-          c.x + Math.sin(c.heading) * 5,
-          nearestTrack(c.x, c.z, this.track).y + 1.4,
-          c.z + Math.cos(c.heading) * 5,
-        );
+          distance = 7.8 + speed * 0.025;
+        const pY = nearestTrack(c.x, c.z, this.track).y;
+        const desired =
+          this.shotMode === "front"
+            ? new THREE.Vector3(
+                c.x + Math.sin(c.heading) * (distance + 2.5),
+                pY + 3.8 + speed * 0.01,
+                c.z + Math.cos(c.heading) * (distance + 2.5),
+              )
+            : this.shotMode === "side"
+              ? new THREE.Vector3(
+                  c.x - Math.cos(c.heading) * (distance - 2.4),
+                  pY + 4.0 + speed * 0.01,
+                  c.z + Math.sin(c.heading) * (distance - 2.4),
+                )
+              : new THREE.Vector3(
+                  c.x - Math.sin(c.heading) * distance,
+                  pY + 3.6 + speed * 0.01,
+                  c.z - Math.cos(c.heading) * distance,
+                );
+        const aim =
+          this.shotMode === "front"
+            ? new THREE.Vector3(
+                c.x - Math.sin(c.heading) * 6,
+                pY + 1.1,
+                c.z - Math.cos(c.heading) * 6,
+              )
+            : this.shotMode === "side"
+              ? new THREE.Vector3(
+                  c.x + Math.cos(c.heading) * 6,
+                  pY + 1.1,
+                  c.z - Math.sin(c.heading) * 6,
+                )
+              : new THREE.Vector3(
+                  c.x + Math.sin(c.heading) * 7,
+                  pY + 1.3,
+                  c.z + Math.cos(c.heading) * 7,
+                );
         const smooth = 1 - Math.exp(-7 * dt);
         if (!this.cameraReady) {
           this.camera.position.copy(desired);
@@ -1087,10 +1193,24 @@ export class World {
         }
         this.camera.lookAt(this.target);
         this.camera.fov +=
-          (57 + (c.boostTime > 0 ? 12 : 0) * this.motion - this.camera.fov) *
+          (57 + (c.boostTime > 0 ? 8 : 0) * this.motion - this.camera.fov) *
           smooth;
       }
     }
+    const shadowCenter = preview
+      ? this.previewPoint()
+      : cars.find((c) => c.id === localId);
+    if (shadowCenter) {
+      this.sun.target.position.set(
+        shadowCenter.x,
+        nearestTrack(shadowCenter.x, shadowCenter.z, this.track).y,
+        shadowCenter.z,
+      );
+      this.sun.position.copy(this.sun.target.position).add(this.sunOffset);
+      this.sun.target.updateMatrixWorld();
+    }
+    this.seaMaterial.uniforms.clock.value = this.elapsed;
+    this.sky.position.copy(this.camera.position);
     this.camera.updateProjectionMatrix();
     this.renderer.render(this.scene, this.camera);
     if (import.meta.env.DEV) {

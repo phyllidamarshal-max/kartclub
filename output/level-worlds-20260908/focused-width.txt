@@ -1,0 +1,62 @@
+✔ every difficulty can earn drift nitro and use recovery boosts through legal driving (313.3342ms)
+✖ expert driving charges and spends nitro on every route, including while boosting (4437.9267ms)
+{"track":"coast","difficulty":"normal","before":{"time":121.89999999999436,"collisions":0,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":91.4499999999961,"collisions":0,"resets":0,"nitro":5,"mini":15,"drift":592.2211743257396}}
+{"track":"coast-harbor","difficulty":"normal","before":{"time":140.0500000000036,"collisions":0,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":110.28333333332836,"collisions":0,"resets":0,"nitro":5,"mini":30,"drift":517.0542495875771}}
+{"track":"coast-breakwater","difficulty":"normal","before":{"time":143.41666666667294,"collisions":6,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":114.66666666666144,"collisions":1,"resets":0,"nitro":6,"mini":41,"drift":604.2632367424443}}
+{"track":"city","difficulty":"normal","before":{"time":173.86666666669717,"collisions":3,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":131.3166666666633,"collisions":3,"resets":0,"nitro":10,"mini":33,"drift":1015.4840232312811}}
+{"track":"city-factory","difficulty":"normal","before":{"time":193.15000000004585,"collisions":0,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":152.40000000001342,"collisions":6,"resets":0,"nitro":11,"mini":44,"drift":1181.6238118481754}}
+{"track":"city-nightshift","difficulty":"normal","before":{"time":211.783333333394,"collisions":5,"resets":2,"nitro":0,"mini":0,"drift":0},"after":{"time":147.91666666667652,"collisions":6,"resets":0,"nitro":11,"mini":27,"drift":1155.9439368785463}}
+{"track":"mountain","difficulty":"normal","before":{"time":176.61666666669936,"collisions":0,"resets":0,"nitro":0,"mini":0,"drift":0},"after":{"time":136.36666666666733,"collisions":0,"resets":0,"nitro":7,"mini":26,"drift":750.8062098782639}}
+{"track":"mountain-pass","difficulty":"normal","before":{"time":192.55000000004537,"collisions":14,"resets":2,"nitro":0,"mini":0,"drift":0},"after":{"time":148.90000000001064,"collisions":12,"resets":0,"nitro":5,"mini":33,"drift":539.7090514651712}}
+{"track":"mountain-summit","difficulty":"normal","before":{"time":205.25000000005548,"collisions":18,"resets":2,"nitro":0,"mini":0,"drift":0},"after":{"time":155.5000000000159,"collisions":12,"resets":0,"nitro":7,"mini":44,"drift":798.9530335680251}}
+{"track":"coast","difficulty":"hard","before":{"time":109.88333333332838,"collisions":0,"resets":0,"nitro":0,"mini":0,"drift":0.679313782989623},"after":{"time":89.84999999999619,"collisions":0,"resets":0,"nitro":6,"mini":15,"drift":618.3874096295933}}
+{"track":"coast-harbor","difficulty":"hard","before":{"time":129.3333333333284,"collisions":3,"resets":0,"nitro":0,"mini":3,"drift":38.11542565950971},"after":{"time":108.08333333332848,"collisions":0,"resets":0,"nitro":7,"mini":26,"drift":701.451396600183}}
+{"track":"coast-breakwater","difficulty":"hard","before":{"time":133.4833333333317,"collisions":9,"resets":0,"nitro":0,"mini":0,"drift":26.732580411902624},"after":{"time":112.38333333332824,"collisions":0,"resets":0,"nitro":8,"mini":37,"drift":805.9677644279164}}
+{"track":"city","difficulty":"hard","before":{"time":160.61666666668663,"collisions":3,"resets":0,"nitro":0,"mini":6,"drift":18.219402363510778},"after":{"time":127.98333333332735,"collisions":1,"resets":0,"nitro":12,"mini":31,"drift":1261.6210257572197}}
+{"track":"city-factory","difficulty":"hard","before":{"time":179.2333333333681,"collisions":7,"resets":0,"nitro":0,"mini":3,"drift":26.559256653209747},"after":{"time":147.95000000000988,"collisions":4,"resets":0,"nitro":14,"mini":29,"drift":1422.982160775312}}
+{"track":"city-nightshift","difficulty":"hard","before":{"time":203.45000000005405,"collisions":8,"resets":2,"nitro":0,"mini":3,"drift":2.6057107529817074},"after":{"time":143.38333333333958,"collisions":6,"resets":0,"nitro":13,"mini":31,"drift":1340.0698853233725}}
+{"track":"mountain","difficulty":"hard","before":{"time":159.78333333335263,"collisions":0,"resets":0,"nitro":0,"mini":0,"drift":11.524667924796642},"after":{"time":133.46666666666502,"collisions":0,"resets":0,"nitro":8,"mini":21,"drift":885.2444794539065}}
+{"track":"mountain-pass","difficulty":"hard","before":{"time":216.58333333339783,"collisions":19,"resets":7,"nitro":0,"mini":0,"drift":55.72748635242015},"after":{"time":144.48333333334045,"collisions":11,"resets":0,"nitro":7,"mini":35,"drift":749.6266016044999}}
+{"track":"mountain-summit","difficulty":"hard","before":{"time":199.28333333338406,"collisions":19,"resets":2,"nitro":0,"mini":0,"drift":12.679551165265693},"after":{"time":149.78333333334467,"collisions":9,"resets":0,"nitro":10,"mini":41,"drift":1061.0433715636857}}
+✔ AI keeps accelerating during nitro on a clear straight instead of braking at its cruising cap (1.6738ms)
+✔ new competitive AI is materially faster on every route using unchanged legal physics (10477.5573ms)
+✔ expert AI earns and spends real drift nitro and uses recovery mini boosts (627.1614ms)
+✔ AI decisions do not mutate vehicle or rival physics and remain repeatable (4.2931ms)
+✔ AI escapes a glancing obstacle contact instead of driving indefinitely against it (39.8948ms)
+✔ competitive AI follows an occupied shortcut and rejoins the main road without resetting (734.0423ms)
+✔ coast-harbor offers a smooth shorter route that can be entered, driven and rejoined (19.3909ms)
+✔ coast-harbor cannot enter its shortcut through a disconnected middle section (0.362ms)
+✔ coast-breakwater offers a smooth shorter route that can be entered, driven and rejoined (13.5023ms)
+✔ coast-breakwater cannot enter its shortcut through a disconnected middle section (0.315ms)
+✔ city-factory offers a smooth shorter route that can be entered, driven and rejoined (23.7319ms)
+✔ city-factory cannot enter its shortcut through a disconnected middle section (0.1794ms)
+✔ city-nightshift offers a smooth shorter route that can be entered, driven and rejoined (14.5087ms)
+✔ city-nightshift cannot enter its shortcut through a disconnected middle section (0.1455ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 15
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 12875.4742
+
+✖ failing tests:
+
+test at tests\ai-mastery.test.ts:1:729
+✖ expert driving charges and spends nitro on every route, including while boosting (4437.9267ms)
+  AssertionError [ERR_ASSERTION]: faster laps must not increase total solo impacts
+      at TestContext.<anonymous> (C:\Users\teery\Documents\币相关\跑跑卡丁车\tests\ai-mastery.test.ts:69:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1306:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:897:18)
+      at Test.postRun (node:internal/test_runner/test:1447:19)
+      at Test.run (node:internal/test_runner/test:1372:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }

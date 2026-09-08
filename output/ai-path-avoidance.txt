@@ -1,0 +1,49 @@
+coast easy 140.8
+coast normal 96.1
+coast hard 93.5
+city easy 197.6
+city normal 142.3
+city hard 138.1
+mountain easy 203.8
+mountain normal 145.2
+mountain hard 141.2
+coast-harbor easy 159.5
+coast-harbor normal 114.6
+coast-harbor hard 111.5
+coast-breakwater easy 160.6
+coast-breakwater normal 121.5
+coast-breakwater hard 119.1
+city-factory easy 220.8
+city-factory normal 164.1
+city-factory hard 158.8
+city-nightshift easy 223.4
+city-nightshift normal 158.2
+city-nightshift hard 154.2
+mountain-pass easy 202.3
+mountain-pass normal 152.1
+mountain-pass hard 150.2
+mountain-summit easy 222.9
+mountain-summit normal 165.0
+mountain-summit hard 159.9
+four-item-race coast 104.7 uses [ 16, 15, 24, 10 ]
+four-item-race city 149.0 uses [ 14, 6, 24, 17 ]
+four-item-race mountain 154.4 uses [ 14, 19, 13, 24 ]
+four-item-race coast-harbor 123.2 uses [ 12, 17, 24, 12 ]
+four-item-race coast-breakwater 127.6 uses [ 13, 11, 17, 24 ]
+four-item-race city-factory 172.2 uses [ 19, 24, 8, 15 ]
+four-item-race city-nightshift 166.8 uses [ 15, 23, 9, 17 ]
+four-item-race mountain-pass 163.3 uses [ 24, 16, 18, 11 ]
+four-item-race mountain-summit 172.4 uses [ 24, 12, 12, 16 ]
+eight-car summit final 170.2
+✔ AI completes three legal-input laps on each track at every difficulty (1819.4262ms)
+✔ four AI race with actual collisions and all item mechanics on every circuit (5961.6799ms)
+✔ AI reacts to a nearby rival with an overtaking lane and safe closing speed (0.6404ms)
+✔ eight expert AI complete the narrow summit final with overtaking, contacts and items (2011.907ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 10053.2833

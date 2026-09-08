@@ -1,0 +1,683 @@
+diff --git a/shared/ai.ts b/shared/ai.ts
+index 2a94e00..8335fcb 100644
+--- a/shared/ai.ts
++++ b/shared/ai.ts
+@@ -1,17 +1,196 @@
+ import { type Car, type Input } from "./race.ts";
+-import { trackPoint, continuousTrack, angleDiff, type Track } from "./track.ts";
++import {
++  trackPoint,
++  continuousTrack,
++  nearestTrack,
++  angleDiff,
++  type Track,
++} from "./track.ts";
+ import type { Difficulty } from "./gameplay.ts";
++import { DRIVING_CONFIG as CFG } from "./driving-config.ts";
++import { aiItemInput } from "./ai-items.ts";
++import type { ItemWorld } from "./items.ts";
++
++const clamp = (v: number, lo: number, hi: number) =>
++  Math.max(lo, Math.min(hi, v));
++const obstaclePaths = new WeakMap<
++  Track,
++  { t: number; side: number; radius: number }[]
++>();
++function roadObstacles(track: Track) {
++  let points = obstaclePaths.get(track);
++  if (!points) {
++    points = track.obstacles.map((o) => {
++      const p = nearestTrack(o.x, o.z, track);
++      return { t: p.t, side: p.lateral, radius: o.radius };
++    });
++    obstaclePaths.set(track, points);
++  }
++  return points;
++}
++
++/** Driving commands only: AI obeys the same acceleration, grip and resource rules. */
+ export function aiInput(
+   c: Car,
+   track: Track,
+   difficulty: Difficulty,
+   clock: number,
+   rivals: readonly Car[] = [],
++  items?: ItemWorld | null,
++): Input {
++  if (difficulty === "easy")
++    return noviceInput(c, track, difficulty, clock, rivals);
++  if (c.finished || c.resetTime > 0)
++    return {
++      throttle: 0,
++      steer: 0,
++      drift: false,
++      boost: false,
++      item: false,
++      reset: false,
++    };
++  const expert = difficulty === "hard";
++  const p = continuousTrack(c.x, c.z, c.lastT, track, c.routeBranch);
++  const speed = Math.max(0, c.speed);
++  const lookDistance = 7 + speed * 0.24;
++  const look = trackPoint(p.t + lookDistance / track.length, track);
++  const curve = angleDiff(look.heading, p.heading) / lookDistance;
++  // Brake before the tightest upcoming bend, using stopping distance rather than
++  // applying the same low speed through the entire corner and following straight.
++  let target = CFG.vehicle.maxSpeed * (expert ? 1 : 0.98);
++  if (c.boostTime > 0) target *= CFG.nitro.maxSpeed;
++  else if (c.miniTime > 0) target *= CFG.mini.maxSpeed;
++  let futureCurve = 0;
++  for (let distance = 6; distance <= 78; distance += 6) {
++    const a = trackPoint(p.t + (distance - 3) / track.length, track);
++    const b = trackPoint(p.t + (distance + 3) / track.length, track);
++    const k = Math.abs(angleDiff(b.heading, a.heading)) / 6;
++    if (distance < 48) futureCurve = Math.max(futureCurve, k);
++    const cornerSpeed = clamp(
++      (expert ? 1.38 : 1.08) / Math.max(0.001, k),
++      19,
++      CFG.vehicle.maxSpeed * CFG.nitro.maxSpeed,
++    );
++    target = Math.min(
++      target,
++      Math.sqrt(cornerSpeed ** 2 + 2 * 18 * Math.max(0, distance - 6)),
++    );
++  }
++  let lane = clamp(curve * 100, -1.4, 1.4) + (c.slot % 2 ? 0.22 : -0.22);
++  const traffic = rivals
++    .filter(
++      (o) =>
++        o.id !== c.id &&
++        !o.finished &&
++        o.ghostTime <= 0 &&
++        o.resetTime <= 0 &&
++        Math.abs(trackPoint(o.lastT, track).y - p.y) < 5,
++    )
++    .map((o) => ({
++      car: o,
++      forward:
++        (o.x - c.x) * Math.sin(p.heading) + (o.z - c.z) * Math.cos(p.heading),
++      side:
++        (o.x - c.x) * Math.cos(p.heading) - (o.z - c.z) * Math.sin(p.heading),
++    }))
++    .filter((o) => o.forward > 0 && o.forward < 24 && Math.abs(o.side) < 4)
++    .sort((a, b) => a.forward - b.forward)[0];
++  if (traffic) {
++    lane = clamp(
++      p.lateral + (traffic.side >= 0 ? -3 : 3),
++      -p.roadWidth / 2 + 2,
++      p.roadWidth / 2 - 2,
++    );
++    if (traffic.forward < 5 && Math.abs(traffic.side) < 1.4)
++      target = Math.min(target, Math.max(8, traffic.car.speed - 2));
++  }
++  let aim = look,
++    avoidingObstacle = false;
++  for (const obstacle of roadObstacles(track)) {
++    const forward = (((obstacle.t - p.t + 1.5) % 1) - 0.5) * track.length;
++    const side = obstacle.side;
++    if (
++      forward > -obstacle.radius - 4 &&
++      forward < lookDistance + 18 &&
++      (Math.abs(side - lane) < obstacle.radius + 2.7 ||
++        Math.abs(side - p.lateral) < obstacle.radius + 2.7)
++    ) {
++      lane = clamp(
++        side + (side > 0 ? -1 : 1) * (obstacle.radius + 2.7),
++        -p.roadWidth / 2 + 1.8,
++        p.roadWidth / 2 - 1.8,
++      );
++      avoidingObstacle = true;
++      if (forward < lookDistance && forward > -obstacle.radius)
++        aim = trackPoint(
++          p.t + Math.max(1.25, forward * 0.55) / track.length,
++          track,
++        );
++    }
++  }
++  const x = aim.x + Math.cos(aim.heading) * lane,
++    z = aim.z - Math.sin(aim.heading) * lane;
++  const error = angleDiff(Math.atan2(x - c.x, z - c.z), c.heading);
++  const bend = Math.abs(curve),
++    slip = Math.abs(c.slipAngle);
++  const drift =
++    speed > (expert ? 21 : 24) &&
++    speed < target + 4 &&
++    bend > 0.011 &&
++    bend < 0.08 &&
++    Math.abs(error) < 0.65 &&
++    p.distance < p.roadWidth / 2 - 2.5 &&
++    !traffic &&
++    c.boostTime <= 0 &&
++    c.miniWindow <= 0 &&
++    slip < 0.48;
++  const turnRate = drift ? CFG.vehicle.driftTurnRate : CFG.vehicle.turnRate;
++  const steer = clamp(
++    error * (drift ? 2.3 : 2.8) + ((curve * speed) / turnRate) * 0.42,
++    -1,
++    1,
++  );
++  const safeBoost =
++    Math.abs(error) < 0.2 &&
++    futureCurve < 0.021 &&
++    !traffic &&
++    !avoidingObstacle &&
++    p.distance < p.roadWidth / 2 - 2;
++  let throttle = speed < target - 0.3 ? 1 : speed > target + 0.6 ? -1 : 0.45;
++  if (c.miniWindow > 0 && c.boostTime <= 0 && speed < target + 2)
++    throttle = c.throttleHeld ? 0 : 1;
++  return {
++    throttle,
++    steer,
++    drift,
++    boost:
++      c.storedNitro > 0 &&
++      !c.boostHeld &&
++      (c.boostTime <= 0 || c.boostTime <= CFG.nitro.buffer) &&
++      safeBoost,
++    item: aiItemInput(c, track, difficulty, rivals, items, safeBoost),
++    reset:
++      speed < 2 &&
++      clock > 8 &&
++      !c.resetHeld &&
++      (Math.abs(error) > 1.4 ||
++        track.obstacles.some(
++          (o) => Math.hypot(c.x - o.x, c.z - o.z) < o.radius + 1.2,
++        )),
++  };
++}
++
++function noviceInput(
++  c: Car,
++  track: Track,
++  difficulty: Difficulty,
++  clock: number,
++  rivals: readonly Car[] = [],
+ ): Input {
+   const level = { easy: 0, normal: 1, hard: 2 }[difficulty];
+   const p = continuousTrack(c.x, c.z, c.lastT, track, c.routeBranch),
+     look = trackPoint(
+       p.t + (11 + Math.abs(c.speed) * 0.28) / track.length,
+       track,
+     );
+   let lane =
+diff --git a/shared/gameplay.ts b/shared/gameplay.ts
+index 2a90015..c2054a5 100644
+--- a/shared/gameplay.ts
++++ b/shared/gameplay.ts
+@@ -47,17 +47,17 @@ export interface Challenge {
+ // Nine actual routes; each chapter increases precision, rival count and required technique.
+ export const CHALLENGES: Challenge[] = [
+   {
+     id: "coast-race",
+     title: "晴湾杯 · 起步争先",
+     description: "三圈竞速进入前两名，累计有效漂移集气 100 点。",
+     trackId: "coast",
+     mode: "race",
+-    difficulty: "normal",
++    difficulty: "hard",
+     laps: 3,
+     limit: 0,
+     gold: 112,
+     rank: 2,
+     uses: 0,
+     drift: 100,
+     opponents: 3,
+   },
+@@ -77,32 +77,32 @@ export const CHALLENGES: Challenge[] = [
+     opponents: 0,
+   },
+   {
+     id: "coast-items",
+     title: "防波堤 · 连弯反击",
+     description: "连续 S 弯道具赛进入前两名，使用至少 4 次道具。",
+     trackId: "coast-breakwater",
+     mode: "items",
+-    difficulty: "normal",
++    difficulty: "hard",
+     laps: 3,
+     limit: 0,
+     gold: 145,
+     rank: 2,
+     uses: 4,
+     drift: 0,
+     opponents: 3,
+   },
+   {
+     id: "city-race",
+     title: "街区杯 · 六车混战",
+     description: "对抗五名 AI，三圈进入前两名，漂移集气 200 点。",
+     trackId: "city",
+     mode: "race",
+-    difficulty: "normal",
++    difficulty: "hard",
+     laps: 3,
+     limit: 0,
+     gold: 153,
+     rank: 2,
+     uses: 0,
+     drift: 200,
+     opponents: 5,
+   },
+
+New tactical item module: shared/ai-items.ts
+
+import type { Difficulty } from "./gameplay.ts";
+import type { ItemWorld } from "./items.ts";
+import type { Car } from "./race.ts";
+import { angleDiff, trackPoint, type Track } from "./track.ts";
+
+const distance = (a: Pick<Car, "x" | "z">, b: Pick<Car, "x" | "z">) =>
+  Math.hypot(a.x - b.x, a.z - b.z);
+
+function canRace(car: Readonly<Car>) {
+  return !car.finished && car.resetTime <= 0 && car.ghostTime <= 0;
+}
+
+function validMissileTarget(
+  car: Readonly<Car>,
+  rival: Readonly<Car>,
+  track: Track,
+) {
+  return (
+    rival.id !== car.id &&
+    canRace(rival) &&
+    rival.progress > car.progress &&
+    distance(car, rival) < 160 &&
+    Math.abs(
+      trackPoint(rival.lastT, track).y - trackPoint(car.lastT, track).y,
+    ) < 5
+  );
+}
+
+function hasTrapThreat(car: Readonly<Car>, world: ItemWorld) {
+  return world.traps.some(
+    (trap) =>
+      trap.owner !== car.id &&
+      trap.ttl > 0 &&
+      Math.hypot(trap.x - car.x, trap.z - car.z) < 12,
+  );
+}
+
+function approachingUsableBox(
+  car: Readonly<Car>,
+  track: Track,
+  world: ItemWorld,
+) {
+  const state = world.players[car.id];
+  const roadY = trackPoint(car.lastT, track).y;
+  return world.boxes.some((box) => {
+    const dx = box.x - car.x;
+    const dz = box.z - car.z;
+    const forward = dx * Math.sin(car.heading) + dz * Math.cos(car.heading);
+    const side = dx * Math.cos(car.heading) - dz * Math.sin(car.heading);
+    return (
+      forward > 2.5 &&
+      Math.hypot(dx, dz) <= 38 &&
+      Math.abs(side) <= track.width / 2 + 2 &&
+      Math.abs(box.y - roadY) < 3 &&
+      box.readyAt <= world.time &&
+      state.pickedLaps[box.band] < Math.floor(car.progress)
+    );
+  });
+}
+
+function hasPursuer(car: Readonly<Car>, rivals: readonly Car[]) {
+  return rivals.some(
+    (rival) =>
+      rival.id !== car.id &&
+      canRace(rival) &&
+      rival.progress < car.progress &&
+      car.progress - rival.progress < 0.08 &&
+      distance(car, rival) < 45,
+  );
+}
+
+function atChokePoint(
+  car: Readonly<Car>,
+  track: Track,
+  difficulty: Difficulty,
+) {
+  if (difficulty === "easy" || track.width > 12) return false;
+  const here = trackPoint(car.lastT, track);
+  const ahead = trackPoint(car.lastT + 18 / track.length, track);
+  return Math.abs(angleDiff(ahead.heading, here.heading)) > 0.28;
+}
+
+/**
+ * Chooses an item button state without consuming items or changing race state.
+ * A held engine-side button always receives a release frame before another use.
+ */
+export function aiItemInput(
+  c: Readonly<Car>,
+  track: Track,
+  difficulty: Difficulty,
+  rivals: readonly Car[],
+  world: ItemWorld | null | undefined,
+  safeBoost: boolean,
+): boolean {
+  if (!world || !canRace(c)) return false;
+  const state = world.players[c.id];
+  if (!state || state.pressed || !state.held) return false;
+
+  switch (state.held) {
+    case "missile":
+      return rivals.some((rival) => validMissileTarget(c, rival, track));
+    case "shield":
+      return (
+        state.shield <= 0 &&
+        (world.missiles.some(
+          (missile) => missile.target === c.id && missile.ttl > 0,
+        ) ||
+          hasTrapThreat(c, world) ||
+          approachingUsableBox(c, track, world))
+      );
+    case "boost":
+      return safeBoost && c.boostTime <= 0;
+    case "trap":
+      return hasPursuer(c, rivals) || atChokePoint(c, track, difficulty);
+  }
+}
+
+New regression tests: tests/ai-pace.test.ts
+
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { aiInput } from "../shared/ai.ts";
+import { aiInput as beforeAI } from "./fixtures/ai-before-difficulty.ts";
+import { TRACKS, getTrack, trackPoint } from "../shared/track.ts";
+import { spawnCar, stepCar } from "../shared/race.ts";
+
+test("AI keeps accelerating during nitro on a clear straight instead of braking at its cruising cap", () => {
+  const track = TRACKS[0],
+    car = spawnCar(1, "boost", track);
+  const p = trackPoint(0.025, track);
+  Object.assign(car, {
+    x: p.x,
+    z: p.z,
+    heading: p.heading,
+    lastT: p.t,
+    speed: 44,
+    vx: Math.sin(p.heading) * 44,
+    vz: Math.cos(p.heading) * 44,
+    boostTime: 2,
+  });
+  for (const difficulty of ["normal", "hard"] as const)
+    assert.ok(aiInput(car, track, difficulty, 10).throttle > 0, difficulty);
+});
+
+test("new competitive AI is materially faster on every route using unchanged legal physics", () => {
+  for (const difficulty of ["normal", "hard"] as const) {
+    let totalBefore = 0,
+      totalAfter = 0;
+    for (const track of TRACKS) {
+      const results = [beforeAI, aiInput].map((controller) => {
+        const c = spawnCar(1, "pace", track);
+        let resets = 0;
+        for (let i = 0; i < 60 * 300 && c.lap < 3; i++) {
+          const input = controller(c, track, difficulty, i / 60);
+          if (input.reset && !c.resetHeld) resets++;
+          assert.ok(Number.isFinite(input.steer) && Math.abs(input.steer) <= 1);
+          stepCar(c, input, 1 / 60, track);
+        }
+        assert.equal(c.lap, 3, `${track.id}/${difficulty} did not finish`);
+        return {
+          time: c.time,
+          collisions: c.collisionCount,
+          resets,
+          nitro: c.nitroUses,
+          mini: c.miniUses,
+          drift: c.driftTotal,
+        };
+      });
+      const [old, next] = results;
+      console.log(
+        JSON.stringify({
+          track: track.id,
+          difficulty,
+          before: old,
+          after: next,
+        }),
+      );
+      assert.ok(
+        next.time < old.time * 0.96,
+        `${track.id}/${difficulty}: ${next.time} vs ${old.time}`,
+      );
+      assert.equal(next.resets, 0, `${track.id}/${difficulty} needed a reset`);
+      totalBefore += old.time;
+      totalAfter += next.time;
+    }
+    assert.ok(
+      totalAfter < totalBefore * 0.85,
+      `${difficulty}: aggregate improvement only ${1 - totalAfter / totalBefore}`,
+    );
+  }
+});
+
+test("expert AI earns and spends real drift nitro and uses recovery mini boosts", () => {
+  const track = TRACKS[0],
+    c = spawnCar(1, "technique", track);
+  for (let i = 0; i < 60 * 160 && c.lap < 3; i++)
+    stepCar(c, aiInput(c, track, "hard", i / 60), 1 / 60, track);
+  assert.ok(c.driftTotal >= 100, `only ${c.driftTotal} real energy`);
+  assert.ok(c.nitroUses >= 1, "no nitro use");
+  assert.ok(c.miniUses >= 1, "no recovery mini boost");
+});
+
+test("AI decisions do not mutate vehicle or rival physics and remain repeatable", () => {
+  const track = TRACKS[0],
+    car = spawnCar(1, "driver", track),
+    rival = spawnCar(0, "rival", track);
+  const before = structuredClone([car, rival]);
+  const first = aiInput(car, track, "hard", 4, [car, rival]);
+  const second = aiInput(car, track, "hard", 4, [car, rival]);
+  assert.deepEqual(first, second);
+  assert.deepEqual([car, rival], before);
+});
+
+test("AI escapes a glancing obstacle contact instead of driving indefinitely against it", () => {
+  const track = getTrack("city-factory"),
+    c = spawnCar(1, "blocked", track);
+  Object.assign(c, {
+    x: -164.60210758086515,
+    z: -0.7853842805733047,
+    heading: -4.768941179299482,
+    speed: 34.9144913,
+    progress: 0.7596073236641909,
+    lastT: 0.7596073236641909,
+    checkpoint: 9,
+  });
+  c.vx = Math.sin(c.heading) * c.speed;
+  c.vz = Math.cos(c.heading) * c.speed;
+  c.lastX = c.x;
+  c.lastZ = c.z;
+  for (let i = 0; i < 60 * 15; i++)
+    stepCar(c, aiInput(c, track, "hard", 160 + i / 60), 1 / 60, track);
+  assert.ok(c.progress > 0.85, `still stuck at ${c.progress}`);
+});
+
+New item tests: tests/ai-items.test.ts
+
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { aiItemInput } from "../shared/ai-items.ts";
+import { createItems, type Item } from "../shared/items.ts";
+import { spawnCar, type Car } from "../shared/race.ts";
+import { getTrack, trackPoint } from "../shared/track.ts";
+
+const track = getTrack("city");
+
+function carAt(id: string, progress: number): Car {
+  const car = spawnCar(0, id, track);
+  const point = trackPoint(progress, track);
+  Object.assign(car, {
+    x: point.x,
+    z: point.z,
+    heading: point.heading,
+    lastT: point.t,
+    progress,
+    speed: 32,
+  });
+  return car;
+}
+
+function scenario(item: Item, progress = 0.1) {
+  const car = carAt("ai", progress);
+  const world = createItems([car.id], track);
+  world.players[car.id].held = item;
+  return { car, world };
+}
+
+test("missile fires only at a target accepted by the item engine", () => {
+  const { car, world } = scenario("missile");
+  const valid = carAt("valid", car.progress + 0.01);
+  valid.x = car.x + 40;
+  valid.z = car.z;
+  const behind = { ...valid, id: "behind", progress: car.progress - 0.01 };
+  const distant = { ...valid, id: "distant", x: car.x + 161 };
+  const ghost = { ...valid, id: "ghost", ghostTime: 1 };
+  const reset = { ...valid, id: "reset", resetTime: 1 };
+  const finished = { ...valid, id: "finished", finished: true };
+
+  assert.equal(aiItemInput(car, track, "normal", [behind], world, true), false);
+  assert.equal(aiItemInput(car, track, "hard", [distant], world, true), false);
+  assert.equal(
+    aiItemInput(car, track, "hard", [ghost, reset, finished], world, true),
+    false,
+  );
+  assert.equal(aiItemInput(car, track, "normal", [valid], world, true), true);
+});
+
+test("missile rejects a rival on a vertically separated road", () => {
+  const mountain = getTrack("mountain");
+  const car = carAt("ai", 0.1);
+  const rival = carAt("rival", 0.11);
+  const world = createItems([car.id], mountain);
+  world.players.ai.held = "missile";
+  const low = trackPoint(car.lastT, mountain);
+  const highIndex = mountain.points.findIndex(
+    (point) => Math.abs(point.y - low.y) >= 5,
+  );
+  assert.ok(highIndex >= 0);
+  rival.lastT = highIndex / 720;
+  rival.x = car.x + 20;
+  rival.z = car.z;
+
+  assert.equal(aiItemInput(car, mountain, "hard", [rival], world, true), false);
+});
+
+test("shield responds to an incoming missile or nearby trap and avoids waste", () => {
+  const { car, world } = scenario("shield");
+  world.missiles.push({
+    x: car.x + 80,
+    z: car.z,
+    owner: "rival",
+    target: car.id,
+    ttl: 3,
+  });
+  assert.equal(aiItemInput(car, track, "normal", [], world, true), true);
+
+  world.players.ai.shield = 2;
+  assert.equal(aiItemInput(car, track, "hard", [], world, true), false);
+  world.players.ai.shield = 0;
+  world.missiles.length = 0;
+  world.traps.push({ x: car.x + 7, z: car.z, owner: "rival", ttl: 10 });
+  assert.equal(aiItemInput(car, track, "hard", [], world, true), true);
+});
+
+test("shield frees capacity near a usable future box only", () => {
+  const { car, world } = scenario("shield");
+  const box = world.boxes[0];
+  const point = trackPoint(car.lastT, track);
+  Object.assign(box, {
+    x: car.x + Math.sin(car.heading) * 32,
+    z: car.z + Math.cos(car.heading) * 32,
+    y: point.y,
+    readyAt: world.time,
+  });
+  assert.equal(aiItemInput(car, track, "normal", [], world, true), true);
+
+  box.x = car.x - Math.sin(car.heading) * 32;
+  box.z = car.z - Math.cos(car.heading) * 32;
+  assert.equal(aiItemInput(car, track, "normal", [], world, true), false);
+  box.x = car.x + Math.sin(car.heading) * 32;
+  box.z = car.z + Math.cos(car.heading) * 32;
+  box.readyAt = world.time + 1;
+  assert.equal(aiItemInput(car, track, "normal", [], world, true), false);
+  box.readyAt = world.time;
+  world.players.ai.pickedLaps[box.band] = Math.floor(car.progress);
+  assert.equal(aiItemInput(car, track, "normal", [], world, true), false);
+});
+
+test("boost waits for a safe straight or corner exit", () => {
+  const { car, world } = scenario("boost");
+  assert.equal(aiItemInput(car, track, "hard", [], world, false), false);
+  assert.equal(aiItemInput(car, track, "hard", [], world, true), true);
+});
+
+test("trap is used for a close pursuer but not an unrelated distant car", () => {
+  const { car, world } = scenario("trap");
+  const pursuer = carAt("pursuer", car.progress - 0.01);
+  pursuer.x = car.x + 15;
+  pursuer.z = car.z;
+  const distant = { ...pursuer, id: "distant", x: car.x + 80 };
+  assert.equal(
+    aiItemInput(car, track, "normal", [distant], world, true),
+    false,
+  );
+  assert.equal(aiItemInput(car, track, "normal", [pursuer], world, true), true);
+});
+
+test("hard AI can clear a trap at a narrow upcoming bend", () => {
+  const mountain = getTrack("mountain");
+  const index = mountain.points.findIndex((point, i) => {
+    const ahead = trackPoint(i / 720 + 18 / mountain.length, mountain);
+    return (
+      Math.abs(
+        Math.atan2(
+          Math.sin(ahead.heading - point.heading),
+          Math.cos(ahead.heading - point.heading),
+        ),
+      ) > 0.28
+    );
+  });
+  assert.ok(index >= 0);
+  const car = carAt("ai", index / 720);
+  const point = trackPoint(car.lastT, mountain);
+  Object.assign(car, { x: point.x, z: point.z, heading: point.heading });
+  const world = createItems([car.id], mountain);
+  world.players.ai.held = "trap";
+
+  assert.equal(aiItemInput(car, mountain, "hard", [], world, true), true);
+  assert.equal(aiItemInput(car, mountain, "easy", [], world, true), false);
+});
+
+test("release frames, absent state, and inactive cars never press an item", () => {
+  const { car, world } = scenario("boost");
+  world.players.ai.pressed = true;
+  assert.equal(aiItemInput(car, track, "hard", [], world, true), false);
+  assert.equal(aiItemInput(car, track, "hard", [], null, true), false);
+  assert.equal(
+    aiItemInput({ ...car, finished: true }, track, "hard", [], world, true),
+    false,
+  );
+  assert.equal(
+    aiItemInput({ ...car, resetTime: 1 }, track, "hard", [], world, true),
+    false,
+  );
+  assert.equal(
+    aiItemInput({ ...car, ghostTime: 1 }, track, "hard", [], world, true),
+    false,
+  );
+  delete world.players.ai;
+  assert.equal(aiItemInput(car, track, "hard", [], world, true), false);
+});
+
+test("decision is a pure computation", () => {
+  const { car, world } = scenario("missile");
+  const rival = carAt("rival", car.progress + 0.01);
+  rival.x = car.x + 20;
+  rival.z = car.z;
+  const before = JSON.stringify({ car, rival, world });
+  aiItemInput(car, track, "hard", [rival], world, true);
+  assert.equal(JSON.stringify({ car, rival, world }), before);
+});

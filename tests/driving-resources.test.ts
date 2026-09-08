@@ -323,7 +323,7 @@ test("AC12 legal mountain branch traverses and merges with continuous canonical 
   assert.ok(c.progress > exit.t + 0.01, `progress ${c.progress}`);
   assert.equal(c.routeBranch, "main");
 });
-test("reference 40-tick clean high-slip bend earns half to one bottle at this world scale", () => {
+test("reference 40-tick clean high-slip bend earns only a modest fraction of a bottle", () => {
   const c = spawnCar();
   Object.assign(c, {
     speed: 35,
@@ -332,8 +332,5 @@ test("reference 40-tick clean high-slip bend earns half to one bottle at this wo
   });
   drive(c, 40, { ...EMPTY_INPUT, throttle: 1, drift: true, steer: 1 });
   assert.equal(c.impact, 0);
-  assert.ok(
-    c.driftTotal >= 50 && c.driftTotal <= 100,
-    `charge ${c.driftTotal}`,
-  );
+  assert.ok(c.driftTotal >= 10 && c.driftTotal <= 30, `charge ${c.driftTotal}`);
 });

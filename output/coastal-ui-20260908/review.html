@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KART CLUB · 海岸风格视觉验收</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f1f2e8;color:#163f31;font:14px/1.7 system-ui,sans-serif}header,main{max-width:1656px;margin:auto;padding:26px 32px}header{display:flex;justify-content:space-between;align-items:center;gap:20px}h1{font-size:24px;margin:0}p{color:#657368;margin:8px 0 20px}a{color:#315c30}h2{font-size:18px;margin:30px 0 12px}.pair{display:grid;grid-template-columns:1fr 1fr;gap:16px}figure{margin:0;background:#faf8ee;border:1px solid #d2dcc9;border-radius:12px;overflow:hidden}figcaption{padding:10px 16px;font-size:12px;font-weight:600}.frame{aspect-ratio:16/9;overflow:hidden;background:#c6dcd0}.frame img{width:100%;height:100%;object-fit:contain;display:block}.frame.reference img{object-fit:cover;object-position:right center}.gallery{display:grid;grid-template-columns:repeat(2,1fr);gap:16px}.note{border-left:3px solid #9cb74f;padding:12px 18px;background:#e9eddc}.portrait{max-height:500px}.portrait img{max-height:500px;width:100%;object-fit:contain}@media(max-width:800px){.pair,.gallery{grid-template-columns:1fr}header,main{padding:18px}}
+</style>
+<header><div><h1>KART CLUB · 海岸风格视觉验收</h1><span>2026.09.08 / 实际浏览器截图</span></div><a href="/">打开可玩的新版</a></header>
+<main>
+<p class="note">大厅直接使用用户提供的原始海岸图，界面根据其配色设计。比赛使用实时 3D 场景。参考图没有菜单或 HUD，新增 UI 不能按不存在的原版控件做像素一致性验证；实时场景也尚未达到参考图的全部美术细节。</p>
+<h2>01 / 大厅与原始主视觉</h2>
+<div class="pair"><figure><figcaption>用户参考图 · 按大厅同样的比例与靠右裁切展示</figcaption><div class="frame reference"><img src="/art/coastal-race.png"></div></figure><figure><figcaption>实际大厅 · 可操作菜单覆盖于原始主视觉</figcaption><div class="frame"><img src="lobby.png"></div></figure></div>
+<h2>02 / 参考赛车与实时模型</h2>
+<p>两幅画面的摄像机、赛车数量和场景排列不同。此项仅用于检查头盔、面罩、车体、屋顶与整体风格，不能据此认定像素完全还原。</p>
+<div class="pair"><figure><figcaption>用户提供的正面参考</figcaption><div class="frame"><img src="/art/coastal-grid.jpg"></div></figure><figure><figcaption>更新后的实时 3D 赛车和村庄</figcaption><div class="frame"><img src="front-scene.png"></div></figure></div>
+<h2>03 / 比赛与暂停</h2><div class="gallery"><figure><figcaption>实际比赛 HUD</figcaption><div class="frame"><img src="race.png"></div></figure><figure><figcaption>暂停菜单</figcaption><div class="frame"><img src="pause.png"></div></figure></div>
+<h2>04 / 完整菜单流程</h2><div class="gallery"><figure><figcaption>赛道与赛事设置</figcaption><div class="frame"><img src="setup.png"></div></figure><figure><figcaption>九关生涯</figcaption><div class="frame"><img src="career.png"></div></figure><figure><figcaption>多人联机</figcaption><div class="frame"><img src="online.png"></div></figure><figure><figcaption>奖励金库</figcaption><div class="frame"><img src="vault.png"></div></figure><figure><figcaption>设置与键位</figcaption><div class="frame"><img src="settings.png"></div></figure><figure><figcaption>免费房间</figcaption><div class="frame"><img src="room.png"></div></figure></div>
+<h2>05 / 适配</h2><div class="pair"><figure><figcaption>390 CSS 像素窄屏</figcaption><div class="portrait"><img src="mobile.png"></div></figure><figure><figcaption>阿拉伯语 · 1280 × 720 CSS 像素</figcaption><div class="frame"><img src="arabic.png"></div></figure></div>
+<p>大厅、赛道设置和设置截图为 1536 × 864；其余截图由应用浏览器按比例缩放输出。比赛与暂停截图记录本轮 UI 验证，车辆最终材质及轮胎以第二组实时模型图为准。素材原文件未被重绘或压缩；比较用截图不作为原素材分辨率证明。</p>
+</main>
+</html>
+
