@@ -29,11 +29,7 @@ import {
 } from "./race-feedback.ts";
 import { driftEfficiency } from "../shared/driving-skills.ts";
 import { incomingThreat } from "../shared/items.ts";
-import {
-  nitroDisplay,
-  rewardDisplay,
-  type ClaimConfirmation,
-} from "./visual-state.ts";
+import { nitroDisplay } from "./visual-state.ts";
 import {
   brandLogo,
   button,
@@ -125,7 +121,6 @@ let garageReturnShot: string | null = null;
 let selectedKart = readSelectedKart(undefined);
 let selectedDriver = readDriverAppearance();
 let garageTab: GarageTab = 'karts';
-const claimConfirmations = new Map<string, ClaimConfirmation>();
 const autoStartRace =
   marketingQuery.get("autostart") === "1" || marketingQuery.get("auto") === "1";
 const hideHud = marketingQuery.get("hud") === "0";
@@ -203,7 +198,6 @@ let debugSample: {
   forward: number;
   gain: number;
 } | null = null;
-let freeOnline = true;
 let careerProgress: Record<string, CareerProgress> = stored(careerKey, {});
 let bestGhost: Ghost | null = null,
   ghostFrames: number[][] = [],
@@ -323,10 +317,10 @@ function setupMarkup(online = false) {
           .join(
             "",
           )}</select></label><label>AI opponents<select id="opponents-select" data-config="opponents" ${hasRivals ? "" : 'disabled aria-describedby="mode-applicability"'}>${[3, 5, 7].map((n) => `<option value="${n}" ${selection.opponents === n ? "selected" : ""}>${tr("{n} 名 AI · {cars} 车赛", { n, cars: n + 1 })}</option>`).join("")}</select></label>`
-  }<label>Laps<select id="laps-select" data-config="laps">${[1, 2, 3].map((n) => `<option value="${n}" ${selection.laps === n ? "selected" : ""}>${tr("{n} 圈", { n })}</option>`).join("")}</select></label></div>${!online && !hasRivals ? `<p class="mode-applicability" id="mode-applicability">${tr("Solo lap · AI options do not apply")}</p>` : ""}<p class="form-note">${online ? "Free races need no tickets. Simulation races use test tickets when everyone is ready." : "Race and Item Race support AI opponents. Time Trial records your best lap ghost. Free Practice has no opponents."}</p></section></div><div class="modal-actions"><span class="selection-summary">${escape(tr(getTrack(selection.trackId).name))}</span>${button(online ? "DONE" : "BACK", "close", "outline")}${online ? "" : button(`START RACE ${icon("arrow")}`, "start-custom", "accent")}</div>`;
+  }<label>Laps<select id="laps-select" data-config="laps">${[1, 2, 3].map((n) => `<option value="${n}" ${selection.laps === n ? "selected" : ""}>${tr("{n} 圈", { n })}</option>`).join("")}</select></label></div>${!online && !hasRivals ? `<p class="mode-applicability" id="mode-applicability">${tr("Solo lap · AI options do not apply")}</p>` : ""}<p class="form-note">${online ? "Race with friends for free. Everyone must be ready before the race starts." : "Race and Item Race support AI opponents. Time Trial records your best lap ghost. Free Practice has no opponents."}</p></section></div><div class="modal-actions"><span class="selection-summary">${escape(tr(getTrack(selection.trackId).name))}</span>${button(online ? "DONE" : "BACK", "close", "outline")}${online ? "" : button(`START RACE ${icon("arrow")}`, "start-custom", "accent")}</div>`;
 }
 
-type Page = "home" | "career" | "online" | "vault" | "garage";
+type Page = "home" | "career" | "online" | "garage";
 let page: Page = roomInput ? 'online' : "home",
   mode: "lobby" | "solo" | "multi" = "lobby",
   modal = "",
@@ -390,9 +384,6 @@ function escape(text: string) {
       ]!,
   );
 }
-function money(v = 0) {
-  return (v / 100).toLocaleString("en-US", { maximumFractionDigits: 2 });
-}
 function time(v: number) {
   if (!Number.isFinite(v)) return "--:--";
   const m = Math.floor(v / 60),
@@ -420,14 +411,11 @@ function startAudio() {
   audio.setTrack(activeTrack.id);
   audio.start();
 }
-function simulated() {
-  return '<span class="sim"><i></i> 模拟经济 · 无真实资金</span>';
-}
 function header() {
-  return `<header class="header"><button class="brand" data-page="home" aria-label="KART CLUB home">${brandLogo()}<span>KART CLUB</span></button><nav aria-label="Main navigation">${(["home", "career", "online", "vault"] as Page[]).map((p, i) => `<button data-page="${p}" class="${page === p ? "active" : ""}" ${page === p ? 'aria-current="page"' : ""}>${["Lobby", "Career", "Multiplayer", "Rewards"][i]}</button>`).join("")}</nav><div class="header-actions"><button class="wallet" data-action="wallet" aria-label="Simulation account"><b id="wallet-value" dir="ltr">${net.account ? money(net.account.tickets) : "—"}</b><span>TICKETS<small>Test account</small></span></button><button class="icon-button" data-action="settings" aria-label="Settings">${icon("gear")}</button></div></header>`;
+  return `<header class="header"><button class="brand" data-page="home" aria-label="KART CLUB home">${brandLogo()}<span>KART CLUB</span></button><nav aria-label="Main navigation">${(["home", "career", "online"] as Page[]).map((p, i) => `<button data-page="${p}" class="${page === p ? "active" : ""}" ${page === p ? 'aria-current="page"' : ""}>${["Lobby", "Career", "Multiplayer"][i]}</button>`).join("")}</nav><div class="header-actions"><button class="icon-button" data-action="settings" aria-label="Settings">${icon("gear")}</button></div></header>`;
 }
 function footer() {
-  return `<footer class="footer"><span><i class="status-dot ${net.account ? "" : "off"}"></i> ${net.account ? "赛事服务已连接" : "Single player ready"}</span><a href="/reference.html">${tr("海岸参考试驾 ↗")}</a><a class="footer-social" href="https://x.com/KartClubGame" target="_blank" rel="noopener noreferrer" aria-label="KART CLUB on X (opens in a new tab)">${icon("xLogo")}<span dir="ltr">@KartClubGame</span></a><button data-action="help">Driving guide ${icon("arrow")}</button></footer>`;
+  return `<footer class="footer"><span><i class="status-dot ${net.account ? "" : "off"}"></i> ${net.account ? "赛事服务已连接" : "Single player ready"}</span><a href="/reference.html">${tr("海岸参考试驾 ↗")}</a><button data-action="help">Driving guide ${icon("arrow")}</button></footer>`;
 }
 function clearSoloRun() {
   hudVfx.reset();
@@ -464,7 +452,7 @@ function lobby() {
   app.className = `lobby page-${page} biome-${getLevel(selection.trackId).biome}`;
   app.innerHTML =
     header() +
-    `<main class="lobby-main">${page === "home" ? home() : page === "garage" ? garage() : page === "career" ? career() : page === "online" ? online() : vault()}</main>` +
+    `<main class="lobby-main">${page === "home" ? home() : page === "garage" ? garage() : page === "career" ? career() : online()}</main>` +
     footer() +
     `<div id="modal-root"></div>`;
   roomStamp = "";
@@ -511,42 +499,12 @@ function career() {
   }${classicHistoryMarkup(progress)}`;
 }
 function online() {
-  const match = { ...matchForSelection(selection), free: freeOnline };
-  return `<section class="page-heading"><span class="eyebrow">REAL-TIME MULTIPLAYER / 02</span><h1>一起出发，<br>各凭本事领跑。</h1><p>真实玩家，实时较量。创建房间，把房间码分享给好友。</p></section><section class="online-layout"><div class="glass form-panel">${serviceMarkup(net.serviceState, net.serviceError)}<label for="nickname">你的车手名</label><input id="nickname" maxlength="16" value="${escape(nickname)}" placeholder="输入车手名"><div class="two-col"><div><h3>发起一场比赛</h3><p>普通免费场 2–8 人 · 模拟奖金场 2–4 人</p><label>参赛类型<select data-config="freeOnline"><option value="true" ${freeOnline ? "selected" : ""}>普通免费赛 · 无代币奖励</option><option value="false" ${!freeOnline ? "selected" : ""}>模拟奖金赛 · 每人10 TICKET</option></select></label><button class="button outline" data-action="room-config">赛事设置</button><p>${escape(tr(getTrack(selection.trackId).name))} · ${tr(MODE_NAMES[match.mode])} · ${tr("{n} 圈", { n: match.laps })}</p><button class="button primary" data-action="create">创建房间 <span>＋</span></button></div><div><h3>加入好友的房间</h3><label for="room-code">${tr("房间码或邀请链接")}</label><input id="room-code" value="${escape(roomInput)}" placeholder="${tr("房间码或邀请链接")}" maxlength="2048" autocomplete="off" spellcheck="false" dir="ltr"><button class="button outline" data-action="join">加入房间 <span>→</span></button></div></div><p class="form-note">${tr("好友打开邀请链接，输入车手名后加入。全部准备后自动发车。")}</p></div><aside class="glass race-rules"><span class="eyebrow">RACE BRIEF</span><h2>这一场，为荣誉。</h2><div><span>每人门票</span><b>${freeOnline ? "免费" : "10 TICKET"}</b></div><div><span>本场奖金</span><b>${freeOnline ? "无代币奖励" : "100 points"}</b></div>${freeOnline ? "<div><span>参赛人数</span><b>2–8 人</b></div><p>普通房间保留10分钟。至少2人全部准备后发车，无需扣票，不发放代币奖励。</p>" : "<div><span>4 人场前三名</span><b>60 / 30 / 10%</b></div><p>30秒内凑齐至少2人并全部准备。模拟奖金场此时才扣票，起跑前取消退票。并列车手均分所占名次奖金，不足最小单位的零头留在奖池。</p>"}${simulated()}</aside></section>`;
-}
-function vault() {
-  const p = net.pool;
-  return `<section class="page-heading"><span class="eyebrow">THE REWARD VAULT / 03</span><h1>${escape(tr("每一次冲线，都有回响。"))}</h1><p>查看模拟税收积累和比赛奖励。当前所有数字均为测试数据。</p></section><section class="vault-grid"><div class="glass balance-panel"><span class="eyebrow">AVAILABLE PRIZE POOL</span><h2>${p ? money(p.available) : "—"} <small>points</small></h2><div class="pool-stats"><div><span>累计税收入账</span><b>${p ? money(p.received) : "—"}</b></div><div><span>比赛已预留</span><b>${p ? money(p.reserved) : "—"}</b></div><div><span>待车手领取</span><b>${p ? money(p.pending) : "—"}</b></div><div><span>累计已发放</span><b>${p ? money(p.paid) : "—"}</b></div></div><p class="form-note">初始模拟税收基金为 12,840 PONS。每次模拟 5,000 PONS 应税交易额，按 2% 注入 100 PONS；门票收入独立记账。</p><button class="button outline" data-action="tax">模拟一笔税收入账 <span>＋ 100</span></button></div><div class="glass rewards-panel"><span class="eyebrow">YOUR REWARDS</span><h2>我的比赛奖励</h2><div class="balance-row"><span>已领取奖励</span><b>${net.account ? money(net.account.pons) : "—"} points</b></div><div id="claim-list">${claims()}</div></div></section>`;
-}
-function claims() {
-  if (!net.account)
-    return `<div class="empty-state"><p>Account unavailable</p><small>Connect to the race service to view your actual rewards.</small></div>`;
-  const confirmedClaims = [...claimConfirmations.values()].filter(
-    (receipt) => receipt.id === net.account!.id,
-  );
-  const unclaimed = net.account.pending.filter(
-    (award) =>
-      !confirmedClaims.some((receipt) => receipt.matchId === award.matchId),
-  );
-  const confirmations = confirmedClaims
-    .map(
-      (receipt) =>
-        `<p class="claim-confirmation" role="status">${tr("Confirmed claim · {amount} points", { amount: money(receipt.amount) })}<small data-no-i18n dir="ltr">${escape(receipt.matchId)}</small></p>`,
-    )
-    .join("");
-  return (
-    confirmations +
-    (unclaimed.length
-      ? unclaimed
-          .map(
-            (a) =>
-              `<div class="claim-row"><div><b>${money(a.amount)} points</b><small>赛事 ${escape(a.matchId)}</small></div><button class="button primary small" data-claim="${escape(a.matchId)}">领取</button></div>`,
-          )
-          .join("")
-      : confirmations
-        ? ""
-        : `<div class="empty-state">${icon("trophy")}<p>你的领奖台，虚位以待。</p><small>${tr("Only simulation prize races can award points.")}</small></div>`)
-  );
+  const match = matchForSelection(selection);
+  return `<section class="page-heading"><span class="eyebrow">REAL-TIME MULTIPLAYER / 02</span><h1>一起出发，<br>各凭本事领跑。</h1><p>真实玩家，实时较量。创建房间，把房间码分享给好友。</p></section>
+    <section class="online-layout"><div class="glass form-panel">${serviceMarkup(net.serviceState, net.serviceError)}<label for="nickname">你的车手名</label><input id="nickname" maxlength="16" value="${escape(nickname)}" placeholder="输入车手名">
+    <div class="two-col"><div><h3>发起一场比赛</h3><p>Free multiplayer · 2–8 drivers</p><button class="button outline" data-action="room-config">赛事设置</button><p>${escape(tr(getTrack(selection.trackId).name))} · ${tr(MODE_NAMES[match.mode])} · ${tr("{n} 圈", { n: match.laps })}</p><button class="button primary" data-action="create">创建房间 <span>＋</span></button></div>
+    <div><h3>加入好友的房间</h3><label for="room-code">${tr("房间码或邀请链接")}</label><input id="room-code" value="${escape(roomInput)}" placeholder="${tr("房间码或邀请链接")}" maxlength="2048" autocomplete="off" spellcheck="false" dir="ltr"><button class="button outline" data-action="join">加入房间 <span>→</span></button></div></div><p class="form-note">${tr("好友打开邀请链接，输入车手名后加入。全部准备后自动发车。")}</p></div>
+    <aside class="glass race-rules"><span class="eyebrow">RACE BRIEF</span><h2>这一场，为荣誉。</h2><div><span>参赛人数</span><b>2–8 人</b></div><p>Free rooms wait up to 10 minutes. At least 2 players must be ready to start.</p></aside></section>`;
 }
 function showModal(kind: string) {
   if (kind === "settings" && modal === "pause") returnToPause = true;
@@ -567,11 +525,9 @@ function showModal(kind: string) {
         ? setupMarkup(true)
         : kind === "settings"
           ? settingsMarkup()
-          : kind === "wallet"
-            ? walletMarkup()
-            : kind === "room"
-              ? roomMarkup()
-              : helpMarkup();
+          : kind === "room"
+            ? roomMarkup()
+            : helpMarkup();
   root.innerHTML = dialog(
     markup,
     kind === "setup" || kind === "room-config"
@@ -604,9 +560,6 @@ function settingsMarkup() {
     .join(
       "",
     )}</div><p class="form-note">Arrow keys always work. Esc ${mode === "multi" ? "opens the menu; online races continue." : "pauses single player races."}</p>${button("Restore default keys", "defaults", "text-button")}</section><section class="settings-group"><h3>Language</h3><div class="setting-row"><span>Display language</span>${languageMarkup()}</div></section></div><div class="modal-actions"><span class="form-note">Changes saved automatically</span>${button("DONE", "close", "primary")}</div>`;
-}
-function walletMarkup() {
-  return `<span class="eyebrow">SIMULATION ACCOUNT</span><h2>你的模拟账户</h2>${simulated()}<div class="wallet-balances"><div><span>门票余额</span><b>${net.account ? money(net.account.tickets) : "—"} <small>TICKET</small></b></div><div><span>已领取奖励</span><b>${net.account ? money(net.account.pons) : "—"} <small>points</small></b></div></div><p>每个标签页使用独立的模拟车手身份，刷新后保留。本阶段无需连接钱包。</p>${claims()}`;
 }
 function helpMarkup() {
   return `<span class="eyebrow">DRIVER'S HANDBOOK</span><h2>第一圈，从这里开始。</h2><div class="help-list"><p><kbd data-no-i18n>${keyName(bindings.throttle)}</kbd> / 方向键加速，<kbd data-no-i18n>${keyName(bindings.brake)}</kbd> 刹车与倒车。</p><p>入弯时按住 <kbd data-no-i18n>${keyName(bindings.drift)}</kbd> + 方向键，漂移积累能量。</p><p>集满100点后结束漂移，收成一瓶氮气，最多存2瓶。保持速度和有效侧滑可更快集气；贴墙和低速无法刷气。</p><p>有效漂移后拉正，松开再按油门触发一次小喷。按 <kbd data-no-i18n>${keyName(bindings.boost)}</kbd> 释放，在出弯直道超越对手。</p><p>仅漂移或尚未拉正的漂移余滑中碰撞，才按力度扣除当前气槽12–60点并短暂中断集气。普通行驶碰撞不扣气，已存氮气保留。</p><p>撞墙后可按 <kbd data-no-i18n>${keyName(bindings.reset)}</kbd> 回到已通过的检查点。</p><p>沿赛道前进，顺序通过检查点。回头穿越终点不会增加圈数。</p></div><button class="button primary" data-action="training">进入五步驾驶教学</button><button class="button outline" data-action="corner-practice">弯道训练</button><button class="button outline" data-action="close">准备好了 <span>→</span></button>`;
@@ -906,7 +859,7 @@ function soloResult() {
   }
   modal = "result";
   $("#modal-root").innerHTML =
-    `<div class="modal-backdrop"><section class="modal result-modal"><div class="result-scroll"><span class="eyebrow">${tr("比赛成绩")} / ${tr(MODE_NAMES[selection.raceMode])}</span><div class="result-emblem">${icon(stars ? "trophy" : "flag")}</div><h2>${tr(localCar.finished ? "RACE COMPLETE" : "RUN ENDED")}</h2>${q ? `<div class="stars">${[0, 1, 2].map((i) => icon("star", i < stars ? "earned" : "unearned")).join("")}</div><p>${stars ? (challengeIndex < 8 ? "下一关已解锁，可在生涯中继续。" : "九关已完成，继续挑战全金星！") : q.description}</p>` : ""}<div class="result-stats"><div><span>比赛用时</span><b>${time(localCar.finished ? localCar.time : elapsed)}</b></div><div><span>${soloCars.length > 1 ? tr("FINISH POSITION") : tr("干净漂移")}</span><b>${soloCars.length > 1 ? rank || "DNF" : localCar.cleanDrifts}</b></div></div>${soloCars.length > 1 ? `<div class="classification">${ranks.map(({ car: c, rank }) => `<div class="${c.id === "local" ? "you" : ""}"><b>${rank || "—"}</b><span>${c.id === "local" ? "你" : AI_NAMES[c.slot - 1] || c.id}</span><span>${c.finished ? time(c.time) : "DNF · 未完赛"}</span></div>`).join("")}</div>` : ""}${selection.raceMode === "time" && bestGhost ? `<p>${tr("最佳单圈")} ${time(bestGhost.time)}</p>` : ""}<p>碰撞 ${localCar.collisionCount} 次 · 氮气 ${localCar.nitroUses} 次 · 小喷 ${localCar.miniUses} 次</p>${training ? `<p>${training.step === 5 ? "五步教学完成！" : "教学未完成，可重新练习"}</p>` : ""}${performanceMarkup()}${challengeRun?.failed ? `<p class="event-failed">${tr("计时门超时 · 挑战结束")}</p>` : ""}<p class="form-note">单人模式免费 · 不发放代币奖励</p></div><div class="modal-actions result-actions"><button class="button primary" data-action="retry">${cornerPractice ? tr("重练这个弯") : tr("再跑一次 ↗")}</button>${cornerPractice ? `<button class="button outline" data-action="corner-next">${tr("下一个弯道")}</button>` : ""}<button class="button outline" data-action="exit">返回大厅</button></div></section></div>`;
+    `<div class="modal-backdrop"><section class="modal result-modal"><div class="result-scroll"><span class="eyebrow">${tr("比赛成绩")} / ${tr(MODE_NAMES[selection.raceMode])}</span><div class="result-emblem">${icon(stars ? "trophy" : "flag")}</div><h2>${tr(localCar.finished ? "RACE COMPLETE" : "RUN ENDED")}</h2>${q ? `<div class="stars">${[0, 1, 2].map((i) => icon("star", i < stars ? "earned" : "unearned")).join("")}</div><p>${stars ? (challengeIndex < 8 ? "下一关已解锁，可在生涯中继续。" : "九关已完成，继续挑战全金星！") : q.description}</p>` : ""}<div class="result-stats"><div><span>比赛用时</span><b>${time(localCar.finished ? localCar.time : elapsed)}</b></div><div><span>${soloCars.length > 1 ? tr("FINISH POSITION") : tr("干净漂移")}</span><b>${soloCars.length > 1 ? rank || "DNF" : localCar.cleanDrifts}</b></div></div>${soloCars.length > 1 ? `<div class="classification">${ranks.map(({ car: c, rank }) => `<div class="${c.id === "local" ? "you" : ""}"><b>${rank || "—"}</b><span>${c.id === "local" ? "你" : AI_NAMES[c.slot - 1] || c.id}</span><span>${c.finished ? time(c.time) : "DNF · 未完赛"}</span></div>`).join("")}</div>` : ""}${selection.raceMode === "time" && bestGhost ? `<p>${tr("最佳单圈")} ${time(bestGhost.time)}</p>` : ""}<p>碰撞 ${localCar.collisionCount} 次 · 氮气 ${localCar.nitroUses} 次 · 小喷 ${localCar.miniUses} 次</p>${training ? `<p>${training.step === 5 ? "五步教学完成！" : "教学未完成，可重新练习"}</p>` : ""}${performanceMarkup()}${challengeRun?.failed ? `<p class="event-failed">${tr("计时门超时 · 挑战结束")}</p>` : ""}</div><div class="modal-actions result-actions"><button class="button primary" data-action="retry">${cornerPractice ? tr("重练这个弯") : tr("再跑一次 ↗")}</button>${cornerPractice ? `<button class="button outline" data-action="corner-next">${tr("下一个弯道")}</button>` : ""}<button class="button outline" data-action="exit">返回大厅</button></div></section></div>`;
   translateScreen();
   focusDialog($("#modal-root"));
   audio.beep(true);
@@ -920,42 +873,10 @@ function soloResult() {
   }, q ? stars : 0);
 }
 
-function rewardMarkup(s: Snapshot) {
-  const playerId = net.room?.sessionId || localCar.id;
-  const state = rewardDisplay(
-    s,
-    playerId,
-    net.account,
-    claimConfirmations.get(s.raceId),
-  );
-  const title = {
-    cancelled: "Race cancelled",
-    free: "Free race · No reward payout",
-    pending: "Result pending",
-    claimable: "Ready to claim",
-    allocated: "Allocated · Credit unconfirmed",
-    credited: "Credited to balance",
-    none: "No reward for this result",
-    unavailable: "Reward status unavailable",
-  }[state.kind];
-  const detail = {
-    cancelled: "No reward is issued for a cancelled race.",
-    free: "",
-    pending: "Wait for the race service to confirm the result.",
-    claimable:
-      "Claim the confirmed amount from Rewards to add it to your balance.",
-    allocated:
-      "Check Rewards for the current claim status. Allocation alone does not confirm wallet credit.",
-    credited: "Claim confirmed by the race service.",
-    none: "",
-    unavailable: "",
-  }[state.kind];
-  return `<section class="reward-status" data-state="${state.kind}"><span class="eyebrow">${tr("SIMULATED REWARD")}</span><div><h3>${tr(title)}</h3>${state.amount !== null && state.amount > 0 ? `<b dir="ltr">${money(state.amount)} <small>points</small></b>` : ""}</div>${detail ? `<p>${tr(detail)}</p>` : ""}${state.audit === "recorded" || state.audit === "unavailable" ? `<small class="audit-status">${tr(state.audit === "recorded" ? "Race record saved" : "Audit record unavailable")}</small>` : ""}</section>`;
-}
 function multiResult(s: Snapshot) {
   modal = "result";
   $("#modal-root").innerHTML =
-    `<div class="modal-backdrop"><section class="modal result-modal"><div class="result-scroll"><span class="eyebrow">RACE CLASSIFICATION</span><h2>${tr(s.phase === "cancelled" ? "Race cancelled" : "RACE COMPLETE")}</h2>${s.reason ? `<p class="result-notice">${escape(tr(s.reason))}</p>` : ""}${s.phase === "cancelled" ? "" : `<div class="classification">${s.results.map((r) => `<div class="${r.id === (net.room?.sessionId || localCar.id) ? "you" : ""}"><b>${r.rank ? String(r.rank).padStart(2, "0") : "—"}</b><span><bdi data-no-i18n>${escape(r.name)}</bdi>${r.id === (net.room?.sessionId || localCar.id) ? " · 你" : ""}</span><span dir="ltr">${r.time === null ? "DNF · " + escape(tr(r.reason || "未完赛")) : time(r.time)}</span>${s.free ? "" : `<strong dir="ltr">${money(r.award)} <small>points</small></strong>`}</div>`).join("")}</div>`}<div id="result-reward">${rewardMarkup(s)}</div></div><div class="modal-actions result-actions">${net.room && net.connected ? `<button class="button primary" data-action="rematch">${tr("和好友再来一局")}</button>` : ""}<button class="button outline" data-action="exit">${tr("BACK TO LOBBY")}${icon("arrow")}</button></div></section></div>`;
+    `<div class="modal-backdrop"><section class="modal result-modal"><div class="result-scroll"><span class="eyebrow">RACE CLASSIFICATION</span><h2>${tr(s.phase === "cancelled" ? "Race cancelled" : "RACE COMPLETE")}</h2>${s.reason ? `<p class="result-notice">${escape(tr(s.reason))}</p>` : ""}${s.phase === "cancelled" ? "" : `<div class="classification">${s.results.map((r) => `<div class="${r.id === (net.room?.sessionId || localCar.id) ? "you" : ""}"><b>${r.rank ? String(r.rank).padStart(2, "0") : "—"}</b><span><bdi data-no-i18n>${escape(r.name)}</bdi>${r.id === (net.room?.sessionId || localCar.id) ? " · 你" : ""}</span><span dir="ltr">${r.time === null ? "DNF · " + escape(tr(r.reason || "未完赛")) : time(r.time)}</span></div>`).join("")}</div>`}</div><div class="modal-actions result-actions">${net.room && net.connected ? `<button class="button primary" data-action="rematch">${tr("和好友再来一局")}</button>` : ""}<button class="button outline" data-action="exit">${tr("BACK TO LOBBY")}${icon("arrow")}</button></div></section></div>`;
   translateScreen();
   focusDialog($("#modal-root"));
   showPodium({
@@ -965,18 +886,6 @@ function multiResult(s: Snapshot) {
     phase: s.phase,
     results: s.results.map(r => ({ id: r.id, rank: r.rank, finished: r.time !== null && r.status !== "DNF" })),
   });
-  void net
-    .refresh()
-    .then(() => {
-      const reward = document.querySelector<HTMLElement>("#result-reward");
-      if (modal === "result" && latest?.raceId === s.raceId && reward) {
-        reward.innerHTML = rewardMarkup(s);
-        translateScreen(reward);
-      }
-    })
-    .catch(() => {
-      // The confirmed result remains readable even when the account service is unavailable.
-    });
 }
 function handleSnapshot(s: Snapshot) {
   latest = s;
@@ -1121,10 +1030,6 @@ async function act(action: string) {
     showModal("help");
     return;
   }
-  if (action === "wallet") {
-    showModal("wallet");
-    return;
-  }
   if (action === "training") {
     selection = {
       trackId: "coast",
@@ -1162,7 +1067,7 @@ async function act(action: string) {
     }
     modal = "pause";
     $("#modal-root").innerHTML =
-      `<div class="modal-backdrop"><section class="modal pause-modal"><span class="eyebrow">PIT STOP</span><h2>${mode === "solo" ? "稍作停留，精彩继续。" : "比赛仍在进行"}</h2><p>${mode === "solo" ? "计时已暂停。" : "在线比赛不会暂停，车辆将自然减速。"}</p><div class="pause-summary"><span>${escape(tr(activeTrack.name))}</span><b dir="ltr">${time(mode === "solo" ? elapsed : latest?.elapsed || 0)}</b><small>${tr("圈数 {n} / {total}", { n: Math.min(localCar.lap + 1, targetLaps()), total: targetLaps() })}</small></div><div class="stack"><button class="button primary" data-action="close">继续驾驶 →</button><button class="button outline" data-action="settings">操作与声音设置</button>${mode === "solo" ? '<button class="button outline" data-action="retry">重新开始</button><button class="button outline" data-action="corner-practice">弯道训练</button>' : ""}<button class="text-button" data-action="exit">${mode === "multi" ? "退出比赛（未完赛不获奖）" : "返回大厅"}</button></div></section></div>`;
+      `<div class="modal-backdrop"><section class="modal pause-modal"><span class="eyebrow">PIT STOP</span><h2>${mode === "solo" ? "稍作停留，精彩继续。" : "比赛仍在进行"}</h2><p>${mode === "solo" ? "计时已暂停。" : "在线比赛不会暂停，车辆将自然减速。"}</p><div class="pause-summary"><span>${escape(tr(activeTrack.name))}</span><b dir="ltr">${time(mode === "solo" ? elapsed : latest?.elapsed || 0)}</b><small>${tr("圈数 {n} / {total}", { n: Math.min(localCar.lap + 1, targetLaps()), total: targetLaps() })}</small></div><div class="stack"><button class="button primary" data-action="close">继续驾驶 →</button><button class="button outline" data-action="settings">操作与声音设置</button>${mode === "solo" ? '<button class="button outline" data-action="retry">重新开始</button><button class="button outline" data-action="corner-practice">弯道训练</button>' : ""}<button class="text-button" data-action="exit">${mode === "multi" ? "退出比赛" : "返回大厅"}</button></div></section></div>`;
     keys.clear();
     translateScreen();
     focusDialog($("#modal-root"));
@@ -1207,7 +1112,7 @@ async function act(action: string) {
       latest = null;
       await net.join(nickname, roomId, {
         ...matchForSelection(selection),
-        free: freeOnline,
+        free: true,
       }, selectedKart, selectedDriver);
       roomInput = '';
       const cleanUrl = new URL(location.href);
@@ -1227,12 +1132,6 @@ async function act(action: string) {
       pending = [];
       lobby();
       showModal('room');
-    }
-    if (action === "tax") {
-      await net.request("tax/" + crypto.randomUUID(), "POST");
-      await net.refresh();
-      lobby();
-      toast("模拟 5,000 PONS 应税交易额，奖池增加 100 PONS");
     }
   } finally {
     busy = false;
@@ -1333,7 +1232,7 @@ document.addEventListener("click", (event) => {
     lobby();
   } else if (el.dataset.action) {
     const action = el.dataset.action;
-    const operation = ["create", "join", "tax", "rematch", "reconnect-service"].includes(action)
+    const operation = ["create", "join", "rematch", "reconnect-service"].includes(action)
       ? withPending(el, () => act(action))
       : act(action);
     void operation.catch((e) => toast((e as Error).message));
@@ -1341,26 +1240,7 @@ document.addEventListener("click", (event) => {
   else if (el.dataset.binding) {
     rebinding = el.dataset.binding as Binding;
     el.textContent = tr("请按键…");
-  } else if (el.dataset.claim)
-    void withPending(el, async () => {
-      const receipt = await net.request<ClaimConfirmation>(
-        "claim/" + el.dataset.claim,
-        "POST",
-      );
-      claimConfirmations.set(receipt.matchId, receipt);
-      try {
-        await net.refresh();
-      } finally {
-        // A completed claim keeps its real receipt even if the subsequent balance refresh fails.
-        if (modal === "wallet") showModal("wallet");
-        else lobby();
-      }
-      toast(
-        tr("Confirmed claim · {amount} points", {
-          amount: money(receipt.amount),
-        }),
-      );
-    }).catch((e) => toast(e.message));
+  }
 });
 document.addEventListener("input", (event) => {
   const el = event.target as HTMLInputElement;
@@ -1393,10 +1273,6 @@ document.addEventListener("input", (event) => {
   }
   if (el.dataset.config) {
     const k = el.dataset.config;
-    if (k === "freeOnline") {
-      freeOnline = el.value === "true";
-      lobby();
-    }
     if (k === "opponents") selection.opponents = Number(el.value);
     else if (k === "trackId") selection.trackId = el.value;
     else if (k === "raceMode") {

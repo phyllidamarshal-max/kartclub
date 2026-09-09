@@ -465,7 +465,7 @@ export class KartRoom extends Room {
       this.phase = "finished";
       this.publish();
     } catch (e) {
-      this.abort("结算异常，门票已退回：" + (e as Error).message);
+      this.abort("比赛结果暂时无法保存，请稍后重试");
     }
   }
   private abort(reason: string) {
@@ -488,7 +488,7 @@ export class KartRoom extends Room {
     s.input = { ...EMPTY_INPUT };
     s.inbox.clear();
     if (this.phase === "countdown")
-      this.abort("起跑前连接中断，本场已取消；模拟门票已退回");
+      this.abort("起跑前连接中断，本场已取消");
     this.publish();
     try {
       await this.allowReconnection(client, RACE_RULES.reconnectSeconds);
@@ -509,7 +509,7 @@ export class KartRoom extends Room {
     const s = this.seats.get(client.sessionId);
     if (!s) return;
     if (this.phase === "countdown") {
-      this.abort("起跑前有车手离开，本场已取消并退票");
+      this.abort("起跑前有车手离开，本场已取消");
     }
     if (this.phase === "waiting") {
       this.seats.delete(client.sessionId);

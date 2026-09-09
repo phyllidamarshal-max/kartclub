@@ -8,6 +8,64 @@ const entry = (
   ar: string,
 ): CatalogEntry => ({ en, zh, fr, hi, es, ar });
 export const MULTIPLAYER_CATALOG: Readonly<Record<string, CatalogEntry>> = {
+  "Free multiplayer · 2–8 drivers": entry(
+    "Free multiplayer · 2–8 drivers",
+    "免费联机 · 2–8 名车手",
+    "Multijoueur gratuit · 2 à 8 pilotes",
+    "मुफ़्त मल्टीप्लेयर · 2–8 ड्राइवर",
+    "Multijugador gratis · 2–8 pilotos",
+    "لعب جماعي مجاني · من سائقين إلى 8 سائقين",
+  ),
+  "Free rooms wait up to 10 minutes. At least 2 players must be ready to start.":
+    entry(
+      "Free rooms wait up to 10 minutes. At least 2 players must be ready to start.",
+      "免费房间保留10分钟，至少2名车手全部准备后发车。",
+      "Les salles gratuites attendent 10 minutes. Au moins 2 pilotes doivent être prêts.",
+      "मुफ़्त रूम 10 मिनट तक प्रतीक्षा करते हैं। शुरू करने के लिए कम से कम 2 खिलाड़ी तैयार हों।",
+      "Las salas gratis esperan hasta 10 minutos. Al menos 2 pilotos deben estar listos.",
+      "تنتظر الغرف المجانية حتى 10 دقائق. يجب أن يستعد سائقان على الأقل للانطلاق.",
+    ),
+  "Race with friends for free. Everyone must be ready before the race starts.":
+    entry(
+      "Race with friends for free. Everyone must be ready before the race starts.",
+      "免费与好友竞速，所有车手准备后开始比赛。",
+      "Courez gratuitement avec vos amis. Tous les pilotes doivent être prêts avant le départ.",
+      "दोस्तों के साथ मुफ़्त रेस करें। रेस शुरू होने से पहले सभी तैयार हों।",
+      "Compite gratis con amigos. Todos deben estar listos antes de empezar.",
+      "تسابق مع أصدقائك مجانًا. يجب أن يستعد الجميع قبل بدء السباق.",
+    ),
+  "起跑前连接中断，本场已取消": entry(
+    "Connection lost before the start. The race was cancelled.",
+    "起跑前连接中断，本场已取消",
+    "Connexion perdue avant le départ. La course a été annulée.",
+    "शुरुआत से पहले कनेक्शन टूट गया। रेस रद्द हुई।",
+    "Se perdió la conexión antes de salir. Se canceló la carrera.",
+    "انقطع الاتصال قبل الانطلاق. تم إلغاء السباق.",
+  ),
+  "起跑前有车手离开，本场已取消": entry(
+    "A driver left before the start. The race was cancelled.",
+    "起跑前有车手离开，本场已取消",
+    "Un pilote est parti avant le départ. La course a été annulée.",
+    "शुरुआत से पहले एक ड्राइवर चला गया। रेस रद्द हुई।",
+    "Un piloto salió antes de empezar. Se canceló la carrera.",
+    "غادر سائق قبل الانطلاق. تم إلغاء السباق.",
+  ),
+  "比赛结果暂时无法保存，请稍后重试": entry(
+    "Race results could not be saved. Please try again later.",
+    "比赛结果暂时无法保存，请稍后重试",
+    "Impossible d’enregistrer les résultats. Réessayez plus tard.",
+    "रेस परिणाम सेव नहीं हुए। कृपया बाद में कोशिश करें।",
+    "No se pudieron guardar los resultados. Inténtalo más tarde.",
+    "تعذر حفظ نتائج السباق. حاول مرة أخرى لاحقًا.",
+  ),
+  退出比赛: entry(
+    "Leave race",
+    "退出比赛",
+    "Quitter la course",
+    "रेस छोड़ें",
+    "Salir de la carrera",
+    "مغادرة السباق",
+  ),
   赛事服务已连接: entry(
     "Race service connected",
     "赛事服务已连接",

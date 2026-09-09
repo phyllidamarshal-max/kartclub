@@ -40,7 +40,7 @@ export function friendRoomMarkup(
         return `<div class="slot ${player ? "occupied" : ""} ${player?.ready ? "is-ready" : ""}"><span class="slot-avatar" style="--slot-color:${palette[slot % palette.length]}">${String(slot + 1).padStart(2, "0")}</span><b ${player ? 'data-no-i18n dir="auto"' : ""}>${player ? escape(player.name) : tr("等待车手")}</b><small>${tr(player ? (!player.connected ? "重连中" : player.ready ? "✓ 已准备" : "准备中") : "空席")}${player?.id === sessionId ? ` · ${tr("你")}` : ""}</small></div>`;
       },
     ).join("")}</div>
-    ${s ? `<div class="room-summary"><span>${tr("{n} 圈", { n: s.laps })} · ${escape(tr(getTrack(s.trackId).name))} · ${tr(MODE_NAMES[s.raceMode])}</span><span>${tr(s.free ? "免费 / 人" : "10 TICKET / 人")}</span></div>` : ""}
+    ${s ? `<div class="room-summary"><span>${tr("{n} 圈", { n: s.laps })} · ${escape(tr(getTrack(s.trackId).name))} · ${tr(MODE_NAMES[s.raceMode])}</span></div>` : ""}
     <p class="form-note">${tr("至少2人全部准备后自动发车。关闭此面板将离开房间。")}</p>
     <p class="room-wait" aria-live="off"><span>${tr("等待剩余")}</span> <b id="room-wait" dir="ltr">${waitingTime(s?.waitingRemaining)}</b> · <span>${tr("{n} 人已准备", { n: s?.players.filter((player) => player.ready && player.connected).length || 0 })}</span></p>
     <button class="button primary full" data-action="ready" ${!connected || !me || s?.phase !== "waiting" ? "disabled" : ""}>${tr(!connected ? "重连中" : me?.ready ? "取消准备" : "准备出发")} <span>→</span></button>`;
