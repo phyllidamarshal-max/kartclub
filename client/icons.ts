@@ -16,6 +16,8 @@ import sliders from "@phosphor-icons/core/assets/bold/sliders-horizontal-bold.sv
 import shield from "@phosphor-icons/core/assets/fill/shield-check-fill.svg";
 import warning from "@phosphor-icons/core/assets/fill/warning-fill.svg";
 import lightning from "@phosphor-icons/core/assets/fill/lightning-fill.svg";
+import xLogo from "@phosphor-icons/core/assets/regular/x-logo.svg";
+import githubLogo from "@phosphor-icons/core/assets/regular/github-logo.svg";
 const assets = {
   flag,
   rocket,
@@ -35,6 +37,8 @@ const assets = {
   shield,
   warning,
   lightning,
+  xLogo,
+  githubLogo,
 };
 export type Icon = keyof typeof assets;
 export function icon(name: Icon, className = "") {

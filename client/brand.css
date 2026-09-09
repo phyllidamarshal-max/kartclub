@@ -273,11 +273,12 @@ kbd {
 }
 .footer {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   min-height: 48px;
   padding: 0 24px;
-  gap: 16px;
+  gap: 4px 16px;
   color: var(--color-text-muted);
   font-size: 12px;
   border-top: 1px solid var(--color-border);
@@ -287,6 +288,35 @@ kbd {
   align-items: center;
   gap: 8px;
   font-size: 14px;
+}
+.footer a {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 4px 8px;
+  border-radius: var(--radius-control);
+  color: var(--color-brand);
+  text-decoration: none;
+  transition: background-color 140ms;
+}
+.footer a:hover {
+  background-color: rgba(23, 62, 48, 0.06);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.footer a:active {
+  background-color: rgba(23, 62, 48, 0.12);
+}
+.footer a:focus-visible {
+  outline: 3px solid var(--color-accent-strong);
+  outline-offset: 3px;
+}
+.footer-social {
+  flex-shrink: 0;
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 .status-dot {
   display: inline-block;
