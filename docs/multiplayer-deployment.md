@@ -1,6 +1,6 @@
 # 好友公网联机部署
 
-2026-09-09：已实现可部署版本。尚未创建托管账户、购买服务器或发布公网地址。当前的多人测试运行于本机实际 HTTP / WebSocket 服务；真实公网延迟和跨设备体验仍需部署后验收。
+2026-09-09：可部署版本已上传到 GitHub 的 `main` 和 `codex/pons-kart` 分支，Netlify 发布已成功，入口为 `https://kartclub.xyz`。Render 已登录并连接仓库，部署配置已指定新加坡区域；创建付费服务时平台提示 **Payment Information Required**，需要账户持有人先在 Render 添加付款方式。目前尚未创建赛事服务器，也未设置实际的 `VITE_GAME_SERVER_URL`。当前的多人测试运行于本机实际 HTTP / WebSocket 服务；真实公网延迟和跨设备体验仍需部署后验收。
 
 ## kartclub.xyz 的部署步骤
 
@@ -8,7 +8,7 @@
 
 ### 1. 先把部署版本上传到 GitHub
 
-仓库地址：<https://github.com/phyllidamarshal-max/kartclub>。检查时本地位于 `codex/pons-kart` 分支，新增的 `render.yaml`、`Dockerfile` 和部分联机代码尚未提交。必须先整理、提交并推送完整可构建版本；只上传部署配置不够。仓库还有其他游戏功能和素材的改动，整理时不要遗漏代码实际引用的文件。
+仓库地址：<https://github.com/phyllidamarshal-max/kartclub>。完整可构建版本已上传至 `main`，包含 `render.yaml`、`Dockerfile`、联机代码及游戏素材。首次部署直接选择 `main`；以后更新时也应提交完整的构建依赖。
 
 本仓库的 Netlify 发布工作流仅在 `main` 推送时触发。因此下面以部署版本已合入并推送到 `main` 为前提；前后端都选择包含同一套游戏规则、地图和联机代码的提交。
 
@@ -16,7 +16,9 @@
 
 打开 <https://dashboard.render.com>，登录并连接 GitHub。选择 **New → Blueprint**，连接上面的 `kartclub` 仓库，选择已更新的 `main` 分支，Blueprint Path 使用根目录的 `render.yaml`。操作入口参考 [Render Blueprint 文档](https://render.com/docs/infrastructure-as-code)。
 
-仓库的 Blueprint 配置会创建一个 Docker Web Service、一个实例和挂载在 `/app/data` 的 1 GB 持久化盘，健康检查路径为 `/api/health`。按当前官方命名，入门付费计算规格是 `0.5c-512mb`，配置已同步使用该标识；参考 [Blueprint 配置规范](https://render.com/docs/blueprint-spec)。
+仓库的 Blueprint 配置会在新加坡区域创建一个 Docker Web Service、一个实例和挂载在 `/app/data` 的 1 GB 持久化盘，健康检查路径为 `/api/health`。按当前官方命名，入门付费计算规格是 `0.5c-512mb`，配置已同步使用该标识；参考 [Blueprint 配置规范](https://render.com/docs/blueprint-spec)。
+
+若出现 **Payment Information Required**，请由账户持有人在 Render 页面填写付款资料并点击 **Add Card**，不要把银行卡信息发到聊天或写入仓库。当前页面说明会进行 $1 的临时预授权，并非正式扣款。添加付款方式后，回到 Blueprint 创建流程并重试。Blueprint Name 可填写 `kartclub-multiplayer`。
 
 创建时填写环境变量 `ALLOWED_ORIGINS`，值为下面这一整行（英文逗号分隔，不加引号或末尾斜杠）：
 
@@ -42,7 +44,7 @@ https://kartclub.xyz,https://www.kartclub.xyz,https://kartclubgame.netlify.app
 | --- | --- |
 | `VITE_GAME_SERVER_URL` | 刚才复制的完整 HTTPS 服务器地址 |
 
-值只填写服务器根地址，不加 `/api`、`/api/health` 或房间路径。这是公开地址，放在 **Variables**。现有工作流另需已配置的 `NETLIFY_AUTH_TOKEN`、`NETLIFY_SITE_ID` 两项 Secrets；缺失时工作流会明确报错，凭据应自行填入 GitHub，不能放进代码或聊天。
+值只填写服务器根地址，不加 `/api`、`/api/health` 或房间路径。这是公开地址，放在 **Variables**。`NETLIFY_AUTH_TOKEN`、`NETLIFY_SITE_ID` 两项 Secrets 已配置，GitHub Actions 发布已验证成功。当前令牌有效期至 2026-12-08，到期前需要在 Netlify 创建替代令牌并更新同名 Secret；凭据不能放进代码或聊天。
 
 保存变量不会自动发布网页。在 **Actions → Deploy to Netlify** 中打开包含最新部署代码的 `main` 运行记录，选择 **Re-run all jobs**，等待成功。也可以在设置变量后再将部署版本推送到 `main`，由推送触发工作流。
 
