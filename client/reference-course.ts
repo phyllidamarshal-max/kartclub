@@ -15,7 +15,7 @@ export function createReferenceCourse(): Track {
     const t=i/count,u=(t+.5)%1,p=curve.getPointAt(u),f=curve.getTangentAt(u);
     return {x:p.x,y:0,z:p.z,t,heading:Math.atan2(f.x,f.z)};
   });
-  return Object.freeze({id:'reference-coast-v1',name:'海岸参考样板',subtitle:'REFERENCE COAST',theme:'coast',
+  return Object.freeze({id:'reference-coast-v1',name:'Coast Reference Circuit',subtitle:'REFERENCE COAST',theme:'coast',
     width:14,length,points:Object.freeze(points.map(p=>Object.freeze(p))),obstacles:Object.freeze([]),shortcut:Object.freeze([]),
     radius:Math.max(...points.map(p=>Math.hypot(p.x,p.z)))+35});
 }
