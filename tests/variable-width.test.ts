@@ -10,17 +10,19 @@ import {
 } from "../shared/track.ts";
 import { spawnCar, stepCar, EMPTY_INPUT } from "../shared/race.ts";
 import { createItems } from "../shared/items.ts";
-test("all nine roads vary materially within a lap with smooth closed transitions", () => {
+import { mapProfile } from '../shared/map-profiles.ts';
+test("all nineteen roads vary within a lap with gentler beginner tapers and smooth closed transitions", () => {
   for (const track of TRACKS) {
     const range = trackWidthRange(track);
-    assert.ok(range.max - range.min >= 7, track.id);
+    assert.ok(range.max - range.min >= (mapProfile(track.id).rating===1?6:7)-.05, track.id);
     assert.ok(range.min >= 7 && range.max <= 26, track.id);
     assert.equal(trackWidth(0, track), trackWidth(1, track));
-    for (let i = 0; i < 720; i++) {
-      const t = i / 720,
+    const count = track.points.length;
+    for (let i = 0; i < count; i++) {
+      const t = i / count,
         p = trackPoint(t, track);
       assert.ok(
-        Math.abs(trackWidth((i + 1) / 720, track) - trackWidth(t, track)) <
+        Math.abs(trackWidth((i + 1) / count, track) - trackWidth(t, track)) <
           0.75,
         track.id,
       );

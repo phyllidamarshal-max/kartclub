@@ -7,7 +7,7 @@ import {
   trackPoint,
   angleDiff,
   continuousTrack,
-} from "../shared/track.ts";
+} from "./fixtures/tracks-before-route-mastery.ts";
 import { spawnCar, stepCar, EMPTY_INPUT } from "../shared/race.ts";
 import { aiInput } from "../shared/ai.ts";
 

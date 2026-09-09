@@ -1,13 +1,20 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import * as THREE from "three";
-import { TRACKS, trackWidth } from "../shared/track.ts";
+import {
+  TRACKS,
+  DEFAULT_TRACK,
+  trackWidth,
+  nearestTrack,
+} from "../shared/track.ts";
+import { createCoastLayout, COAST_FOOTPRINTS } from "../client/coast-layout.ts";
 import { getLevel } from "../shared/levels.ts";
 import {
   buildLandscape,
   createSea,
   createSky,
   decorateLandscape,
+  roadsideClear,
 } from "../client/scenery.ts";
 
 function random() {
@@ -16,6 +23,113 @@ function random() {
     (seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0) / 4294967296;
 }
 const coast = TRACKS.find((t) => t.id === "coast")!;
+
+test("authored village retains human-scale spacing on the long official coast", () => {
+  const layout = createCoastLayout(coast);
+  assert.deepEqual(layout, createCoastLayout(coast));
+  const houses = layout.filter((p) => p.asset.startsWith("cottage"));
+  assert.ok(houses.length >= 7 && houses.length <= 10);
+  const distances = houses
+    .map((p) => nearestTrack(p.x, p.z, coast).t * coast.length)
+    .sort((a, b) => a - b);
+  assert.ok(
+    distances.at(-1)! - distances[0] < 180,
+    "village must not stretch into a 300 m procession",
+  );
+  const orderedHouses = houses.toSorted((a,b)=>nearestTrack(a.x,a.z,coast).t-nearestTrack(b.x,b.z,coast).t);
+  for (let i = 1; i < orderedHouses.length; i++)
+    assert.ok(
+      Math.hypot(orderedHouses[i].x-orderedHouses[i-1].x,orderedHouses[i].z-orderedHouses[i-1].z) < 32,
+      "cottages must read as a connected village",
+    );
+  const nearHouses = houses.filter((p) => {
+    const n = nearestTrack(p.x, p.z, coast);
+    return (
+      n.distance -
+        trackWidth(n.t, coast) / 2 -
+        COAST_FOOTPRINTS[p.asset] * p.scale <
+      5
+    );
+  });
+  assert.ok(nearHouses.length >= 6, "most homes need a short front garden");
+});
+
+test("village trees have separate crowns and leave building silhouettes readable", () => {
+  const layout = createCoastLayout(coast);
+  const solids = layout.filter((p) =>
+    /^(cottage|tree)|lighthouse/.test(p.asset),
+  );
+  const trees = solids.filter((p) => p.asset.startsWith("tree"));
+  assert.ok(trees.length >= 90 && trees.length <= 190);
+  assert.ok(
+    trees.some((p) => p.asset === "tree-blossom"),
+    "retain a single framing blossom accent",
+  );
+  assert.ok(
+    trees.filter((p) => p.asset === "tree-blossom").length / trees.length <=
+      0.1,
+  );
+  for (let i = 0; i < solids.length; i++)
+    for (const other of solids.slice(i + 1)) {
+      const a = solids[i];
+      const gap =
+        Math.hypot(a.x - other.x, a.z - other.z) -
+        COAST_FOOTPRINTS[a.asset] * a.scale -
+        COAST_FOOTPRINTS[other.asset] * other.scale;
+      assert.ok(
+        gap >= 0.75 - 1e-6,
+        `${a.asset}/${other.asset} crown or wall gap ${gap}`,
+      );
+    }
+});
+
+test("authored coast footprints clear every main and shortcut road segment", (context) => {
+  for (const track of [coast, DEFAULT_TRACK]) {
+    const layout = createCoastLayout(track);
+    let minimum = Infinity;
+    for (const item of layout) {
+      const radius = COAST_FOOTPRINTS[item.asset] * item.scale;
+      assert.ok(roadsideClear(track, item.x, item.z, radius + 0.5));
+      // Independently inspect the full ribbons; do not rely on the placement
+      // helper's nearest-road fast path when validating shortcut junctions.
+      for (const [points, closed, shortcut] of [
+        [track.points, true, false],
+        [track.shortcut, false, true],
+      ] as const) {
+        for (let i = 0; i < points.length - (closed ? 0 : 1); i++) {
+          const a = points[i],
+            b = points[(i + 1) % points.length];
+          const dx = b.x - a.x,
+            dz = b.z - a.z;
+          const f = Math.max(
+            0,
+            Math.min(
+              1,
+              ((item.x - a.x) * dx + (item.z - a.z) * dz) /
+                (dx * dx + dz * dz || 1),
+            ),
+          );
+          const t = (a.t + ((b.t < a.t ? b.t + 1 : b.t) - a.t) * f) % 1;
+          const width = shortcut
+            ? (track.shortcutWidth ?? 7)
+            : trackWidth(t, track);
+          const gap =
+            Math.hypot(item.x - a.x - dx * f, item.z - a.z - dz * f) -
+            width / 2 -
+            radius;
+          minimum = Math.min(minimum, gap);
+          assert.ok(
+            gap >= 0.75 - 1e-6,
+            `${track.id}/${item.asset}, shortcut=${shortcut}: ${gap}`,
+          );
+        }
+      }
+    }
+    context.diagnostic(
+      `${track.id}: ${layout.length} full footprints, minimum road-edge gap ${minimum.toFixed(4)} m`,
+    );
+  }
+});
 
 test("the closed cliff seam stays below the visible grass surface", () => {
   const scene = new THREE.Scene();
@@ -89,7 +203,16 @@ test("coastal geometry remains outside both driveable ribbons and uses a bounded
       materials.add(m);
   });
   assert.ok(materials.size <= 32, `${materials.size} distinct materials`);
-  assert.ok(vertices < 600000, `${vertices} scenery vertices`);
+  // Longer authored routes legitimately expose more of the existing village and
+  // flower placements. Bound their growth per kilometre, without lowering detail.
+  const vertexBudget = Math.min(
+    850000,
+    600000 + Math.max(0, coast.length - 1300) * 80,
+  );
+  assert.ok(
+    vertices < vertexBudget,
+    `${vertices} scenery vertices / ${vertexBudget} budget`,
+  );
   const ray = new THREE.Raycaster();
   ray.far = 5.8;
   for (const [points, shortcut] of [

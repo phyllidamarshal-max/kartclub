@@ -20,8 +20,48 @@ import { classify, VERSIONS, raceDeadline } from "../shared/rules.ts";
 import { soloRaceComplete } from "../client/lifecycle.ts";
 import { DRIVING_CONFIG } from "../shared/driving-config.ts";
 const rows = [];
-for (const q of CHALLENGES)
-  for (const profile of process.argv.includes("--profiles") ? [0, 1, 2] : [0]) {
+const sourcePaths = [
+  "shared/track.ts",
+  "shared/route-course.ts",
+  "shared/route-data.ts",
+  "shared/road-design.ts",
+  "shared/levels.ts",
+  "shared/race.ts",
+  "shared/driving-config.ts",
+  "shared/driving-skills.ts",
+  "shared/ai.ts",
+  "shared/ai-profiles.ts",
+  "shared/ai-course.ts",
+  "shared/ai-items.ts",
+  "shared/items.ts",
+  "shared/item-strategy.ts",
+  "shared/challenge-events.ts",
+  "shared/gameplay.ts",
+  "shared/rules.ts",
+  "client/lifecycle.ts",
+  "scripts/measure-career-events.ts",
+];
+const hashes = () =>
+  Object.fromEntries(
+    sourcePaths.map((p) => [
+      p,
+      createHash("sha256").update(readFileSync(p)).digest("hex"),
+    ]),
+  );
+const sourceHashes = hashes();
+const lineFirst = process.argv.includes("--line-first");
+const eventFilter = process.argv
+  .find((a) => a.startsWith("--event="))
+  ?.slice(8);
+if (eventFilter && !CHALLENGES.some((q) => q.id === eventFilter))
+  throw new Error(`Unknown career event: ${eventFilter}`);
+const policies = process.argv.includes("--all-profiles")
+  ? [0, 1, 2, 3, 4, 5, 6, 7]
+  : process.argv.includes("--profiles")
+    ? [0, 1, 2]
+    : [0];
+for (const q of CHALLENGES.filter((q) => !eventFilter || q.id === eventFilter))
+  for (const profile of policies) {
     const track = getTrack(q.trackId),
       run = new ChallengeRun(q),
       player = spawnCar(0, "local", track);
@@ -41,10 +81,13 @@ for (const q of CHALLENGES)
     if (items && q.startingItem) items.players.local.held = q.startingItem;
     const competitive = q.mode === "race" || q.mode === "items";
     const deadline = () =>
-      Math.min(q.limit || Infinity, raceDeadline(cars, competitive));
+      Math.min(
+        q.limit || Infinity,
+        raceDeadline(cars, competitive, track.id, q.laps),
+      );
     const gates: { gate: number; time: number }[] = [];
     let elapsed = 0;
-    for (let f = 0; f <= 60 * 300 && !run.failed; f++) {
+    for (let f = 0; f <= 60 * 600 && !run.failed; f++) {
       const dt = Math.min(1 / 60, Math.max(0, deadline() - elapsed));
       const playerFrozenThisTick = run.releaseRemaining(elapsed) > 0;
       elapsed += dt;
@@ -58,6 +101,19 @@ for (const q of CHALLENGES)
           cars,
           items,
         );
+        // An ordinary alternative player policy: retain the racing line instead
+        // of steering toward item boxes, while making the same live item choices.
+        if (c === player && lineFirst) {
+          const line = aiInput(
+            { ...c, slot: profile },
+            track,
+            "hard",
+            elapsed,
+            cars,
+            null,
+          );
+          commands[c.id] = { ...line, item: commands[c.id].item };
+        }
         if (c === player && playerFrozenThisTick) {
           c.time = elapsed;
           continue;
@@ -101,6 +157,8 @@ for (const q of CHALLENGES)
       id: q.id,
       event: q.event,
       referenceProfile: aiProfile(profile, "hard").name,
+      controllerSlot: profile,
+      lineFirst,
       gold: q.gold,
       limit: q.limit,
       opponents: q.opponents,
@@ -110,37 +168,21 @@ for (const q of CHALLENGES)
       ...metrics,
     });
   }
-const sourcePaths = [
-  "shared/race.ts",
-  "shared/driving-config.ts",
-  "shared/ai.ts",
-  "shared/ai-items.ts",
-  "shared/items.ts",
-  "shared/item-strategy.ts",
-  "shared/challenge-events.ts",
-  "shared/gameplay.ts",
-  "shared/rules.ts",
-  "client/lifecycle.ts",
-];
-const sourceHashes = Object.fromEntries(
-  sourcePaths.map((p) => [
-    p,
-    createHash("sha256").update(readFileSync(p)).digest("hex"),
-  ]),
-);
 const report = {
   recordedAt: new Date().toISOString(),
   context: VERSIONS,
   physics: DRIVING_CONFIG.version,
   eventVersion: CAREER_EVENT_VERSION,
   sourceHashes,
+  sourcesUnchanged: JSON.stringify(sourceHashes) === JSON.stringify(hashes()),
   note: "Fixed expert input policies on the same player starting grid, vehicle and zero drift resources (authored starting item retained). Profile changes only controller personality and its small lane preference. Runtime deadline/finish window preserved. Not a measured human skill estimate; primary objectives are not automatically awarded.",
   rows,
 };
 writeFileSync(
-  process.argv.includes("--profiles")
-    ? "output/gameplay-career-profiles.json"
-    : "output/gameplay-career-validation.json",
+  process.argv.find((a) => a.startsWith("--output="))?.slice(9) ??
+    (process.argv.includes("--profiles")
+      ? "output/gameplay-career-profiles.json"
+      : "output/gameplay-career-validation.json"),
   JSON.stringify(report, null, 2),
 );
 console.log(JSON.stringify(report, null, 2));

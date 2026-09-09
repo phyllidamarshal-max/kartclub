@@ -1,0 +1,79 @@
+{
+  "version": 4,
+  "voice": "en-US-EmmaNeural",
+  "style": "Bright arcade countdown: light female tone, quick articulation and a crisp GO",
+  "calls": [
+    {
+      "cue": 3,
+      "text": "Three!",
+      "rate": "+24%",
+      "pitch": "+32Hz",
+      "peak": 0.78,
+      "rms": 0.2
+    },
+    {
+      "cue": 2,
+      "text": "Two!",
+      "rate": "+26%",
+      "pitch": "+36Hz",
+      "peak": 0.8,
+      "rms": 0.215
+    },
+    {
+      "cue": 1,
+      "text": "One!",
+      "rate": "+28%",
+      "pitch": "+40Hz",
+      "peak": 0.82,
+      "rms": 0.225
+    },
+    {
+      "cue": 0,
+      "text": "Go!",
+      "rate": "+32%",
+      "pitch": "+48Hz",
+      "peak": 0.86,
+      "rms": 0.25
+    }
+  ],
+  "language": "en-US",
+  "generator": "scripts/audio/generate-countdown.py",
+  "clips": [
+    {
+      "cue": 3,
+      "text": "Three",
+      "seconds": 0.37777777777777777,
+      "sampleRate": 22050,
+      "peak": 0.755462646484375,
+      "rms": 0.19998354611380406,
+      "bytes": 16704
+    },
+    {
+      "cue": 2,
+      "text": "Two",
+      "seconds": 0.2905668934240363,
+      "sampleRate": 22050,
+      "peak": 0.721527099609375,
+      "rms": 0.21499659194414236,
+      "bytes": 12858
+    },
+    {
+      "cue": 1,
+      "text": "One",
+      "seconds": 0.31501133786848073,
+      "sampleRate": 22050,
+      "peak": 0.819976806640625,
+      "rms": 0.2249882432365671,
+      "bytes": 13936
+    },
+    {
+      "cue": 0,
+      "text": "Go!",
+      "seconds": 0.27392290249433104,
+      "sampleRate": 22050,
+      "peak": 0.8599853515625,
+      "rms": 0.24999242550073994,
+      "bytes": 12124
+    }
+  ]
+}

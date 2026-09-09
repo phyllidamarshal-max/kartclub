@@ -1,0 +1,475 @@
+.vfx-podium .vfx-podium-anchor,
+.vfx-podium.vfx-podium-anchor {
+  position: relative;
+  isolation: isolate;
+}
+
+.vfx-podium .result-scroll,
+.vfx-podium .result-actions {
+  position: relative;
+  z-index: 2;
+}
+
+.vfx-podium .vfx-podium-emblem {
+  position: relative;
+  z-index: 3;
+  overflow: visible;
+}
+
+.vfx-podium .vfx-podium-emblem > .ui-icon {
+  opacity: 0.12;
+}
+
+.vfx-podium .vfx-podium-medallion {
+  position: absolute;
+  inset: -8px;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  filter: drop-shadow(0 7px 12px rgb(15 30 24 / 22%));
+  opacity: 1;
+  scale: 1;
+}
+
+.vfx-podium.vfx-podium-medal-animated .vfx-podium-medallion {
+  animation: vfx-podium-medal-in var(--vfx-medal-duration)
+    cubic-bezier(0.2, 0.8, 0.25, 1) both;
+}
+
+.vfx-podium .vfx-podium-medallion-1 {
+  --vfx-medal-start: 0.88;
+  --vfx-medal-duration: 2.4s;
+  --vfx-bright: #ffd86a;
+  --vfx-deep: #c68c2d;
+  --vfx-core: #fff8df;
+}
+
+.vfx-podium .vfx-podium-medallion-2 {
+  --vfx-medal-start: 0.94;
+  --vfx-medal-duration: 1.8s;
+  --vfx-bright: #e7f0f7;
+  --vfx-deep: #8ebad1;
+  --vfx-core: #f8fcff;
+}
+
+.vfx-podium .vfx-podium-medallion-3 {
+  --vfx-medal-start: 0.96;
+  --vfx-medal-duration: 1.4s;
+  --vfx-bright: #e4a16b;
+  --vfx-deep: #a66b43;
+  --vfx-core: #fff4e8;
+}
+
+.vfx-podium .vfx-podium-medallion-core {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  width: 56px;
+  height: 56px;
+  place-items: center;
+  border: 3px solid var(--vfx-core);
+  border-radius: 50%;
+  color: #17372d;
+  background: radial-gradient(
+    circle at 35% 26%,
+    var(--vfx-core) 0 8%,
+    var(--vfx-bright) 30%,
+    var(--vfx-deep) 100%
+  );
+  box-shadow:
+    0 0 0 3px var(--vfx-deep),
+    inset 0 0 12px rgb(255 255 255 / 60%);
+  font:
+    800 30px/1 Georgia,
+    serif;
+}
+
+.vfx-podium .vfx-podium-ornament {
+  position: absolute;
+  width: 72px;
+  height: 72px;
+  border: 3px solid var(--vfx-bright);
+  border-radius: 50%;
+  opacity: 0.92;
+}
+
+.vfx-podium .vfx-podium-medallion-1 .vfx-podium-ornament {
+  width: 36px;
+  height: 67px;
+  border-width: 0 0 0 4px;
+  border-radius: 50% 0 0 50%;
+}
+
+.vfx-podium .vfx-podium-medallion-1 .vfx-podium-ornament::before,
+.vfx-podium .vfx-podium-medallion-1 .vfx-podium-ornament::after {
+  position: absolute;
+  left: -7px;
+  width: 11px;
+  height: 6px;
+  border-radius: 100% 0;
+  background: var(--vfx-bright);
+  content: "";
+}
+
+.vfx-podium .vfx-podium-medallion-1 .vfx-podium-ornament::before {
+  top: 10px;
+  rotate: -32deg;
+  box-shadow:
+    1px 14px 0 var(--vfx-bright),
+    3px 28px 0 var(--vfx-bright),
+    7px 41px 0 var(--vfx-bright);
+}
+
+.vfx-podium .vfx-podium-medallion-1 .vfx-podium-ornament::after {
+  top: 17px;
+  left: 1px;
+  rotate: 38deg;
+  box-shadow:
+    2px 14px 0 var(--vfx-bright),
+    5px 28px 0 var(--vfx-bright);
+}
+
+.vfx-podium .vfx-podium-medallion-1 .vfx-podium-ornament-1 {
+  translate: -42px 3px;
+  rotate: -18deg;
+}
+
+.vfx-podium .vfx-podium-medallion-1 .vfx-podium-ornament-2 {
+  translate: 42px 3px;
+  rotate: 198deg;
+}
+
+.vfx-podium .vfx-podium-medallion-2 .vfx-podium-ornament-2 {
+  width: 82px;
+  height: 82px;
+  border-style: dashed;
+  opacity: 0.55;
+}
+
+.vfx-podium .vfx-podium-medallion-3 .vfx-podium-ornament {
+  width: 72px;
+  height: 72px;
+  border-right-color: transparent;
+  border-bottom-color: transparent;
+  rotate: 22deg;
+}
+
+.vfx-podium .vfx-podium-overlay {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  pointer-events: none;
+  contain: layout paint;
+}
+
+.vfx-podium .vfx-podium-halo {
+  position: absolute;
+  top: 23%;
+  left: 50%;
+  width: min(240px, 56%);
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  opacity: 0;
+  animation: vfx-podium-halo-out 0.65s ease-out 0.16s both;
+}
+
+.vfx-podium .vfx-podium-overlay-1 {
+  color: #ffd86a;
+}
+.vfx-podium .vfx-podium-overlay-2 {
+  color: #cfeaff;
+}
+.vfx-podium .vfx-podium-overlay-3 {
+  color: #e4a16b;
+}
+
+.vfx-podium .vfx-podium-particle {
+  position: absolute;
+  top: var(--vfx-y);
+  left: var(--vfx-x);
+  width: 6px;
+  height: 11px;
+  border-radius: 2px;
+  background: currentColor;
+  box-shadow: inset 0 0 2px rgb(255 255 255 / 80%);
+  opacity: 0;
+  animation: vfx-podium-confetti var(--vfx-life)
+    cubic-bezier(0.15, 0.65, 0.45, 1) var(--vfx-delay) both;
+}
+
+.vfx-podium .vfx-podium-overlay-2 .vfx-podium-particle {
+  width: 4px;
+  height: 15px;
+  border-radius: 4px;
+}
+
+.vfx-podium .vfx-podium-overlay-3 .vfx-podium-particle {
+  width: 5px;
+  height: 7px;
+}
+
+.vfx-podium .vfx-podium-row[data-podium-rank] {
+  position: relative;
+  overflow: hidden;
+  border-inline-start: 2px solid var(--vfx-row-edge);
+}
+
+.vfx-podium .vfx-podium-row[data-podium-rank]::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  opacity: 0;
+  translate: -110% 0;
+  background: linear-gradient(
+    100deg,
+    transparent 12%,
+    var(--vfx-row-glint) 50%,
+    transparent 88%
+  );
+}
+
+.vfx-podium.vfx-podium-rows-animated .vfx-podium-row[data-podium-rank]::after {
+  animation: vfx-podium-row-sweep 0.4s ease-out 0.12s both;
+}
+
+.vfx-podium .vfx-podium-row-1 {
+  --vfx-row-glint: rgb(255 216 106 / 32%);
+  --vfx-row-edge: #c68c2d;
+}
+.vfx-podium .vfx-podium-row-2 {
+  --vfx-row-glint: rgb(142 186 209 / 28%);
+  --vfx-row-edge: #8ebad1;
+}
+.vfx-podium .vfx-podium-row-3 {
+  --vfx-row-glint: rgb(228 161 107 / 28%);
+  --vfx-row-edge: #a66b43;
+}
+
+@keyframes vfx-podium-halo-out {
+  0% {
+    scale: 0.55;
+    opacity: 0.65;
+  }
+  100% {
+    scale: 1.25;
+    opacity: 0;
+  }
+}
+
+@keyframes vfx-podium-confetti {
+  0% {
+    translate: 0 0;
+    rotate: 0deg;
+    opacity: 0;
+  }
+  12% {
+    opacity: 0.95;
+  }
+  100% {
+    translate: var(--vfx-drift) min(52vh, 430px);
+    rotate: var(--vfx-spin);
+    opacity: 0;
+  }
+}
+
+@keyframes vfx-podium-row-sweep {
+  0% {
+    translate: -110% 0;
+    opacity: 0;
+  }
+  35% {
+    opacity: 1;
+  }
+  100% {
+    translate: 110% 0;
+    opacity: 0;
+  }
+}
+
+@media (max-height: 640px) {
+  .vfx-podium .vfx-podium-particle {
+    --vfx-y: 15%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vfx-podium .vfx-podium-overlay {
+    display: none;
+  }
+  .vfx-podium .vfx-podium-medallion,
+  .vfx-podium .vfx-podium-row[data-podium-rank]::after {
+    animation: none !important;
+    opacity: 1;
+  }
+}
+/* Medal impact uses a fast entry; its separate halo/confetti may finish later. */
+.vfx-podium .vfx-podium-emblem {
+  width: 112px;
+  height: 98px;
+  margin: 14px auto 16px;
+  background: transparent;
+}
+.vfx-podium .vfx-podium-medallion {
+  inset: 0;
+}
+.vfx-podium .vfx-podium-medallion-1 {
+  --vfx-medal-start: 0.48;
+  --vfx-medal-duration: 440ms;
+}
+.vfx-podium .vfx-podium-medallion-2 {
+  --vfx-medal-start: 0.58;
+  --vfx-medal-duration: 390ms;
+}
+.vfx-podium .vfx-podium-medallion-3 {
+  --vfx-medal-start: 0.66;
+  --vfx-medal-duration: 340ms;
+}
+.vfx-podium .vfx-podium-medallion-core {
+  width: 78px;
+  height: 78px;
+  border-width: 4px;
+  font:
+    italic 900 48px/1 Arial,
+    sans-serif;
+  text-shadow: 0 2px #ffffffa0;
+  box-shadow:
+    0 0 0 3px var(--vfx-deep),
+    0 5px 0 var(--vfx-deep),
+    inset 0 0 0 3px #fff9,
+    inset 0 -9px 16px #50300f30;
+}
+.vfx-podium .vfx-podium-medallion-core::after {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border-top: 3px solid #fff9;
+  border-radius: 50%;
+  rotate: -24deg;
+}
+.vfx-podium .vfx-podium-ornament {
+  width: 96px;
+  height: 96px;
+}
+.vfx-podium .vfx-podium-medallion-1 .vfx-podium-ornament {
+  width: 36px;
+  height: 82px;
+}
+.vfx-podium .vfx-podium-medallion-1 .vfx-podium-ornament-1 {
+  translate: -51px 3px;
+}
+.vfx-podium .vfx-podium-medallion-1 .vfx-podium-ornament-2 {
+  translate: 51px 3px;
+}
+.vfx-podium .vfx-podium-medallion-2 .vfx-podium-ornament {
+  border-inline-color: transparent;
+  rotate: -24deg;
+}
+.vfx-podium .vfx-podium-medallion-2 .vfx-podium-ornament-2 {
+  width: 108px;
+  height: 108px;
+  border-style: solid;
+  rotate: 34deg;
+  opacity: 0.8;
+}
+.vfx-podium .vfx-podium-medallion-3 .vfx-podium-ornament {
+  width: 92px;
+  height: 92px;
+}
+.vfx-podium-rays {
+  position: absolute;
+  inset: 0;
+}
+.vfx-podium-rays i {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 30px;
+  height: 4px;
+  transform-origin: 0 50%;
+  rotate: var(--ray-angle);
+  transform: translateX(51px);
+  background: linear-gradient(90deg, var(--vfx-bright), transparent);
+  opacity: 0.5;
+  border-radius: 2px;
+}
+.vfx-podium-medallion-3 .vfx-podium-rays i {
+  width: 12px;
+  opacity: 0.8;
+}
+.vfx-podium-medal-animated .vfx-podium-rays {
+  animation: vfx-podium-rays-in 650ms ease-out both;
+}
+.vfx-podium-medal-animated .vfx-podium-medallion-2 .vfx-podium-ornament {
+  animation: vfx-podium-arc-in 500ms ease-out both;
+}
+@keyframes vfx-podium-medal-in {
+  0% {
+    scale: var(--vfx-medal-start);
+    opacity: 0;
+    translate: 0 -22px;
+  }
+  42% {
+    scale: 1.16 0.93;
+    opacity: 1;
+    translate: 0 5px;
+  }
+  70% {
+    scale: 0.97 1.04;
+    translate: 0 -2px;
+  }
+  100% {
+    scale: 1;
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@keyframes vfx-podium-rays-in {
+  from {
+    scale: 0.5;
+    opacity: 0;
+  }
+  30% {
+    scale: 1.16;
+    opacity: 1;
+  }
+  to {
+    scale: 1;
+    opacity: 1;
+  }
+}
+@keyframes vfx-podium-arc-in {
+  from {
+    transform: rotate(-70deg) scale(0.7);
+    opacity: 0;
+  }
+  to {
+    transform: rotate(0) scale(1);
+    opacity: 0.8;
+  }
+}
+@media (max-height: 640px) {
+  .vfx-podium .vfx-podium-emblem {
+    width: 96px;
+    height: 76px;
+    margin-block: 10px 12px;
+  }
+  .vfx-podium .vfx-podium-medallion {
+    scale: 0.82;
+  }
+  .vfx-podium .vfx-podium-medallion-core {
+    width: 68px;
+    height: 68px;
+    font-size: 42px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vfx-podium-rays,
+  .vfx-podium-ornament {
+    animation: none !important;
+  }
+}

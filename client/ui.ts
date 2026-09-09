@@ -1,4 +1,5 @@
 import { icon } from "./icons.ts";
+import { tr } from "./i18n.ts";
 
 /** The original RGBA asset is only clipped at its outer transparent margins. */
 export function brandLogo() {
@@ -71,13 +72,20 @@ export async function withPending(
   operation: () => Promise<unknown>,
 ) {
   if (button.getAttribute("aria-busy") === "true") return;
+  const disabled = button instanceof HTMLButtonElement && button.disabled;
+  const label = document.createElement("span");
+  label.className = "pending-label";
+  label.textContent = tr("Working…");
+  const children = [...button.childNodes];
+  button.replaceChildren(label);
   button.setAttribute("aria-busy", "true");
   if (button instanceof HTMLButtonElement) button.disabled = true;
   try {
     await operation();
   } finally {
     button.removeAttribute("aria-busy");
-    if (button instanceof HTMLButtonElement) button.disabled = false;
+    button.replaceChildren(...children);
+    if (button instanceof HTMLButtonElement) button.disabled = disabled;
   }
 }
 

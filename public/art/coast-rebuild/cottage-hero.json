@@ -1,0 +1,12 @@
+{
+  "key": "cottage-hero",
+  "model": "/art/coast-rebuild/cottage-hero.glb",
+  "indirect": "/art/coast-rebuild/cottage-hero-indirect.png",
+  "lighting": "asset-local diffuse indirect only; direct sun excluded",
+  "triangles": 11136,
+  "atlasSize": 2048,
+  "height": 8.340000540018082,
+  "width": 7.159999847412109,
+  "depth": 8.095000267028809,
+  "version": "architectural-junctions-20260909-v2"
+}

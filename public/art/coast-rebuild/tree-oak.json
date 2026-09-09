@@ -3,9 +3,16 @@
   "model": "/art/coast-rebuild/tree-oak.glb",
   "indirect": "/art/coast-rebuild/tree-oak-indirect.png",
   "lighting": "asset-local diffuse indirect only; direct sun excluded",
-  "triangles": 672,
+  "triangles": 554,
   "atlasSize": 512,
-  "height": 7.151597023010254,
-  "width": 3.9620367288589478,
-  "depth": 2.5262234210968018
+  "height": 7.214715003967285,
+  "width": 5.402355909347534,
+  "depth": 2.9379239082336426,
+  "version": "reference-match-20260908-v2",
+  "radius": 2.788674242548406,
+  "materialCount": 1,
+  "modelBytes": 228960,
+  "textureBytes": 216100,
+  "modelSha256": "de295f765f868d5a74e5b84cf61566daf70f46aeb1860a8fb01c6e73da93f1f0",
+  "indirectSha256": "40f2601a90cba6107388e91d1edd1d71a3c0f22791bf4bcb8d9b87d29fc8685f"
 }

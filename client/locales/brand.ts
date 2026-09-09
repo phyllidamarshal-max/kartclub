@@ -309,6 +309,14 @@ export const STRUCTURAL_CATALOG: Readonly<Record<string, CatalogEntry>> =
       "调整设置，准备出发。",
     ),
     Audio: ui("Audio", "Audio", "ऑडियो", "Audio", "الصوت", "音频"),
+    "Restore recommended audio": ui(
+      "Restore recommended audio",
+      "Rétablir les volumes recommandés",
+      "सुझाए गए ऑडियो स्तर बहाल करें",
+      "Restaurar audio recomendado",
+      "استعادة مستويات الصوت الموصى بها",
+      "恢复推荐音量",
+    ),
     "Sound effects": ui(
       "Sound effects",
       "Effets sonores",

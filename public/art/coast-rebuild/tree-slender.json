@@ -5,7 +5,14 @@
   "lighting": "asset-local diffuse indirect only; direct sun excluded",
   "triangles": 554,
   "atlasSize": 512,
-  "height": 7.473508358001709,
-  "width": 3.050681710243225,
-  "depth": 1.800040364265442
+  "height": 7.4807000160217285,
+  "width": 3.1228288412094116,
+  "depth": 1.853687047958374,
+  "version": "reference-match-20260908-v2",
+  "radius": 1.6939385303223464,
+  "materialCount": 1,
+  "modelBytes": 211312,
+  "textureBytes": 189402,
+  "modelSha256": "6e2d671fe28b9cb77feb7ce9436878263d5101f99436753c656e24ad3555485c",
+  "indirectSha256": "1ae9ce3c3795206023acdd9a45e1278f712fa8f66435f16a7a7227172a90630a"
 }

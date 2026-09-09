@@ -1,0 +1,42 @@
+[
+  {
+    "id": "birds",
+    "file": "birds.ogg",
+    "author": "isaiah658",
+    "license": "CC0 1.0",
+    "page": "https://opengameart.org/content/ambient-bird-sounds",
+    "url": "https://opengameart.org/sites/default/files/birds-isaiah658_0.ogg",
+    "sha256": "359e4e3f9da9d75aac64cede511c7e3ef8b461f9d9f8c230f8f80e44c4b3e35f",
+    "use": "Cropped, filtered, faded and spatially arranged in independent environmental stems."
+  },
+  {
+    "id": "wrens",
+    "file": "wrens.ogg",
+    "author": "Barracuda1983",
+    "license": "Public domain dedication",
+    "page": "https://commons.wikimedia.org/wiki/File:Birds_forest.ogg",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/3/38/Birds_forest.ogg",
+    "sha256": "60d77abf548030e85abec22053a6392df91320718e26b93180f562b1bf7989ac",
+    "use": "Cropped, filtered, faded and spatially arranged in independent environmental stems."
+  },
+  {
+    "id": "wave",
+    "file": "wave.flac",
+    "author": "jasinski; excerpt by qubodup",
+    "license": "CC0 1.0",
+    "page": "https://opengameart.org/content/beach-ocean-waves",
+    "url": "https://opengameart.org/sites/default/files/wave_01_cc0-18363__jasinski__alkaibeach.flac",
+    "sha256": "fcfca178eca2eac536e8c2a4ed5cf8096e44c921acd587047b3d9f1d7845435c",
+    "use": "Cropped, filtered, faded and spatially arranged in independent environmental stems."
+  },
+  {
+    "id": "cold-wind",
+    "file": "cold-wind.ogg",
+    "author": "Ecrivain",
+    "license": "CC0 1.0",
+    "page": "https://opengameart.org/content/icy-heights",
+    "url": "https://opengameart.org/sites/default/files/wind.ogg",
+    "sha256": "d71df74ac19ab6b7b17d79c7ee103da86c7b8a7ba4ec245f5558694d3b3443d5",
+    "use": "Cropped, filtered, faded and spatially arranged in independent environmental stems."
+  }
+]

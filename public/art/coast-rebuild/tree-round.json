@@ -3,9 +3,16 @@
   "model": "/art/coast-rebuild/tree-round.glb",
   "indirect": "/art/coast-rebuild/tree-round-indirect.png",
   "lighting": "asset-local diffuse indirect only; direct sun excluded",
-  "triangles": 554,
+  "triangles": 436,
   "atlasSize": 512,
-  "height": 6.451766490936279,
-  "width": 3.8231433629989624,
-  "depth": 2.716670274734497
+  "height": 6.677255153656006,
+  "width": 5.147433519363403,
+  "depth": 2.72006356716156,
+  "version": "reference-match-20260908-v2",
+  "radius": 2.6806427953024894,
+  "materialCount": 1,
+  "modelBytes": 231152,
+  "textureBytes": 237895,
+  "modelSha256": "6c10c93aa8cb5a0855ef12a63006d4087da282211f90726a5128948f425fa4c9",
+  "indirectSha256": "09a657d6bc4f8b1d733015d084c07d0891d593e808f2d97923da46dd2303de76"
 }

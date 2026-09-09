@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { paintMinimap } from "../client/minimap.ts";
-import { getTrack, trackWidth } from "../shared/track.ts";
+import { getTrack, trackWidth, shortcutWidthAt } from "../shared/track.ts";
 
 function recordingCanvas() {
   let points: number[][] = [],
@@ -57,10 +57,13 @@ test("mountain minimap draws the shared shortcut as an open, narrower branch wit
   const [road, , branch] = canvas.strokes;
   assert.equal(road.closed, true);
   assert.equal(branch.closed, false);
-  assert.equal(
-    branch.width,
-    Math.max(1, ((track.shortcutWidth ?? 7) * 75) / track.radius),
-  );
+  assert.equal(branch.width, 1, 'thin open centreline remains visible at minimap scale');
+  const shortcutEdges = canvas.fills[1];
+  assert.equal(shortcutEdges.length, track.shortcut.length * 2);
+  for (let i=0; i<track.shortcut.length; i+=10) {
+    const a=shortcutEdges[i],b=shortcutEdges[shortcutEdges.length-1-i];
+    assert.ok(Math.abs(Math.hypot(a[0]-b[0],a[1]-b[1])-shortcutWidthAt(track.shortcut[i].t,track)*75/track.radius)<1e-8);
+  }
   const edges = canvas.fills[0];
   assert.equal(edges.length, track.points.length * 2);
   for (const index of [0, 100, 200, 400]) {

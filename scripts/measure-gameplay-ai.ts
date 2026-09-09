@@ -14,6 +14,9 @@ const sourcePaths = [
   "shared/driving-skills.ts",
   "shared/rules.ts",
   "shared/track.ts",
+  "shared/route-course.ts",
+  "shared/route-data.ts",
+  "shared/road-design.ts",
   "shared/levels.ts",
   "shared/ai.ts",
   "shared/ai-profiles.ts",
@@ -58,7 +61,7 @@ for (const [revision, controller] of revisions)
           maxNoProgressSeconds = 0,
           noProgressSeconds = 0,
           bestProgress = car.progress;
-        for (let i = 0; i < 60 * 300 && car.lap < 3; i++) {
+        for (let i = 0; i < 60 * 600 && car.lap < 3; i++) {
           const input = controller(car, track, difficulty, i / 60);
           if (input.reset && !car.resetHeld) resets++;
           if (input.drift) driftSeconds += 1 / 60;

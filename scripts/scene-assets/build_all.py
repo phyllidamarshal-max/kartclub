@@ -36,6 +36,7 @@ for key in ARCHITECTURE+NATURE:
         sys.exit(0)
     records.append(json.loads(path.read_text(encoding='utf-8')))
 manifest = {'version':'reference-coast-assets-v1','assets':records}
+subprocess.run([sys.executable, str(ROOT/'scripts/scene-assets/pack.py')], cwd=ROOT, check=True)
 temporary = PUBLIC/'manifest.tmp.json'
 temporary.write_text(json.dumps(manifest,indent=2),encoding='utf-8')
 temporary.replace(PUBLIC/'manifest.json')

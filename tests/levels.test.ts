@@ -4,9 +4,9 @@ import { TRACKS, getTrack, trackPoint } from "../shared/track.ts";
 import { getLevel, drivingZoneAt } from "../shared/levels.ts";
 import { spawnCar, stepCar, EMPTY_INPUT } from "../shared/race.ts";
 
-test("nine selectable routes expose nine different worlds and driving briefs", () => {
+test("nineteen selectable routes use nine worlds and distinct driving briefs", () => {
   assert.equal(new Set(TRACKS.map((t) => getLevel(t.id).biome)).size, 9);
-  assert.equal(new Set(TRACKS.map((t) => getLevel(t.id).brief)).size, 9);
+  assert.equal(new Set(TRACKS.map((t) => getLevel(t.id).brief)).size, 19);
   for (const track of TRACKS) {
     const level = getLevel(track.id);
     assert.ok(Object.isFrozen(level));

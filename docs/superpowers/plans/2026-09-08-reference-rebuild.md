@@ -23,42 +23,42 @@ Files: `scripts/scene-assets/common.py`, `build.py`, authored `.blend`, GLB and 
 
 Interface for builders: `build_assets() -> dict[str, list[bpy.types.Object]]`. Builders may use direct bpy/bmesh and helpers from `common`: `material(name,color,roughness)`, `box(name,location,dimensions,mat,bevel=0)`, `mesh(name,vertices,faces,mat)`, `beam(name,a,b,radius,mat,vertices=6)`. All returned objects are isolated asset geometry; no camera/light/ground.
 
-- [ ] Install isolated bpy runtime and verify import/export and CPU baking.
-- [ ] Implement geometry/material helpers and deterministic UV atlas generation. Preserve authored material detail in baked base-color, normal, roughness and occlusion textures.
-- [ ] Bake static indirect light separately from direct sun so runtime lighting does not double the sunlight. Bind sidecar light map through an explicit UV channel.
-- [ ] Save editable source assets and export GLBs. Validate bounds, UV attributes, material links and total resource size from exported GLB JSON.
+- [x] Install isolated bpy runtime and verify import/export and CPU baking.
+- [x] Implement geometry/material helpers and deterministic UV atlas generation. Preserve authored material detail in baked base-color, normal, roughness and occlusion textures.
+- [x] Bake static indirect light separately from direct sun so runtime lighting does not double the sunlight. Bind sidecar light map through an explicit UV channel.
+- [x] Save editable source assets and export GLBs. Validate bounds, UV attributes, material links and total resource size from exported GLB JSON.
 
 ### Task 2: Reference architecture kit
 
 Files: `scripts/scene-assets/architecture.py`; report `output/coast-rebuild/architecture-report.md`.
 
-- [ ] Build `cottage-hero`, `cottage-gable`, `cottage-low` with different silhouettes. Near house includes recessed doors/windows, thick slate roof layers, rounded stone edges, ledges and porch. Restrained warm cream stone / slate blue palette.
-- [ ] Build `lighthouse` with layered footing, taper, gallery, railings, glazing and roof.
-- [ ] Return objects through `build_assets()`; validate all objects lie near origin and face -Y, make module deterministic, preserve source.
+- [x] Build `cottage-hero`, `cottage-gable`, `cottage-low` with different silhouettes. Near house includes recessed doors/windows, thick slate roof layers, rounded stone edges, ledges and porch. Restrained warm cream stone / slate blue palette.
+- [x] Build `lighthouse` with layered footing, taper, gallery, railings, glazing and roof.
+- [x] Return objects through `build_assets()`; validate all objects lie near origin and face -Y, make module deterministic, preserve source.
 
 ### Task 3: Reference nature kit
 
 Files: `scripts/scene-assets/nature.py`; report `output/coast-rebuild/nature-report.md`.
 
-- [ ] Build `tree-oak`, `tree-round`, `tree-slender`, `tree-blossom` with actual branching and irregular multi-lobed faceted crowns, no overlapping identical spheres/crystals.
-- [ ] Build `rock-cluster`, `meadow-patch`, `shrub-cluster` with short-range ground detail and restrained stone tones.
-- [ ] Keep roots at ground, widths bounded and scene-local geometry shared when sensible. Export through common pipeline.
+- [x] Build `tree-oak`, `tree-round`, `tree-slender`, `tree-blossom` with actual branching and irregular multi-lobed faceted crowns, no overlapping identical spheres/crystals.
+- [x] Build `rock-cluster`, `meadow-patch`, `shrub-cluster` with short-range ground detail and restrained stone tones.
+- [x] Keep roots at ground, widths bounded and scene-local geometry shared when sensible. Export through common pipeline.
 
 ### Task 4: Scene loading and layout integration
 
 Files: `client/coast-assets.ts`, `client/coast-layout.ts`, `client/world.ts`, `client/scenery.ts`, `tests/coast-assets.test.ts`.
 
-- [ ] Separate the current coast decorative layer so an asset load can atomically replace buildings/trees while retaining road, grass and coast edges.
-- [ ] Read a versioned manifest, load GLBs and light data, preserve material texture channels, instantiate assets from a data layout constrained by main/shortcut road clearance.
-- [ ] Test success/failure/disposal, reference geometry bounds and no duplicate overlapping village layer. Use actual materials as batching keys; do not merge incompatible atlas instances.
-- [ ] Integrate quality/distance visibility, texture ownership and disposal with World.
+- [x] Separate the current coast decorative layer so an asset load can atomically replace buildings/trees while retaining road, grass and coast edges.
+- [x] Read a versioned manifest, load GLBs and light data, preserve material texture channels, instantiate assets from a data layout constrained by main/shortcut road clearance.
+- [x] Test success/failure/disposal, reference geometry bounds and no duplicate overlapping village layer. Use actual materials as batching keys; do not merge incompatible atlas instances.
+- [x] Integrate quality/distance visibility, texture ownership and disposal with World.
 
 ### Task 5: Runtime visual inspection and completion
 
 Files: `output/coast-rebuild/review.html`, `docs/coast-rebuild-2026-09-08.md`.
 
-- [ ] Render reference comparisons with front/rear/overview and asset closeup cameras using World; expose clay inspection and a camera drive along the actual circuit.
-- [ ] Inspect actual browser frames and adjust authored assets/layout if reference proportions or materials remain visibly wrong.
-- [ ] Run TypeScript/Vite build, applicable scenery/road/lifecycle tests and resource checks.
-- [ ] Measure a moving runtime pass, record frame times/quality rather than claiming a target FPS.
-- [ ] Record implemented scope, actual results and remaining fidelity differences. Leave preview open for the user.
+- [x] Render reference comparisons with front/rear/overview and asset closeup cameras using World; expose clay inspection and a camera drive along the actual circuit.
+- [x] Inspect actual browser frames and adjust authored assets/layout if reference proportions or materials remain visibly wrong.
+- [x] Run TypeScript/Vite build, applicable scenery/road/lifecycle tests and resource checks.
+- [x] Measure a moving runtime pass, record frame times/quality rather than claiming a target FPS.
+- [x] Record implemented scope, actual results and remaining fidelity differences. Leave preview open for the user.

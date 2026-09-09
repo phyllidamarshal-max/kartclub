@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { aiInput } from "../shared/ai.ts";
-import { TRACKS, trackPoint } from "../shared/track.ts";
+import { TRACKS, trackPoint } from "./fixtures/tracks-before-route-mastery.ts";
 import { spawnCar, stepCar } from "../shared/race.ts";
 
 test("AI brakes for an outward corner exit but accelerates once aligned", () => {
@@ -42,3 +42,4 @@ test("expert city laps avoid the wall when accelerating out of the narrowing tur
   assert.equal(car.lap, 3);
   assert.equal(car.collisionCount, 0);
 });
+

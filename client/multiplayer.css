@@ -1,0 +1,74 @@
+.multiplayer-service {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 15px;
+  margin-bottom: 20px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  font-size: 13px;
+}
+.multiplayer-service.online {
+  color: var(--color-brand);
+}
+.multiplayer-service.offline {
+  color: var(--color-warning);
+}
+.multiplayer-service small {
+  display: block;
+  max-width: 48ch;
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  margin-top: 5px;
+}
+.multiplayer-service button {
+  margin-inline-start: auto;
+  flex-shrink: 0;
+}
+.room-invite {
+  margin: 18px 0;
+}
+.room-invite label {
+  display: block;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  margin-bottom: 8px;
+}
+.room-invite > div {
+  display: flex;
+  gap: 8px;
+}
+.room-invite input {
+  min-width: 0;
+  flex: 1;
+  font-size: 12px;
+}
+.room-invite .button {
+  flex-shrink: 0;
+  padding: 12px;
+  font-size: 12px;
+}
+.room-wait {
+  color: var(--color-text-muted);
+  font-size: 13px;
+  margin: 12px 0;
+}
+.room-wait b {
+  color: var(--color-brand);
+  font-variant-numeric: tabular-nums;
+}
+.room-modal .slot-avatar {
+  font-size: 15px;
+  font-weight: 700;
+}
+.online-layout #room-code {
+  text-transform: none;
+}
+@media (max-width: 600px) {
+  .room-invite > div {
+    flex-direction: column;
+  }
+  .room-modal .room-slots {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

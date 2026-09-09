@@ -1,7 +1,8 @@
 import { EMPTY_INPUT, sanitizeInput, type Car, type Input } from "./race.ts";
+import { COURSE_DESIGNS } from "./route-course.ts";
 export const VERSIONS = Object.freeze({
-  trackVersion: "routes-0.4.0",
-  rulesVersion: "pons-rules-0.4.1",
+  trackVersion: "routes-0.9.0",
+  rulesVersion: "kart-rules-0.8.0",
   performanceClass: "standard-v1",
   assistClass: "manual-v1",
 });
@@ -15,6 +16,7 @@ export const RACE_RULES = Object.freeze({
   hardLimit: 300,
   finishWindow: 20,
   readyTimeout: 30,
+  friendRoomTimeout: 600,
   reconnectSeconds: 10,
   timeResolution: 0.0001,
 });
@@ -32,16 +34,31 @@ export function recordKey(
   ].join(":");
 }
 // Finished times are immutable, so subsequent finishers cannot extend the window.
-// Training, time trials and practice retain the hard cap without a finish window.
-export function raceDeadline(cars: readonly Car[], competitive = true) {
+// Noncompetitive timed races keep a hard cap without the first-finisher window.
+// Unbounded local practice/tutorial sessions are handled by the client lifecycle.
+export function raceHardLimit(trackId = "tide-coast-v1", laps = 3) {
+  const course = COURSE_DESIGNS[trackId];
+  if (!course) return RACE_RULES.hardLimit;
+  const count = Number.isFinite(laps)
+    ? Math.max(1, Math.min(4, Math.floor(laps)))
+    : 3;
+  return ((course.minutes * 60 * count) / 3) * 1.5;
+}
+export function raceDeadline(
+  cars: readonly Car[],
+  competitive = true,
+  trackId?: string,
+  laps = 3,
+) {
+  const hardLimit = raceHardLimit(trackId, laps);
   return competitive
     ? Math.min(
-        RACE_RULES.hardLimit,
+        hardLimit,
         ...cars
           .filter((c) => c.finished)
           .map((c) => c.time + RACE_RULES.finishWindow),
       )
-    : RACE_RULES.hardLimit;
+    : hardLimit;
 }
 export function classify(
   cars: readonly Car[],

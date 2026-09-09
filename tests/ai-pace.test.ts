@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { aiInput } from "../shared/ai.ts";
 import { aiInput as beforeAI } from "./fixtures/ai-before-difficulty.ts";
-import { TRACKS, getTrack, trackPoint } from "../shared/track.ts";
+import { TRACKS, getTrack, trackPoint } from "./fixtures/tracks-before-route-mastery.ts";
 import { spawnCar, stepCar } from "../shared/race.ts";
 
 test("AI keeps accelerating during nitro on a clear straight instead of braking at its cruising cap", () => {
@@ -147,3 +147,4 @@ test("competitive AI follows an occupied shortcut and rejoins the main road with
       assert.equal(resets, 0);
     }
 });
+

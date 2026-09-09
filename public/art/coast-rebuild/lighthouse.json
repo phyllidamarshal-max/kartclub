@@ -1,0 +1,11 @@
+{
+  "key": "lighthouse",
+  "model": "/art/coast-rebuild/lighthouse.glb",
+  "indirect": "/art/coast-rebuild/lighthouse-indirect.png",
+  "lighting": "asset-local diffuse indirect only; direct sun excluded",
+  "triangles": 2972,
+  "atlasSize": 1024,
+  "height": 16.84000015258789,
+  "width": 4.039999961853027,
+  "depth": 4.2850000858306885
+}

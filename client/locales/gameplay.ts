@@ -9,6 +9,11 @@ const entries: readonly (readonly [
   string,
   string,
 ])[] = [
+  ["约 {n} 分钟 · {laps} 圈", "~{n} min · {laps} laps", "~{n} min · {laps} tours", "~{n} मिनट · {laps} लैप", "~{n} min · {laps} vueltas", "حوالي {n} دقيقة · {laps} لفات"],
+  ["V / S / U 技术弯", "V / S / U skill corners", "Virages techniques V / S / U", "V / S / U तकनीकी मोड़", "Curvas técnicas V / S / U", "منعطفات مهارية V / S / U"],
+  ["V 弯 · 制动后切入", "V bend · Brake and turn in", "Virage V · Freinez puis tournez", "V मोड़ · ब्रेक लगाकर मुड़ें", "Curva V · Frena y gira", "منعطف V · اكبح ثم انعطف"],
+  ["S 弯 · 拉正再反打", "S bends · Recover and reverse steer", "Virages S · Redressez puis inversez", "S मोड़ · सीधा करें फिर उल्टा मोड़ें", "Curvas S · Endereza y contravolantea", "منعطفات S · استقم ثم اعكس التوجيه"],
+  ["U 弯 · 保持漂移弧线", "U bend · Hold a steady drift", "Virage U · Gardez un dérapage stable", "U मोड़ · स्थिर ड्रिफ्ट रखें", "Curva U · Mantén un derrape estable", "منعطف U · حافظ على انجراف ثابت"],
   ["返回", "Back", "Retour", "वापस", "Volver", "رجوع"],
   [
     "携带一枚导弹出发。两圈进入前三，并用道具成功减速对手至少一次。",

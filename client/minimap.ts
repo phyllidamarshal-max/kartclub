@@ -1,4 +1,9 @@
-import { trackPoint, trackWidth, type Track } from "../shared/track.ts";
+import {
+  trackPoint,
+  trackWidth,
+  shortcutWidthAt,
+  type Track,
+} from "../shared/track.ts";
 
 let cachedTheme: { paper: string; accent: string; brand: string } | undefined;
 function minimapTheme() {
@@ -62,18 +67,47 @@ export function paintMinimap(
   ctx.stroke();
   if (track.shortcut.length > 1) {
     ctx.beginPath();
+    for (const side of [-1, 1]) {
+      const points =
+        side === -1 ? track.shortcut : [...track.shortcut].reverse();
+      points.forEach((p, i) => {
+        const half = shortcutWidthAt(p.t, track) / 2;
+        const [x, y] = xy({
+          x: p.x + Math.cos(p.heading) * half * side,
+          z: p.z - Math.sin(p.heading) * half * side,
+        });
+        if (side === -1 && i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+    }
+    ctx.closePath();
+    ctx.fillStyle = theme.accent;
+    ctx.fill();
+    ctx.beginPath();
     track.shortcut.forEach((p, i) => {
       const [x, y] = xy(p);
       if (i === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     });
     // Highlight the alternate route with the same brand accent as the HUD.
-    ctx.lineWidth = Math.max(
-      1,
-      ((track.shortcutWidth ?? 7) * 75) / track.radius,
-    );
+    ctx.lineWidth = 1;
     ctx.strokeStyle = theme.accent;
     ctx.stroke();
+    if (track.layout === "ab") {
+      const b = track.shortcut[Math.floor(track.shortcut.length * 0.48)],
+        a = trackPoint(b.t, track);
+      ctx.font = "700 11px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+      for (const [name, p, color] of [
+        ["A", a, theme.paper],
+        ["B", b, theme.accent],
+      ] as const) {
+        const [x, y] = xy(p);
+        ctx.fillStyle = color;
+        ctx.fillText(name, x, y - 3);
+      }
+    }
   }
   targets.forEach((target, i) => {
     const [x, y] = xy(trackPoint(target.t, track));

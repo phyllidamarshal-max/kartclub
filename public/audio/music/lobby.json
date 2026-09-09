@@ -1,0 +1,14 @@
+{
+  "id": "lobby",
+  "title": "Clubhouse Sunshine",
+  "bpm": 132,
+  "bars": 32,
+  "sampleRate": 44100,
+  "version": 1,
+  "loopEnd": 58.18181405895692,
+  "urls": [
+    "/audio/music/lobby.ogg?v=1",
+    "/audio/music/lobby.m4a?v=1"
+  ],
+  "creditsUrl": "/audio/music/CREDITS.txt"
+}

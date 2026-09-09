@@ -16,6 +16,7 @@ import {
 } from "../client/i18n.ts";
 import { CATALOG, SOURCE_KEYS } from "../client/locales/catalog.ts";
 import { STRUCTURAL_CATALOG } from "../client/locales/brand.ts";
+import { MAP_CATALOG } from "../client/locales/maps.ts";
 import { Training } from "../client/training.ts";
 import {
   CHALLENGES,
@@ -298,13 +299,17 @@ test("all exported tracks, challenges, modes, difficulties, items, and training 
     ...new Training().hints,
   ];
   for (const source of playerContent) {
-    assert.ok(CATALOG[source], `missing player content: ${source}`);
+    assert.ok(
+      CATALOG[source] ?? MAP_CATALOG[source],
+      `missing player content: ${source}`,
+    );
     for (const locale of ["en", "fr", "hi", "es", "ar"] as const)
-      assert.notEqual(
-        tr(source, undefined, locale),
-        source,
-        `${source}: untranslated ${locale}`,
-      );
+      if (!(locale === "en" && MAP_CATALOG[source]))
+        assert.notEqual(
+          tr(source, undefined, locale),
+          source,
+          `${source}: untranslated ${locale}`,
+        );
   }
 });
 

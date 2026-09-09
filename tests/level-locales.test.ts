@@ -2,6 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { LANGUAGES, tr } from "../client/i18n.ts";
 import { CATALOG } from "../client/locales/catalog.ts";
+import { MAP_CATALOG } from "../client/locales/maps.ts";
 import { LEVELS } from "../shared/levels.ts";
 
 const worldInterface = [
@@ -46,11 +47,15 @@ test("all world metadata and interface phrases translate into all six languages"
     ...worldInterface,
   ]);
   for (const source of phrases) {
-    assert.ok(CATALOG[source], `missing world phrase: ${source}`);
+    assert.ok(
+      CATALOG[source] ?? MAP_CATALOG[source],
+      `missing world phrase: ${source}`,
+    );
     for (const { code } of LANGUAGES) {
       const translated = tr(source, {}, code);
       assert.ok(translated.trim(), `${source}: empty ${code}`);
-      if (code === "zh") assert.equal(translated, source);
+      if (code === "zh")
+        assert.equal(translated, (MAP_CATALOG[source] ?? CATALOG[source]).zh);
       else
         assert.doesNotMatch(
           translated,

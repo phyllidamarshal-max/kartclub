@@ -2,6 +2,7 @@ import { spawnCar, type Car } from "../shared/race.ts";
 import { trackPoint, angleDiff, type Track } from "../shared/track.ts";
 
 export function practiceCorners(track: Track): number[] {
+  if (track.bends?.length) return track.bends.map((b) => b.apex);
   const candidates = Array.from({ length: 80 }, (_, i) => {
     const t = (i + 0.5) / 80,
       a = trackPoint(t - 0.018, track),
@@ -34,8 +35,11 @@ export class CornerPractice {
       0,
       Math.min(corners.length - 1, Math.floor(index) || 0),
     );
-    this.startProgress = corners[this.corner] - 0.055;
-    this.endProgress = corners[this.corner] + 0.075;
+    const section = track.bends?.[this.corner];
+    this.startProgress =
+      (section?.start ?? corners[this.corner]) - 75 / track.length;
+    this.endProgress =
+      (section?.end ?? corners[this.corner]) + 65 / track.length;
   }
   restart(): Car {
     this.attempts++;

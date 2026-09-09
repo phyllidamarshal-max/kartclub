@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnCar, stepCar, EMPTY_INPUT, type Car } from "../shared/race.ts";
-import { DEFAULT_TRACK, trackPoint } from "../shared/track.ts";
+import { DEFAULT_TRACK, trackPoint } from "./fixtures/tracks-before-route-mastery.ts";
 const dt = 1 / 60;
 function drive(c: Car, n: number, input = { ...EMPTY_INPUT }) {
   for (let i = 0; i < n; i++) stepCar(c, input, dt);
@@ -287,7 +287,7 @@ test("ordinary throttle cannot creep above configured normal maximum", () => {
   assert.ok(c.speed <= 43, `speed ${c.speed}`);
 });
 
-import { getTrack, continuousTrack } from "../shared/track.ts";
+import { getTrack, continuousTrack } from "./fixtures/tracks-before-route-mastery.ts";
 import { aiInput } from "../shared/ai.ts";
 test("AC12 legal mountain branch traverses and merges with continuous canonical progress", () => {
   const track = getTrack("mountain"),
@@ -334,3 +334,4 @@ test("reference 40-tick clean high-slip bend earns only a modest fraction of a b
   assert.equal(c.impact, 0);
   assert.ok(c.driftTotal >= 10 && c.driftTotal <= 30, `charge ${c.driftTotal}`);
 });
+

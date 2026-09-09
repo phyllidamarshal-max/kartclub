@@ -1,0 +1,23 @@
+# Living obstacles: shared motion and contact report
+
+Implemented in `shared/moving-obstacles.ts`, new `shared/moving-obstacle-contact.ts`, and `tests/moving-obstacles.test.ts`.
+
+- Added pendulum, sheep and deer kinds, shared world facing, distance-driven stride, lift and swing angle. Animal motion uses quintic interpolation, analytic velocity, 15% / 35% / 15% / 35% dwell/cross/dwell/return intervals. Turns occur during stationary dwell. Negative clocks wrap deterministically; extreme finite clocks are reduced before multiplying by angular frequency.
+- Pendulum length is `max(10, abs(amplitude) * 1.8)`. Shared ground reference rises by `L - sqrt(L² - offset²)`; weight-center convention remains pose y plus radius. These stay planar low-sweeping collision obstacles.
+- Replaced circumscribed-circle narrow-phase contact with the reflected actual kart polygon expanded by the obstacle disc. Segment entry solves straight edges and round corners analytically. The circle remains a broad-phase bound. Sine and quintic second-derivative bounds conservatively enclose relative chords; subdivision happens only for potential contact intervals. Kart speed does not define a sample interval.
+- Position recovery and contact normals use signed polygon/disc clearance. `movingObstacleClearance(body, pose)` returns `{distance, nx, nz}`. `constrainMovingObstacles(body, track, clock, escapeHeading?)` optionally finds the nearest clear position along the supplied road heading without changing lateral position; caller still owns road/environment constraints.
+- Preserved bounded impulse processing and original-side continuous-push fallback using rounded polygon ray entry, followed by exact endpoint overlap recovery.
+
+Validation: `npx tsx --test tests/moving-obstacles.test.ts` passes 23/23. Coverage retains reset/coincident recovery, outward movement, exact tangency, high speed, sustained pushes, parked moving contact and deterministic replay. Added animal C2 motion boundaries, both wildlife families' continuous parked contacts/replay, negative and extreme clocks, pendulum rod geometry, rotated high-speed and side-clearance cases, and blocked lateral recovery.
+
+The first focused run found false damage at a tangent parked sweep due to the conservative curve envelope. Fixed this with an exact road-axis projection bound using polygon support, then reran the entire focused file successfully. Existing tests requiring circumscribed-circle separation now assert actual polygon/disc clearance; the broad-radius enclosure test remains intact.
+
+Limitations: CCD holds the kart's supplied integrated heading constant over a step, because this API has no previous heading. Processing remains bounded (2048 interval visits, 20 levels, 12 impulses); enormous malformed multi-period steps are not a general rigid-body solver. Road-edge escape must be integrated by callers after road clamping. New family mesh validation belongs to the renderer task. A standalone TypeScript check was blocked by concurrent pre-existing geometry-inference errors in `client/architecture-joints.ts` at lines 27, 38, 50, 60, 62 and 63; no errors in owned files were reported.
+
+## Review correction: animal silhouette
+
+Replaced wildlife discs with mesh-fitted capsules. Sheep: centerline half-length .40r and flank radius .551r. Deer: half-length .50r and radius .461r. A dense pre-fit measured required radii .550r and .460r respectively; the additional .001r is numerical/model clearance. Capsules follow pose.facing during both crossing and turning. The reflected kart polygon is expanded by the capsule segment using a convex hull, then the existing rounded-polygon sweep uses the reduced flank radius.
+
+Added shared analytic pose.yawRate and movingObstacleFootprint(pose), which returns halfLength, radius and the world capsule half-axis x/z. CCD bounds midpoint capsule rotation using its half-length and an analytic maximum angular speed over any overlapping dwell interval. Contact impulses include the rotating capsule endpoint's surface velocity. Continuous parked rotation is tested explicitly; turn CCD is still subject to the documented bounded iteration budget.
+
+Validation after correction: 29/29 tests in tests/moving-obstacles.test.ts pass. New cases check 15mm close flank passes, flank and nose collisions, deterministic parked contacts during turning, and all articulated mesh vertices inside their fitted capsules over 81 phases for each species. The latest TypeScript check instead found a concurrent missing client/ambient-fauna.ts import in tests/ambient-fauna.test.ts and its resulting implicit-any errors; no owned-file errors.

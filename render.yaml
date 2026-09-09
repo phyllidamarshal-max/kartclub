@@ -1,0 +1,20 @@
+# Blueprint for one persistent, always-on race service. Creating it is a paid action in Render.
+services:
+  - type: web
+    name: kart-club
+    runtime: docker
+    plan: 0.5c-512mb
+    numInstances: 1
+    healthCheckPath: /api/health
+    autoDeployTrigger: "off"
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PONS_DATA_DIR
+        value: /app/data
+      - key: ALLOWED_ORIGINS
+        sync: false
+    disk:
+      name: kart-data
+      mountPath: /app/data
+      sizeGB: 1

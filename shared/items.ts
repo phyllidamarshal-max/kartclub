@@ -7,6 +7,7 @@ import {
   type Track,
 } from "./track.ts";
 import { chooseItem, itemRaceGap } from "./item-strategy.ts";
+import { recordVfx, pruneVfx, type VfxJournal } from "./vfx-events.ts";
 export type Item = "boost" | "shield" | "missile" | "trap";
 const HIT_EFFECT = Object.freeze({
   slow: 1.5,
@@ -43,12 +44,14 @@ export interface ItemState {
   noticeTime: number;
 }
 export interface ItemWorld {
+  vfx?: VfxJournal;
   time: number;
   seed: number;
   players: Record<string, ItemState>;
   boxes: { x: number; z: number; y: number; band: number; readyAt: number }[];
-  traps: { x: number; z: number; y?: number; owner: string; ttl: number }[];
+  traps: { x: number; z: number; y?: number; owner: string; ttl: number; visualId?: number }[];
   missiles: {
+    visualId?: number;
     x: number;
     z: number;
     owner: string;
@@ -144,6 +147,7 @@ export function stepItems(
   track: Track,
 ) {
   w.time += dt;
+  pruneVfx(w);
   // Advance defensive timers to each chronological impact, then to frame end.
   // Decrementing a whole frame up front would erase a shield that was still
   // active when an early swept missile actually arrived.
@@ -161,7 +165,7 @@ export function stepItems(
     p.notice = s;
     p.noticeTime = 2;
   };
-  const hit = (c: Car, owner: string) => {
+  const hit = (c: Car, owner: string, item: 'missile'|'trap', x:number, y:number, z:number, time:number) => {
     const p = w.players[c.id];
     if (
       !p ||
@@ -176,6 +180,7 @@ export function stepItems(
       p.hitProtection = HIT_EFFECT.shieldProtection;
       if (owner !== c.id) p.blocks++;
       notice(p, "护盾抵挡了攻击");
+      recordVfx(w,{kind:'block',item,actor:owner,target:c.id,x,y,z},time);
       return;
     }
     p.slow = HIT_EFFECT.slow;
@@ -191,6 +196,7 @@ export function stepItems(
     c.vz *= factor;
     c.impact = 1;
     notice(p, "受到攻击 · 正在恢复");
+    recordVfx(w,{kind:'hit',item,actor:owner,target:c.id,x,y,z},time);
     if (owner !== c.id && w.players[owner]) {
       w.players[owner].hits++;
       w.players[owner].usefulHits++;
@@ -222,12 +228,14 @@ export function stepItems(
       p.held = null;
       p.uses++;
       notice(p, ITEM_NAMES[item] + " 已使用");
+      recordVfx(w,{kind:'use',item,actor:c.id,x:c.x,y:continuousTrack(c.x,c.z,c.lastT,track,c.routeBranch).y,z:c.z});
       if (item === "boost") c.boostTime = Math.max(c.boostTime, 2.3);
       if (item === "shield") p.shield = 5;
       if (item === "trap" && w.traps.length < 16) {
         const x = c.x - Math.sin(c.heading) * 4,
           z = c.z - Math.cos(c.heading) * 4;
         w.traps.push({
+          visualId: recordVfx(w,{kind:'deploy',item:'trap',actor:c.id,x,y:continuousTrack(x,z,c.lastT,track,c.routeBranch).y,z}),
           x,
           z,
           y: continuousTrack(x, z, c.lastT, track, c.routeBranch).y,
@@ -239,6 +247,7 @@ export function stepItems(
         const target = selectMissileTarget(c, cars, track);
         if (target)
           w.missiles.push({
+            visualId: recordVfx(w,{kind:'launch',item:'missile',actor:c.id,target:target.id,x:c.x,y:continuousTrack(c.x,c.z,c.lastT,track,c.routeBranch).y,z:c.z}),
             x: c.x,
             z: c.z,
             owner: c.id,
@@ -270,10 +279,11 @@ export function stepItems(
           p.held = choice.item;
           b.readyAt = w.time + 3;
           notice(p, "获得 " + ITEM_NAMES[p.held]);
+          recordVfx(w,{kind:'pickup',item:p.held,actor:c.id,x:b.x,y:b.y,z:b.z});
           break;
         }
   }
-  const impacts: { time: number; victim: Car; owner: string }[] = [];
+  const impacts: { time: number; victim: Car; owner: string; item:'missile'|'trap';x:number;y:number;z:number }[] = [];
   for (const m of w.missiles) {
     const life = m.ttl;
     if (life <= 0) continue;
@@ -293,7 +303,7 @@ export function stepItems(
       d = Math.hypot(dx, dz);
     const arrival = missileImpactTime(m, target);
     if (arrival !== null && arrival <= dt) {
-      impacts.push({ time: arrival, victim: target, owner: m.owner });
+      impacts.push({ time: arrival, victim: target, owner: m.owner, item:'missile', x:target.x,y:continuousTrack(target.x,target.z,target.lastT,track,target.routeBranch).y,z:target.z });
       m.ttl = 0;
     } else {
       const travel = MISSILE_SPEED * Math.min(dt, life);
@@ -322,7 +332,7 @@ export function stepItems(
           ) < 3),
     );
     if (victim) {
-      impacts.push({ time: armedAt, victim, owner: t.owner });
+      impacts.push({ time: armedAt, victim, owner: t.owner, item:'trap',x:t.x,y:t.y??continuousTrack(victim.x,victim.z,victim.lastT,track,victim.routeBranch).y,z:t.z });
       t.ttl = 0;
     }
   }
@@ -330,7 +340,7 @@ export function stepItems(
   impacts.sort((a, b) => a.time - b.time);
   for (const impact of impacts) {
     advance(impact.victim.id, impact.time);
-    hit(impact.victim, impact.owner);
+    hit(impact.victim, impact.owner, impact.item, impact.x,impact.y,impact.z,w.time-dt+impact.time);
   }
   for (const c of cars) advance(c.id, dt);
 }

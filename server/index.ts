@@ -8,6 +8,7 @@ import { Auth } from "./auth.ts";
 import {RaceRecords} from "./race-records.ts";
 import { KartRoom } from "./room.ts";
 import { VERSIONS } from "../shared/rules.ts";
+import { configureHttp, serveClient } from './http.ts';
 const data =
   process.env.PONS_DATA_DIR ||
   path.join(path.dirname(fileURLToPath(import.meta.url)), "../data");
@@ -22,12 +23,9 @@ const server = new Server({
   transport: new WebSocketTransport({ maxPayload: 8192 }),
   greet: false,
   express: (app) => {
-    app.use("/api", (_req, res, next) => {
-      res.setHeader("Cache-Control", "no-store");
-      next();
-    });
+    configureHttp(app);
     app.get("/api/health", (_req, res) =>
-      res.json({ ok: true, mode: "simulation", version: "0.3.0", rulesVersion: VERSIONS.rulesVersion }),
+      res.json({ ok: true, mode: "simulation", version: "0.3.0", ...VERSIONS }),
     );
     app.get("/api/pool", (_req, res) => res.json(economy.pool()));
     app.post("/api/account", (_req, res) => {
@@ -73,6 +71,7 @@ const server = new Server({
         res.status(400).json({ error: (e as Error).message });
       }
     });
+    serveClient(app);
   },
 });
 server.define("kart", KartRoom);

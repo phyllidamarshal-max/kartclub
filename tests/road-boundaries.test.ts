@@ -5,10 +5,12 @@ import {
   TRACKS,
   nearestTrack,
   trackWidth,
+  shortcutWidthAt,
   trackWidthRange,
 } from "../shared/track.ts";
 import { buildRoadGeometry } from "../client/world.ts";
 import { buildDrivingSurfaces } from "../client/level-surfaces.ts";
+import { mapProfile } from '../shared/map-profiles.ts';
 
 for (const track of TRACKS)
   test(`${track.id} renders the variable road and keeps branch junctions unobstructed`, () => {
@@ -16,9 +18,9 @@ for (const track of TRACKS)
     buildRoadGeometry(scene, track, new THREE.MeshStandardMaterial());
     scene.updateMatrixWorld(true);
     assert.ok(scene.getObjectByName("main-road"));
-    assert.ok(
+    if (!mapProfile(track.id).isNew || trackWidthRange(track).min <= 12.5) assert.ok(
       scene.getObjectByName("narrow-road-warning"),
-      "width reductions need advance warnings",
+      "narrow advanced sections need advance warnings; gentle wide tapers remain uncluttered",
     );
     assert.ok(scene.getObjectByName("main-guardrail"));
     const mainRail = scene.getObjectByName(
@@ -99,7 +101,7 @@ for (const track of TRACKS)
         const width =
           branch === "main"
             ? trackWidth(p.t, track)
-            : (track.shortcutWidth ?? 7);
+            : shortcutWidthAt(p.t, track);
         for (const side of [-1, -0.5, 0, 0.5, 1]) {
           const lateral = side * (width / 2 - 0.25);
           const x = p.x + Math.cos(p.heading) * lateral,

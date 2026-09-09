@@ -40,3 +40,22 @@ test("kart batching preserves geometry and control pivots while reducing draw su
   assert.equal(wheels.length, 4);
   wheels.forEach((wheel) => assert.equal(wheel.parent, kart));
 });
+
+test("batching retains rolling geometry under its animated spin pivot", () => {
+  const kart = batchKartModel(createKartModel("#a8cc2f"));
+  for (const name of [
+    "wheel-front-left",
+    "wheel-front-right",
+    "wheel-rear-left",
+    "wheel-rear-right",
+  ]) {
+    const wheel = kart.getObjectByName(name)!;
+    const spin = wheel.getObjectByName(wheel.userData.spinNode);
+    assert.ok(spin instanceof THREE.Group);
+    assert.ok(spin.children.some((node) => node instanceof THREE.Mesh));
+    assert.equal(
+      wheel.children.filter((node) => node instanceof THREE.Mesh).length,
+      0,
+    );
+  }
+});

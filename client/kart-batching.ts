@@ -1,5 +1,8 @@
 import * as THREE from "three";
-import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
+import {
+  mergeGeometries,
+  mergeVertices,
+} from "three/addons/utils/BufferGeometryUtils.js";
 
 /** Bake decorative parts once, keeping driver, steering and each wheel independent. */
 export function batchKartModel(root: THREE.Group) {
@@ -38,7 +41,18 @@ export function batchKartModel(root: THREE.Group) {
         : node.geometry.clone();
       // Built-in kart materials have no maps; some authored shells intentionally omit UVs.
       const material = node.material as THREE.MeshStandardMaterial;
-      if (!material.map && !material.normalMap && !material.roughnessMap)
+      if (
+        !material.map &&
+        !material.normalMap &&
+        !material.roughnessMap &&
+        !material.metalnessMap &&
+        !material.aoMap &&
+        !material.emissiveMap &&
+        !material.alphaMap &&
+        !material.lightMap &&
+        !material.bumpMap &&
+        !material.displacementMap
+      )
         geometry.deleteAttribute("uv");
       geometry.applyMatrix4(
         new THREE.Matrix4().multiplyMatrices(inverse, node.matrixWorld),
@@ -52,9 +66,12 @@ export function batchKartModel(root: THREE.Group) {
         batch.geometries.forEach((geometry) => geometry.dispose());
         continue;
       }
-      const geometry = mergeGeometries(batch.geometries);
+      const merged = mergeGeometries(batch.geometries);
       batch.geometries.forEach((source) => source.dispose());
-      if (!geometry) continue;
+      if (!merged) continue;
+      // Restore shared vertices after grouping; normals still preserve material seams.
+      const geometry = mergeVertices(merged);
+      merged.dispose();
       const first = batch.sources[0];
       const combined = new THREE.Mesh(geometry, first.material);
       combined.name = `${pivot.name || "kart"}-detail-batch`;

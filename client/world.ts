@@ -1,11 +1,43 @@
+import { buildMovingObstacles } from "./moving-obstacles.ts";
+import { buildStaticObstacles } from './static-obstacle-models.ts';
 import * as THREE from "three";
 import { createKartModel } from "./kart-model.ts";
+import { createKartVariant } from "./kart-variants.ts";
+import { sanitizeKartId, type KartId } from "../shared/karts.ts";
+import { DriverWardrobe } from './driver-wardrobe.ts';
+import {AmbientStage} from './ambient-stage.ts';
+import {AmbientFauna} from './ambient-fauna.ts';
+import { GarageLighting } from "./garage-lighting.ts";
 import { batchKartModel } from "./kart-batching.ts";
+import { KartMotion } from "./kart-motion.ts";
+import { separateRenderCars } from "./render-motion.ts";
+import { fitKartPreview } from "./visual-camera.ts";
+import { animalFenceOpening } from './obstacle-clearance.ts';
+import { DrivingVfx, type DrivingVfxFrame } from "./vfx/driving.ts";
+import { RaceVfx } from "./vfx/race.ts";
+import { CourseVfx, type CourseTarget } from "./vfx/course.ts";
+import { EnvironmentVfx } from "./vfx/environment.ts";
+import { vfxBudget } from "./vfx/budgets.ts";
+import { buildRoadReadability } from "./road-readability.ts";
+import { buildShortcutGuidance } from "./shortcut-guidance.ts";
+import { loadKartAsset, cloneKartAsset } from "./kart-asset.ts";
 import { getLevel } from "../shared/levels.ts";
+import { sceneStyle, enhanceWorldSurface } from './scene-style.ts';
+import { buildVergeDetails, updateVergeDetails, terrainGroundSampler } from './verge-details.ts';
+import { loadBiomeFoliage, updateBiomeFoliage, disposeBiomeFoliage } from './biome-foliage.ts';
 import { buildLevelLandscape, decorateLevel } from "./level-scenery.ts";
 import { buildDrivingSurfaces } from "./level-surfaces.ts";
 import { addRoadWear, enhanceAsphalt } from "./road-surface.ts";
-import { loadCoastAssets, disposeCoastAssets, updateCoastAssets } from "./coast-assets.ts";
+import { enhanceCoastTimber } from "./coast-timber.ts";
+import {captureCoastReflection, type CoastReflectionProbe} from './coast-reflection.ts';
+import {buildReferenceDressing} from './reference-dressing.ts';
+import {createCoastLayout} from './coast-layout.ts';
+import {createCoastGates} from './coast-gardens.ts';
+import {
+  loadCoastAssets,
+  disposeCoastAssets,
+  updateCoastAssets,
+} from "./coast-assets.ts";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
@@ -22,6 +54,8 @@ import {
   type Track,
   trackPoint,
   trackWidth,
+  shortcutWidthAt,
+  shortcutSurfaceHeight,
   trackWidthRange,
   roadBoundaryOpen,
   type Point,
@@ -140,10 +174,17 @@ export function buildRoadGeometry(
     curbA = mat("#f4e8cf"),
     curbB = mat(level.accent);
   const railMaterial = mat(level.rail),
+    postMaterial = mat(level.rail),
     lineMaterial = mat("#edf0de");
   if (level.biome === "coast") {
-    railMaterial.color.set("#ab997d");
-    railMaterial.roughness = 0.96;
+    curbB.color.set('#c97764');
+    lineMaterial.color.set('#dbd5bd');
+    for (const material of [railMaterial, postMaterial]) {
+      material.color.set("#9d907b");
+      material.roughness = 0.9;
+    }
+    enhanceCoastTimber(railMaterial);
+    enhanceCoastTimber(postMaterial, true);
   }
   const interpolate = (a: Point, b: Point, f: number): Point => ({
     x: a.x + (b.x - a.x) * f,
@@ -159,13 +200,12 @@ export function buildRoadGeometry(
     if (points.length < 2) continue;
     const count = points.length - (closed ? 0 : 1);
     const width = (p: Point) =>
-      branch === "main" ? trackWidth(p.t, track) : (track.shortcutWidth ?? 7);
-    const edge = (p: Point, lateral: number, height: number) =>
-      new THREE.Vector3(
-        p.x + Math.cos(p.heading) * lateral,
-        p.y + height,
-        p.z - Math.sin(p.heading) * lateral,
-      );
+      branch === "main" ? trackWidth(p.t, track) : shortcutWidthAt(p.t, track);
+    const edge = (p: Point, lateral: number, height: number) => {
+      const x=p.x+Math.cos(p.heading)*lateral,z=p.z-Math.sin(p.heading)*lateral;
+      const y=branch==='shortcut'?shortcutSurfaceHeight(x,z,p.t,p.y,track):p.y;
+      return new THREE.Vector3(x,y+height,z);
+    };
     const strip = (
       name: string,
       inner: (p: Point) => number,
@@ -279,6 +319,11 @@ export function buildRoadGeometry(
         const putPost = sincePost >= 4;
         if (putPost) sincePost = 0;
         for (const side of [-1, 1] as const) {
+          if(track.id==='reference-coast-v1'&&side===-1&&m.t>.34&&m.t<.73)continue;
+          if (branch === 'main' && [p, m, q].some(point => {
+            const edgePoint = edge(point, side * (width(point) / 2 + 1.25), 0);
+            return animalFenceOpening(track, edgePoint.x, edgePoint.z, .3);
+          })) continue;
           if (
             [p, m, q].some((point) =>
               roadBoundaryOpen(point, side, track, branch, 1.25),
@@ -294,7 +339,9 @@ export function buildRoadGeometry(
       }
     }
     const rail = new THREE.InstancedMesh(
-      new THREE.BoxGeometry(1, 1, 1),
+      level.biome === "coast"
+        ? new RoundedBoxGeometry(1, 1, 1, 1, 0.035)
+        : new THREE.BoxGeometry(1, 1, 1),
       railMaterial,
       spans.length * 2,
     );
@@ -320,8 +367,10 @@ export function buildRoadGeometry(
     rail.computeBoundingSphere();
     scene.add(rail);
     const supports = new THREE.InstancedMesh(
-      new THREE.BoxGeometry(0.28, 1.6, 0.28),
-      railMaterial,
+      level.biome === "coast"
+        ? new RoundedBoxGeometry(0.28, 1.6, 0.28, 1, 0.018)
+        : new THREE.BoxGeometry(0.28, 1.6, 0.28),
+      postMaterial,
       posts.length,
     );
     supports.name = `${branch}-guardrail-posts`;
@@ -339,14 +388,17 @@ export function buildRoadGeometry(
   }
   const warning = mat("#ffc857"),
     ink = mat("#29373c");
-  for (let i = 1; i < (track.widthProfile?.length ?? 0) - 1; i++) {
-    const before = track.widthProfile![i - 1],
-      stop = track.widthProfile![i];
+  let previousWarning = -100;
+  for (let metres = 8; metres < track.length; metres += 8) {
+    const stop = { t: metres / track.length, width: trackWidth(metres / track.length, track) };
+    const before = { width: trackWidth((metres - 55) / track.length, track) };
     if (
+      metres - previousWarning < 100 ||
       stop.width > before.width - 3 ||
       stop.width > trackWidthRange(track).max * 0.76
     )
       continue;
+    previousWarning = metres;
     const p = trackPoint(stop.t - 25 / track.length, track);
     for (const side of [-1, 1] as const) {
       const offset = side * (trackWidth(p.t, track) / 2 + 4.3),
@@ -398,8 +450,12 @@ export class World {
   private seeded = 531;
   private propellers: THREE.Group[] = [];
   private customDriver: THREE.Object3D | null = null;
-  private skidCursor = 0;
-  private skids: THREE.InstancedMesh;
+  private drivingVfx?: DrivingVfx;
+  private raceVfx?: RaceVfx;
+  private courseVfx?: CourseVfx;
+  private environmentVfx?: EnvironmentVfx;
+  private isItemBoost = (id:string) => this.raceVfx?.boostKind(id) === 'item';
+  private reducedMotion = typeof window !== "undefined" ? window.matchMedia?.("(prefers-reduced-motion: reduce)") : undefined;
   private scratch = new THREE.Object3D();
   private water: THREE.Mesh;
   private seaMaterial: THREE.ShaderMaterial;
@@ -410,33 +466,58 @@ export class World {
   private grassMaterial: THREE.MeshStandardMaterial;
   private textureReady: Promise<void>;
   private cameraReady = false;
+  private kartMotion = new WeakMap<THREE.Group, KartMotion>();
+  private kartTemplate?: THREE.Group;
+  private kartVariants?: Map<KartId, THREE.Group>;
+  private driverWardrobe?: DriverWardrobe;
+  private garageLighting?: GarageLighting;
+  private kartLoad?: Promise<void>;
   private disposed = false;
+  private shortcutGuidance: ReturnType<typeof buildShortcutGuidance> | null = null;
+  private movingObstacles: ReturnType<typeof buildMovingObstacles> | null = null;
   private environmentTarget?: THREE.WebGLRenderTarget;
+  private coastReflection?: CoastReflectionProbe;
+  private referenceDressing?: THREE.Group;
   private coastFallback?: THREE.Scene;
   private coastAssets?: THREE.Group;
   private coastLoad?: Promise<void>;
+  private biomeFallback?: THREE.Group;
+  private biomeFoliage?: THREE.Group;
+  private biomeLoad?: Promise<void>;
+  private biomeLandmark?: {x:number;y:number;z:number;heading:number};
+  private biomeGround?: (x:number,z:number)=>number;
+  private vergeDetails?: THREE.Group;
+  private ambientStage?: AmbientStage;
+  private ambientFauna?: AmbientFauna;
+  private ambientElapsed = 0;
+  private decorativeMeshes: THREE.Mesh[] = [];
   constructor(
     public canvas: HTMLCanvasElement,
     public content: Content,
     public track: Track = DEFAULT_TRACK,
     private thumbnail = false,
+    private externalViewport = false,
   ) {
     const level = getLevel(track.id);
+    const style = sceneStyle(level);
+    this.scene.userData.visualStyle = { ...style, biome: level.biome };
     this.renderer = new THREE.WebGLRenderer({
       canvas,
       antialias: true,
       alpha: false,
       powerPreference: "high-performance",
     });
+    // The main scene canvas survives map switches. Reset the retained WebGL
+    // bindings before scene textures or shadow targets are created.
+    this.renderer.resetState();
     this.renderer.setPixelRatio(
       thumbnail ? 1 : Math.min(devicePixelRatio, 1.75),
     );
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type =
-      level.biome === "coast" ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = level.biome === "coast" ? 1.07 : 1.02;
+    this.renderer.toneMappingExposure = style.exposure;
     this.scene.background = new THREE.Color(level.horizon);
     this.scene.fog = new THREE.Fog(
       level.horizon,
@@ -445,19 +526,20 @@ export class World {
     );
     this.scene.add(
       new THREE.HemisphereLight(
-        level.biome === "coast" ? "#dceaf5" : level.horizon,
-        level.biome === "coast" ? "#b69c74" : level.ground,
-        level.ambient * (level.biome === "coast" ? 0.66 : 0.85),
+        level.biome === "coast" ? "#dceaf5" : style.hemisphereSky,
+        level.biome === "coast" ? "#b69c74" : style.hemisphereGround,
+        level.biome === "coast" ? level.ambient * 0.80 : style.ambient,
       ),
     );
     const sun = (this.sun = new THREE.DirectionalLight(
-      level.biome === "coast" ? "#ffe4bc" : "#fff0d2",
-      level.sun,
+      level.biome === "coast" ? "#ffe4bc" : style.sunColor,
+      level.biome === "coast" ? level.sun * 0.89 : style.sun,
     ));
-    if (level.biome === "coast") this.sunOffset.set(52, 72, -33);
+    this.sunOffset.set(52, 54, -33);
     sun.position.copy(this.sunOffset);
     sun.castShadow = true;
-    sun.shadow.mapSize.set(2048, 2048);
+    const shadowResolution = level.biome === "coast" ? 4096 : 2048;
+    sun.shadow.mapSize.set(shadowResolution, shadowResolution);
     Object.assign(sun.shadow.camera, {
       left: -46,
       right: 46,
@@ -466,9 +548,10 @@ export class World {
       near: 1,
       far: 200,
     });
-    sun.shadow.normalBias = level.biome === "coast" ? 0.018 : 0.025;
+    // Keep self-shadowing outside the wide stochastic PCF footprint on sloped walls.
+    sun.shadow.normalBias = 0.025;
     sun.shadow.bias = -0.00015;
-    sun.shadow.radius = level.biome === "coast" ? 3 : 2;
+    sun.shadow.radius = level.biome === "coast" ? 1.6 : 2;
     this.scene.add(sun);
     this.scene.add(sun.target);
     const sea = createSea(
@@ -486,14 +569,15 @@ export class World {
     createSky(environment, this.track.theme, level);
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(5000, 5000),
-      new THREE.MeshBasicMaterial({ color: level.ground }),
+      new THREE.MeshBasicMaterial({ color: level.biome === 'coast' ? level.ground : style.hemisphereGround }),
     );
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = -12;
     environment.add(ground);
     const reflectionSun = new THREE.Mesh(
-      new THREE.SphereGeometry(9, 12, 8),
-      new THREE.MeshBasicMaterial({ color: new THREE.Color(3.5, 3.1, 2.5) }),
+      new THREE.SphereGeometry(level.biome === "coast" ? 14 : 9, 12, 8),
+      new THREE.MeshBasicMaterial({ color: level.biome === "coast"
+        ? new THREE.Color(2.2, 2.05, 1.8) : new THREE.Color(3.5, 3.1, 2.5) }),
     );
     reflectionSun.position.copy(sun.position);
     environment.add(reflectionSun);
@@ -503,18 +587,20 @@ export class World {
         size: thumbnail ? 64 : 128,
       });
       this.scene.environment = this.environmentTarget.texture;
-      this.scene.environmentIntensity = 0.4;
+      this.scene.environmentIntensity = level.biome === "coast" ? 0.5 : style.environment;
     } finally {
       pmrem.dispose();
       disposeObjectResources(environment);
     }
-    this.roadMaterial = mat(level.road, level.biome === "ice" ? 0.3 : 0.94);
+    this.roadMaterial = mat(style.road, level.biome === "ice" ? 0.36 : level.biome === 'space' ? .56 : 0.94);
     // Reference asphalt is a readable warm charcoal, with aggregate visible in shade.
     if (level.biome === "coast") {
       this.roadMaterial.color.set("#c4b9aa");
       enhanceAsphalt(this.roadMaterial);
     }
-    this.grassMaterial = mat(level.ground, 1);
+    if (['harbor','city','factory','mine'].includes(level.biome)) enhanceAsphalt(this.roadMaterial);
+    if (['desert','forest','ice','space'].includes(level.biome)) enhanceWorldSurface(this.roadMaterial,level.biome,'road');
+    this.grassMaterial = mat(style.ground, 1);
     if (level.biome === "coast") {
       this.grassMaterial.color.set("#b2b765");
       this.grassMaterial.onBeforeCompile = (shader) => {
@@ -528,6 +614,7 @@ export class World {
       this.grassMaterial.customProgramCacheKey = () =>
         "coastal-meadow-muted-v2";
     }
+    if(track.id!=='reference-coast-v1')enhanceWorldSurface(this.grassMaterial,level.biome,'ground');
     // Texture objects exist before batching so UVs and material grouping remain valid.
     const loader = new THREE.TextureLoader();
     const pendingTextures: Promise<void>[] = [];
@@ -568,48 +655,69 @@ export class World {
       this.scene.getObjectByName("coast-road-wear")!.userData.dynamic = true;
     }
     buildDrivingSurfaces(this.scene, this.track);
+    buildRoadReadability(this.scene, this.track);
     if (level.biome === "coast") {
       const fallback = (this.coastFallback = new THREE.Scene());
       fallback.name = "coast-procedural-fallback";
       decorateLandscape(fallback, this.track, () => this.random());
       // These ground layers follow the physical shore and remain beneath either asset set.
-      for (const name of ["coast-wildflower-meadow", "coast-verge-grass", "coast-shore-foam"]) {
+      for (const name of ["coast-verge-grass", "coast-shore-foam"]) {
         const object = fallback.getObjectByName(name);
         if (object) this.scene.add(object);
       }
-      fallback.traverse(object => { object.userData.coastFallback = true; });
+      fallback.traverse((object) => {
+        object.userData.coastFallback = true;
+      });
       this.scene.add(fallback);
     } else decorateLevel(this.scene, this.track, () => this.random());
-    this.batchStatic();
-    this.skids = new THREE.InstancedMesh(
-      new THREE.PlaneGeometry(0.22, 1.15),
-      new THREE.MeshBasicMaterial({
-        color: "#263941",
-        transparent: true,
-        opacity: 0.3,
-        depthWrite: false,
-      }),
-      480,
-    );
-    this.skids.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
-    this.skids.frustumCulled = false;
-    for (let i = 0; i < 480; i++) {
-      this.scratch.position.set(0, -100, 0);
-      this.scratch.updateMatrix();
-      this.skids.setMatrixAt(i, this.scratch.matrix);
+    if (level.biome === 'forest') {
+      this.biomeGround=terrainGroundSampler(this.scene);
+      const landmark=this.scene.getObjectByName('forest-ancient-redwood');
+      if(landmark)this.biomeLandmark={x:landmark.position.x,y:landmark.position.y,z:landmark.position.z,heading:landmark.rotation.y};
+      const fallback=this.biomeFallback=new THREE.Group();fallback.name='forest-procedural-fallback';
+      const materials=new Map<THREE.Material,THREE.Material>();
+      for(const tree of [...this.scene.children].filter(o=>o.name==='forest-giant-tree'||o.name==='forest-ancient-redwood')){
+        tree.traverse(o=>{if(o instanceof THREE.Mesh){o.userData.biomeFallback=true;
+          const copy=(m:THREE.Material)=>{if(!materials.has(m))materials.set(m,m.clone());return materials.get(m)!};
+          o.material=Array.isArray(o.material)?o.material.map(copy):copy(o.material);
+        }});fallback.add(tree);
+      }
+      this.scene.add(fallback);
     }
-    this.scene.add(this.skids);
+    if(level.biome==='coast')this.scene.add(createCoastGates(this.track,createCoastLayout(this.track)));
+    this.vergeDetails=buildVergeDetails(this.scene,this.track);
+    const ambientGround=thumbnail?undefined:terrainGroundSampler(this.scene);
+    // Capture authored emitter locations before static meshes are combined.
+    if (!thumbnail) this.environmentVfx = new EnvironmentVfx(this.scene, this.track);
+    this.batchStatic();
+    if (!thumbnail) {
+      this.ambientStage=new AmbientStage(this.scene,this.track,{groundHeight:ambientGround});
+      this.ambientFauna=new AmbientFauna(this.scene,this.track,{groundHeight:ambientGround});
+      this.drivingVfx = new DrivingVfx(this.scene, this.track);
+      this.raceVfx = new RaceVfx(this.scene, this.track);
+      this.courseVfx = new CourseVfx(this.scene, this.track);
+    }
     this.resize();
-    if (!thumbnail) window.addEventListener("resize", this.onResize);
+    if (!thumbnail&&!externalViewport) window.addEventListener("resize", this.onResize);
   }
   async loadAssets() {
     if (this.disposed) return;
     await this.textureReady;
     if (this.disposed) return;
+    if (!this.thumbnail) {
+      this.kartLoad ??= this.loadKartScene();
+      await this.kartLoad;
+      if (this.disposed) return;
+    }
     if (this.coastFallback) {
       this.coastLoad ??= this.loadCoastScene();
       await this.coastLoad;
       if (this.disposed) return;
+    }
+    if (this.biomeFallback) {
+      this.biomeLoad ??= this.loadBiomeScene();
+      await this.biomeLoad;
+      if(this.disposed)return;
     }
     const loader = new GLTFLoader();
     if (this.content.characterModel) {
@@ -626,13 +734,7 @@ export class World {
       }
       this.customDriver = gltf.scene;
       this.customDriver.scale.setScalar(this.content.modelScale);
-      for (const c of this.cars.values()) {
-        const d = c.getObjectByName("driver");
-        if (d) d.visible = false;
-        const n = this.cloneDriver();
-        n.position.y = 0.9;
-        c.add(n);
-      }
+      this.pruneCars(new Set());
     }
     if (this.content.sceneModel) {
       const gltf = await loader.loadAsync(this.content.sceneModel);
@@ -643,6 +745,36 @@ export class World {
       gltf.scene.scale.setScalar(this.content.modelScale);
       this.scene.add(gltf.scene);
     }
+    // Compile the bounded VFX materials during loading, before first use in a race.
+    for (const fx of [this.drivingVfx, this.raceVfx, this.courseVfx, this.environmentVfx])
+      if (fx) this.renderer.compile(fx.group, this.camera, this.scene);
+  }
+  private async loadKartScene() {
+    try {
+      const template = await loadKartAsset();
+      if (this.disposed) {
+        disposeObjectResources(template);
+        return;
+      }
+      this.kartTemplate = template;
+      // A track change may render before the asynchronous asset is ready.
+      // Replace those temporary procedural models on the next render frame.
+      this.pruneCars(new Set());
+      this.scene.userData.kartAssetStatus = "ready";
+    } catch (error) {
+      if (this.disposed) return;
+      this.scene.userData.kartAssetStatus = "fallback";
+      console.warn("Kart asset unavailable; using the editable procedural model.", error);
+    }
+  }
+  private async loadBiomeScene() {
+    try {
+      const assets=await loadBiomeFoliage(this.track,{landmark:this.biomeLandmark,groundHeight:this.biomeGround});
+      if(this.disposed){disposeBiomeFoliage(assets);return;}
+      this.biomeFoliage=assets;this.scene.add(assets);
+      if(this.biomeFallback){this.biomeFallback.removeFromParent();disposeObjectResources(this.biomeFallback);this.biomeFallback.clear();this.biomeFallback=undefined;}
+      this.scene.userData.biomeAssetStatus='ready';
+    }catch(error){if(!this.disposed){this.scene.userData.biomeAssetStatus='fallback';console.warn('Forest asset unavailable; retaining route scenery.',error);}}
   }
   private async loadCoastScene() {
     try {
@@ -651,8 +783,27 @@ export class World {
         disposeCoastAssets(assets);
         return;
       }
+      const anisotropy = Math.min(
+        8,
+        this.renderer.capabilities.getMaxAnisotropy(),
+      );
+      assets.traverse((object) => {
+        if (!(object instanceof THREE.Mesh)) return;
+        for (const material of Array.isArray(object.material)
+          ? object.material
+          : [object.material]) {
+          if (
+            material instanceof THREE.MeshStandardMaterial &&
+            /cottage|lighthouse/.test(object.name)
+          )
+            material.normalScale.set(0.65, 0.65);
+          for (const value of Object.values(material))
+            if (value instanceof THREE.Texture) value.anisotropy = anisotropy;
+        }
+      });
       this.coastAssets = assets;
       this.scene.add(assets);
+      if(this.track.id==='reference-coast-v1')this.referenceDressing=buildReferenceDressing(this.scene,this.track,createCoastLayout(this.track),this.quality==='low');
       const fallback = this.coastFallback;
       this.coastFallback = undefined;
       if (fallback) {
@@ -661,18 +812,48 @@ export class World {
         fallback.clear();
       }
       this.scene.userData.coastAssetStatus = "ready";
+      if(!this.thumbnail){
+        const p=trackPoint(this.track.id==='reference-coast-v1'?.526:.281,this.track);
+        const excluded:THREE.Object3D[]=[...this.cars.values(),...this.itemMeshes.values()];
+        for(const fx of [this.drivingVfx,this.raceVfx,this.courseVfx,this.environmentVfx])if(fx)excluded.push(fx.group);
+        try{
+          const started=performance.now();
+          this.coastReflection=captureCoastReflection(this.renderer,this.scene,{position:new THREE.Vector3(p.x,p.y+2.1,p.z),excluded});
+          for(const kart of this.cars.values())this.coastReflection.applyToKart(kart);
+          this.scene.userData.reflectionCaptureMs=performance.now()-started;
+        }catch(error){console.warn('Coast reflection unavailable; retaining sky reflection.',error);}
+      }
+      this.environmentVfx?.refreshAnchors();
     } catch (error) {
       if (this.disposed) return;
       this.scene.userData.coastAssetStatus = "fallback";
-      console.warn("Coast assets could not load; retaining procedural scenery.", error);
+      console.warn(
+        "Coast assets could not load; retaining procedural scenery.",
+        error,
+      );
     }
   }
   setQuality(q: string) {
+    if(this.referenceDressing&&this.quality!==q){
+      this.referenceDressing.removeFromParent();disposeObjectResources(this.referenceDressing);this.referenceDressing.clear();
+      this.referenceDressing=buildReferenceDressing(this.scene,this.track,createCoastLayout(this.track),q==='low');
+    }
     this.quality = q;
     this.renderer.setPixelRatio(
       q === "low" ? 1 : Math.min(devicePixelRatio, 1.75),
     );
-    this.renderer.shadowMap.enabled = q !== "low";
+    const shadows = q !== "low";
+    if (this.renderer.shadowMap.enabled !== shadows) {
+      this.renderer.shadowMap.enabled = shadows;
+      // Three.js caches USE_SHADOWMAP in material programs, including imported GLBs.
+      this.scene.traverse((object) => {
+        if (object instanceof THREE.Mesh)
+          for (const material of Array.isArray(object.material)
+            ? object.material
+            : [object.material])
+            material.needsUpdate = true;
+      });
+    }
     this.resize();
   }
   private random() {
@@ -682,46 +863,10 @@ export class World {
   private buildTrack() {
     const level = getLevel(this.track.id);
     buildRoadGeometry(this.scene, this.track, this.roadMaterial);
-    if (this.track.shortcut.length) {
-      const p = this.track.shortcut[0];
-      const banner = new THREE.Group();
-      banner.name = "shortcut-entry-banner";
-      banner.position.set(p.x, p.y, p.z);
-      banner.rotation.y = p.heading;
-      this.scene.add(banner);
-      mesh(
-        new THREE.PlaneGeometry(this.track.shortcutWidth ?? 7, 1.7),
-        label("捷径 / SHORTCUT", "#e3ad4f", "#29383c"),
-        banner,
-        0,
-        7.5,
-        0,
-      );
-    }
-    for (const o of this.track.obstacles) {
-      const p = nearestTrack(o.x, o.z, this.track);
-      mesh(
-        level.biome === "forest" || level.biome === "mine"
-          ? new THREE.IcosahedronGeometry(o.radius, 0)
-          : new THREE.CylinderGeometry(
-              o.radius * 0.8,
-              o.radius,
-              o.radius * 2,
-              8,
-            ),
-        mat(
-          level.biome === "mine"
-            ? "#9c70d1"
-            : level.biome === "forest"
-              ? "#7c7559"
-              : level.accent,
-        ),
-        this.scene,
-        o.x,
-        p.y + o.radius,
-        o.z,
-      );
-    }
+    this.movingObstacles = buildMovingObstacles(this.scene, this.track);
+    if (this.track.shortcut.length)
+      this.shortcutGuidance = buildShortcutGuidance(this.scene, this.track, label);
+    buildStaticObstacles(this.scene, this.track);
     const start = trackPoint(0, this.track),
       startWidth = trackWidth(0, this.track),
       gateHalf = startWidth / 2 + 2.2,
@@ -760,7 +905,7 @@ export class World {
         );
         flag.castShadow = false;
       }
-    for (let i = 1; i < 12; i++) {
+    for (let i = 1; i < (this.track.id==='reference-coast-v1'?0:12); i++) {
       const p = trackPoint(i / 12, this.track),
         g = new THREE.Group();
       g.position.set(p.x, p.y, p.z);
@@ -814,6 +959,8 @@ export class World {
       const m = o.material as THREE.MeshStandardMaterial;
       const key = [
         Boolean(o.userData.coastFallback),
+        Boolean(o.userData.biomeFallback),
+        Boolean(o.userData.decorative),
         m.type,
         m.color?.getHexString(),
         m.roughness,
@@ -831,6 +978,7 @@ export class World {
         o.receiveShadow,
         m.side,
         m.map?.uuid,
+        m.customProgramCacheKey(),
         Math.floor(o.matrixWorld.elements[12] / 100),
         Math.floor(o.matrixWorld.elements[14] / 100),
       ].join("/");
@@ -859,9 +1007,12 @@ export class World {
       const o = new THREE.Mesh(merged, b.material);
       o.castShadow = b.objects[0].castShadow;
       o.receiveShadow = b.objects[0].receiveShadow;
+      if(b.objects[0].userData.decorative){merged.computeBoundingSphere();o.userData.decorative=true;(this.decorativeMeshes??=[]).push(o);}
       const isFallback = Boolean(b.objects[0].userData.coastFallback);
       o.userData.coastFallback = isFallback;
-      (isFallback && this.coastFallback ? this.coastFallback : this.scene).add(o);
+      (isFallback && this.coastFallback ? this.coastFallback : b.objects[0].userData.biomeFallback && this.biomeFallback ? this.biomeFallback : this.scene).add(
+        o,
+      );
       for (const old of b.objects) {
         old.removeFromParent();
         oldGeo.add(old.geometry);
@@ -883,27 +1034,65 @@ export class World {
   dispose() {
     if (this.disposed) return;
     this.disposed = true;
+    this.coastReflection?.dispose();
+    this.coastReflection=undefined;
     window.removeEventListener("resize", this.onResize);
     if (this.coastAssets) disposeCoastAssets(this.coastAssets);
     this.coastAssets = undefined;
+    if(this.biomeFoliage)disposeBiomeFoliage(this.biomeFoliage);
+    this.biomeFoliage=undefined;
+    this.drivingVfx?.dispose();
+    this.drivingVfx = undefined;
+    this.raceVfx?.dispose();
+    this.courseVfx?.dispose();
+    this.environmentVfx?.dispose();
+    this.ambientStage?.dispose();
+    this.ambientStage=undefined;
+    this.ambientFauna?.dispose();
+    this.ambientFauna=undefined;
+    this.raceVfx = undefined;
+    this.courseVfx = undefined;
+    this.environmentVfx = undefined;
     disposeObjectResources(
       this.scene,
       ...(this.customDriver ? [this.customDriver] : []),
+      ...(this.kartTemplate ? [this.kartTemplate] : []),
+      ...(this.kartVariants?.values() ?? []),
     );
     this.scene.clear();
     this.coastFallback = undefined;
+    this.biomeFallback = undefined;
+    this.biomeGround=undefined;
+    this.vergeDetails=undefined;
+    this.decorativeMeshes=[];
+    this.referenceDressing = undefined;
     this.cars.clear();
     this.itemMeshes.clear();
     this.propellers.length = 0;
     this.customDriver = null;
+    this.kartTemplate = undefined;
+    this.kartVariants?.clear();
+    this.driverWardrobe?.dispose();
+    this.driverWardrobe = undefined;
+    this.garageLighting = undefined;
     this.scene.environment = null;
     this.environmentTarget?.dispose();
     this.environmentTarget = undefined;
+    // The next renderer creates internal 3D placeholder textures inside its
+    // constructor. Restore unpack flags and bindings before handing over the
+    // surviving canvas/context, not only after constructing that renderer.
+    this.renderer.resetState();
     this.renderer.dispose();
   }
   private onResize = () => this.resize();
   private itemMeshes = new Map<string, THREE.InstancedMesh>();
+  private pendingItems: import("../shared/items.ts").ItemWorld | null = null;
   renderItems(w: import("../shared/items.ts").ItemWorld | null) {
+    this.pendingItems = w;
+  }
+  private updateItems() {
+    const w = this.pendingItems;
+    if (!w && this.itemMeshes.size === 0) return;
     const types = ["box", "trap", "missile", "shield"];
     for (const type of types) {
       let mesh = this.itemMeshes.get(type);
@@ -928,6 +1117,7 @@ export class World {
           transparent: true,
           opacity: type === "shield" ? 0.23 : 0.9,
           wireframe: type === "box",
+          depthWrite: false,
         });
         mesh = new THREE.InstancedMesh(geo, material, 64);
         mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -944,14 +1134,14 @@ export class World {
               ? w.missiles
               : [...this.cars]
                   .filter(([id]) => (w.players[id]?.shield || 0) > 0)
-                  .map(([, g]) => ({ x: g.position.x, z: g.position.z }))
+                  .map(([, g]) => ({ x: g.position.x, y: g.position.y, z: g.position.z }))
         : [];
       mesh.count = Math.min(positions.length, 64);
       mesh.visible = mesh.count > 0;
       positions.slice(0, 64).forEach((p, i) => {
         this.scratch.position.set(
           p.x,
-          nearestTrack(p.x, p.z, this.track).y + (type === "trap" ? 0.3 : 1.4),
+          ("y" in p && typeof p.y === "number" ? p.y : nearestTrack(p.x, p.z, this.track).y) + (type === "trap" ? 0.3 : 1.4),
           p.z,
         );
         this.scratch.rotation.set(0, type === "box" ? this.elapsed : 0, 0);
@@ -962,30 +1152,23 @@ export class World {
       mesh.instanceMatrix.needsUpdate = true;
     }
   }
-  private kart(color: string) {
-    const g = batchKartModel(createKartModel(color));
-    const driver = g.getObjectByName("driver")!;
-    const flame = mesh(
-      new THREE.ConeGeometry(0.36, 2, 10),
-      new THREE.MeshBasicMaterial({
-        color: "#a5fbff",
-        transparent: true,
-        opacity: 0.8,
-      }),
-      g,
-      0,
-      0.7,
-      -2.35,
-    );
-    flame.rotation.x = -Math.PI / 2;
-    flame.name = "flame";
-    flame.visible = false;
-    if (this.customDriver) {
-      driver.visible = false;
-      const d = this.cloneDriver();
-      d.position.y = 0.9;
-      g.add(d);
+  private kart(color: string, kartId: KartId = 'club') {
+    let g: THREE.Group;
+    if (kartId === 'club') {
+      g = this.kartTemplate
+        ? cloneKartAsset(this.kartTemplate, color)
+        : batchKartModel(createKartModel(color));
+    } else {
+      this.kartVariants ??= new Map();
+      let template = this.kartVariants.get(kartId);
+      if (!template) {
+        template = batchKartModel(createKartVariant(kartId, color));
+        this.kartVariants.set(kartId, template);
+      }
+      g = cloneKartAsset(template, color);
     }
+    g.userData.kartId = kartId;
+    this.coastReflection?.applyToKart(g);
     return g;
   }
   private cloneDriver() {
@@ -1010,6 +1193,7 @@ export class World {
   pruneCars(seen: ReadonlySet<string>) {
     for (const [id, g] of this.cars)
       if (!seen.has(id)) {
+        this.coastReflection?.releaseKart(g);
         this.scene.remove(g);
         disposeObjectResources(g);
         this.cars.delete(id);
@@ -1017,6 +1201,14 @@ export class World {
   }
   resetCamera() {
     this.cameraReady = false;
+  }
+  resetVfx() {
+    this.drivingVfx?.reset();
+    this.raceVfx?.reset();
+    this.courseVfx?.reset();
+    this.environmentVfx?.reset();
+    this.pendingItems = null;
+    for (const mesh of this.itemMeshes.values()) mesh.visible = false;
   }
   setShotMode(mode: string) {
     this.shotMode = ["front", "side", "wide", "top", "rear"].includes(mode)
@@ -1048,17 +1240,33 @@ export class World {
     dt: number,
     preview: boolean,
     measuredMs = dt * 1000,
+    localSteer?: number,
+    vfxFrame?: Pick<DrivingVfxFrame, "active" | "paused" | "authoritative"> & { targets?: readonly CourseTarget[]; failed?: boolean; raceClock?: number },
   ) {
     this.elapsed += dt;
+    if(!vfxFrame?.paused&&Number.isFinite(dt))this.ambientElapsed+=Math.max(0,Math.min(.1,dt));
+    this.shortcutGuidance?.updateLanguage();
+    const raceClock = preview ? 0 : vfxFrame?.raceClock ?? cars.find(c => c.id === localId)?.time ?? 0;
+    this.movingObstacles?.update(raceClock);
+    if (!preview) cars = separateRenderCars(cars, this.track, raceClock);
     const seen = new Set<string>(cars.map((c) => c.id));
     this.pruneCars(seen);
     for (let i = 0; i < cars.length; i++) {
       const c = cars[i];
       seen.add(c.id);
       let g = this.cars.get(c.id);
+      const kartId = sanitizeKartId(c.kartId);
+      if (g && g.userData.kartId !== kartId) {
+        this.coastReflection?.releaseKart(g);
+        this.scene.remove(g);
+        disposeObjectResources(g);
+        this.cars.delete(c.id);
+        g = undefined;
+      }
       if (!g) {
         g = this.kart(
           this.content.palette[c.slot % this.content.palette.length],
+          kartId,
         );
         if (c.id === "ghost")
           g.traverse((o) => {
@@ -1072,30 +1280,31 @@ export class World {
         this.cars.set(c.id, g);
         this.scene.add(g);
       }
+      this.driverWardrobe ??= new DriverWardrobe();
+      if(this.driverWardrobe.apply(g,c.driverOutfit===undefined?undefined:{outfitId:c.driverOutfit,colorId:c.driverColor!},this.content.palette[c.slot % this.content.palette.length],this.customDriver?()=>this.cloneDriver():undefined,driver=>this.coastReflection?.releaseKart(driver))){
+        this.coastReflection?.applyToKart(g);
+        if(c.id==='ghost')g.getObjectByName('driver')?.traverse(n=>{if(n instanceof THREE.Mesh){for(const m of Array.isArray(n.material)?n.material:[n.material]){m.transparent=true;m.opacity=.28;}n.castShadow=false;}});
+      }
       g.position.set(c.x, nearestTrack(c.x, c.z, this.track).y, c.z);
       g.visible =
         c.id === "ghost" ||
         c.ghostTime <= 0 ||
         Math.floor(this.elapsed * 12) % 3 !== 0;
       g.rotation.set(0, c.heading, 0);
-      const flame = g.getObjectByName("flame")!;
-      flame.visible = c.boostTime > 0 || c.miniTime > 0;
-      flame.scale.y = 0.8 + Math.sin(this.elapsed * 40) * 0.25;
-      if (c.drifting && Math.abs(c.speed) > 10 && Math.random() < 0.6) {
-        for (const side of [-0.83, 0.83]) {
-          this.scratch.position.set(
-            c.x + Math.cos(c.heading) * side,
-            nearestTrack(c.x, c.z, this.track).y + 0.075,
-            c.z - Math.sin(c.heading) * side,
-          );
-          this.scratch.rotation.set(-Math.PI / 2, 0, c.heading);
-          this.scratch.updateMatrix();
-          this.skids.setMatrixAt(this.skidCursor++ % 480, this.scratch.matrix);
-        }
-        this.skids.instanceMatrix.needsUpdate = true;
+      let motion = this.kartMotion.get(g);
+      if (!motion) {
+        motion = new KartMotion(g);
+        this.kartMotion.set(g, motion);
       }
+      motion.update(c, dt, preview ? 0 : c.id === localId ? localSteer : undefined);
     }
     for (const [id, g] of this.cars) if (!seen.has(id)) g.visible = false;
+    const inspectingKart = !this.thumbnail && preview && cars.length === 1 && !!document.querySelector('.garage-panel');
+    if (inspectingKart && !this.garageLighting) {
+      this.garageLighting = new GarageLighting((x, z) => nearestTrack(x, z, this.track).y);
+      this.scene.add(this.garageLighting.group);
+    }
+    this.garageLighting?.update(inspectingKart, cars.length === 1 ? this.cars.get(cars[0].id) : undefined);
     for (const p of this.propellers) p.rotation.z += dt * 0.5;
     if (preview) {
       const p = this.previewPoint(),
@@ -1186,6 +1395,27 @@ export class World {
         this.camera.fov = narrow ? 49 : 44;
       }
       this.camera.lookAt(this.target);
+      // Inspect the one-car garage in the space left by its real panel bounds.
+      // This only frames the visual model; race/chase camera and physics are unchanged.
+      const garage = !this.thumbnail && cars.length === 1
+        ? document.querySelector<HTMLElement>(".garage-panel") : null;
+      const kart = cars.length === 1 ? this.cars.get(cars[0].id) : undefined;
+      if (garage && kart) {
+        const panel = garage.getBoundingClientRect();
+        const header = document.querySelector(".header")?.getBoundingClientRect();
+        const footer = document.querySelector(".footer")?.getBoundingClientRect();
+        const width = window.innerWidth, height = window.innerHeight;
+        const top = Math.max(90, header?.bottom ?? 0) + 28;
+        const bottom = Math.min(height - 28, footer?.top ?? height) - 28;
+        const region = width <= 600
+          ? { left: 30, right: width - 30, top, bottom: Math.min(bottom, panel.top - 22) }
+          : panel.left > width / 2
+            ? { left: 48, right: panel.left - 44, top, bottom }
+            : { left: panel.right + 44, right: width - 48, top, bottom };
+        this.camera.fov = 40;
+        const subject=garage.dataset.garageActive==='driver'?kart.getObjectByName('driver')??kart:kart;
+        fitKartPreview(this.camera, new THREE.Box3().setFromObject(subject), { width, height }, region);
+      }
       this.cameraReady = false;
     } else {
       const c = cars.find((c) => c.id === localId);
@@ -1208,7 +1438,7 @@ export class World {
                 )
               : new THREE.Vector3(
                   c.x - Math.sin(c.heading) * distance,
-                  pY + 3.6 + speed * 0.01,
+                  pY + 5.25 + speed * 0.006,
                   c.z - Math.cos(c.heading) * distance,
                 );
         const aim =
@@ -1260,7 +1490,45 @@ export class World {
     this.sky.position.copy(this.camera.position);
     this.camera.updateProjectionMatrix();
     if (this.coastAssets)
-      updateCoastAssets(this.coastAssets, this.camera.position, this.quality === "low");
+      updateCoastAssets(
+        this.coastAssets,
+        this.camera.position,
+        this.quality === "low",
+      );
+    if (this.biomeFoliage)updateBiomeFoliage(this.biomeFoliage,this.camera.position,this.quality==='low');
+    if(this.vergeDetails)updateVergeDetails(this.vergeDetails,this.camera.position,this.quality==='low');
+    this.ambientStage?.update(this.ambientElapsed,this.camera.position,this.quality==='low',this.reducedMotion?.matches||this.motion<=0);
+    this.ambientFauna?.update(this.ambientElapsed,this.camera.position,this.quality==='low',this.reducedMotion?.matches||this.motion<=0);
+    for(const mesh of this.decorativeMeshes){const sphere=mesh.geometry.boundingSphere!;mesh.visible=Math.hypot(this.camera.position.x-sphere.center.x,this.camera.position.z-sphere.center.z)<(this.quality==='low'?150:260)+sphere.radius;}
+    if (!this.raceVfx) this.updateItems();
+    const vfxDt = measuredMs > 0 ? measuredMs / 1000 : dt;
+    this.courseVfx?.update({
+      active: !preview, paused: false, ...vfxFrame,
+      targets: vfxFrame?.targets ?? [], failed: vfxFrame?.failed ?? false,
+      quality: this.quality, motion: this.reducedMotion?.matches ? 0 : this.motion,
+    }, vfxDt);
+    this.raceVfx?.setPixelHeight(this.canvas.height);
+    this.raceVfx?.update(cars, localId, this.pendingItems, vfxDt, {
+      active: !preview, paused: false, ...vfxFrame,
+      quality: this.quality, motion: this.reducedMotion?.matches ? 0 : this.motion,
+    });
+    this.drivingVfx?.setPixelHeight(this.canvas.height);
+    // Presentation follows wall time, including suspended-frame cleanup.
+    this.drivingVfx?.update(cars, localId, vfxDt, {
+      active: !preview,
+      paused: false,
+      ...vfxFrame,
+      itemBoost: this.isItemBoost,
+      priorityImpact: this.raceVfx?.impactPressure,
+      quality: this.quality,
+      motion: this.reducedMotion?.matches ? 0 : this.motion,
+    });
+    this.environmentVfx?.update(cars.find(c => c.id === localId), vfxDt, {
+      active: !preview, paused: false, ...vfxFrame,
+      quality: this.quality, motion: this.reducedMotion?.matches ? 0 : this.motion,
+      pixelHeight: this.canvas.height,
+      pressure: this.raceVfx?.impactPressure || this.drivingVfx?.impactPressure || (this.raceVfx?.stats.particles ?? 0) > vfxBudget(this.quality).combat * .35,
+    });
     this.renderer.render(this.scene, this.camera);
     if (import.meta.env.DEV) {
       this.perfFrames++;

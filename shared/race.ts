@@ -1,11 +1,19 @@
 import { DRIVING_CONFIG as CFG } from "./driving-config.ts";
+import { sanitizeKartId, type KartId } from "./karts.ts";
+import { sanitizeDriverAppearance, type DriverAppearance, type DriverOutfitId, type DriverColorId } from './drivers.ts';
 import { driftEfficiency } from "./driving-skills.ts";
 import { drivingZoneAt } from "./levels.ts";
+import { resolveKartContacts } from "./kart-contact.ts";
+import {
+  resolveMovingObstacles,
+  constrainMovingObstacles,
+} from "./moving-obstacles.ts";
 import {
   trackPoint,
   nearestTrack,
   continuousTrack,
   junctionContains,
+  shortcutWidthAt,
   DEFAULT_TRACK,
   angleDiff,
   type Track,
@@ -28,6 +36,9 @@ export const EMPTY_INPUT: Input = {
 };
 export interface Car {
   id: string;
+  kartId?: KartId;
+  driverOutfit?: DriverOutfitId;
+  driverColor?: DriverColorId;
   slot: number;
   x: number;
   z: number;
@@ -83,7 +94,7 @@ export interface Car {
   time: number;
   ack: number;
 }
-export function spawnCar(slot = 0, id = "local", track = DEFAULT_TRACK): Car {
+export function spawnCar(slot = 0, id = "local", track = DEFAULT_TRACK, kartId: KartId = 'club', driver?: DriverAppearance): Car {
   const p = trackPoint(0, track),
     side = slot % 2 === 0 ? -2.4 : 2.4,
     back = Math.floor(slot / 2) * 5,
@@ -93,6 +104,8 @@ export function spawnCar(slot = 0, id = "local", track = DEFAULT_TRACK): Car {
     startProgress = startT > 0.5 ? startT - 1 : startT;
   return {
     id,
+    kartId: sanitizeKartId(kartId),
+    ...(driver ? {driverOutfit:sanitizeDriverAppearance(driver).outfitId, driverColor:sanitizeDriverAppearance(driver).colorId} : {}),
     slot,
     x,
     z,
@@ -204,7 +217,13 @@ function signedDelta(t: number, previous: number) {
   if (d < -0.5) d++;
   return d;
 }
-export function stepCar(c: Car, raw: Input, dt: number, track = DEFAULT_TRACK) {
+export function stepCar(
+  c: Car,
+  raw: Input,
+  dt: number,
+  track = DEFAULT_TRACK,
+  startClock = c.time,
+) {
   if (c.finished) {
     c.boostTime = 0;
     cancelEligibility(c);
@@ -346,7 +365,7 @@ export function stepCar(c: Car, raw: Input, dt: number, track = DEFAULT_TRACK) {
         main.distance <= main.roadWidth / 2 + 0.5 &&
         Math.abs(main.y - branch.y) < 2 &&
         c.vx * Math.sin(branch.heading) + c.vz * Math.cos(branch.heading) > 1 &&
-        branch.distance < (track.shortcutWidth ?? 7) / 2 - CAR_RADIUS &&
+        branch.distance < shortcutWidthAt(branch.t, track) / 2 - CAR_RADIUS &&
         ((branch.distance + 0.12 < main.distance &&
           Math.abs(angleDiff(direction, branch.heading)) + 0.015 <
             Math.abs(angleDiff(direction, main.heading))) ||
@@ -392,7 +411,20 @@ export function stepCar(c: Car, raw: Input, dt: number, track = DEFAULT_TRACK) {
   const before = continuousTrack(c.x, c.z, c.lastT, track, c.routeBranch);
   c.x += c.vx * dt;
   c.z += c.vz * dt;
-  const collision = constrainEnvironment(c, track, previousX, previousZ);
+  const driftContact = driftingAtContact(c);
+  const impacts = resolveMovingObstacles(
+    c,
+    track,
+    startClock,
+    dt,
+    previousX,
+    previousZ,
+  );
+  for (const strength of impacts)
+    registerCollision(c, strength, "obstacle", driftContact);
+  const collision =
+    constrainEnvironment(c, track, previousX, previousZ) || impacts.length > 0;
+  clearMovingPinch(c, track, startClock + dt);
   const p = continuousTrack(c.x, c.z, c.lastT, track, c.routeBranch);
   const travel = Math.hypot(c.x - previousX, c.z - previousZ);
   const delta = signedDelta(p.t, c.lastT);
@@ -640,56 +672,51 @@ function constrainEnvironment(
   return collision;
 }
 
-export function separateCars(cars: Car[], track = DEFAULT_TRACK) {
+/** A crossing animal can meet a kart already against the curb. Recover along
+ * the road after the curb clamp, so neither constraint undoes the other. */
+function clearMovingPinch(c: Car, track: Track, clock: number) {
+  if (!track.movingObstacles?.length) return;
+  for (let pass = 0; pass < 3; pass++) {
+    const road = continuousTrack(c.x, c.z, c.lastT, track, c.routeBranch);
+    if (!constrainMovingObstacles(c, track, clock, road.heading)) break;
+    constrainEnvironment(c, track);
+  }
+}
+
+export function separateCars(
+  cars: Car[],
+  track = DEFAULT_TRACK,
+  clock = Math.max(0, ...cars.map((c) => c.time)),
+) {
   const active = cars.filter(
     (c) => !c.finished && !(c.ghostTime > 0) && !(c.resetTime > 0),
   );
-  // Reproject after every pair so a contact cannot leave a kart through a wall.
-  // Repeated bounded corrections converge for queues and side-by-side contacts.
-  for (let pass = 0; pass < 48; pass++) {
-    let overlap = false;
-    for (let i = 0; i < active.length; i++)
-      for (let j = i + 1; j < active.length; j++) {
-        const a = active[i],
-          b = active[j];
-        const dx = a.x - b.x,
-          dz = a.z - b.z,
-          d = Math.hypot(dx, dz);
-        if (d >= CAR_RADIUS * 2 - 1e-7) continue;
-        overlap = true;
-        // A road tangent also separates coincident stationary cars near a wall.
-        const heading = continuousTrack(
-          a.x,
-          a.z,
-          a.lastT,
-          track,
-          a.routeBranch,
-        ).heading;
-        const nx = d > 1e-9 ? dx / d : Math.sin(heading);
-        const nz = d > 1e-9 ? dz / d : Math.cos(heading);
-        const closing = (a.vx - b.vx) * nx + (a.vz - b.vz) * nz;
-        if (closing < 0) {
-          const driftA = driftingAtContact(a),
-            driftB = driftingAtContact(b);
-          const impulse = Math.min(24, -closing * 0.52);
-          a.vx += nx * impulse;
-          a.vz += nz * impulse;
-          b.vx -= nx * impulse;
-          b.vz -= nz * impulse;
-          syncSpeed(a);
-          syncSpeed(b);
-          const impact = Math.min(1, -closing / 32);
-          registerCollision(a, impact, "kart", driftA);
-          registerCollision(b, impact, "kart", driftB);
-        }
-        const push = (CAR_RADIUS * 2 - d) * 0.5;
-        a.x += nx * push;
-        a.z += nz * push;
-        b.x -= nx * push;
-        b.z -= nz * push;
-        constrainEnvironment(a, track);
-        constrainEnvironment(b, track);
+  // The same oriented silhouette is used by solo and the authoritative server.
+  // Preserve the existing velocity response and reproject after each correction.
+  resolveKartContacts(
+    active,
+    (c) => {
+      constrainMovingObstacles(c, track, clock);
+      constrainEnvironment(c, track);
+      clearMovingPinch(c, track, clock);
+    },
+    (a, b, { nx, nz }) => {
+      const closing = (a.vx - b.vx) * nx + (a.vz - b.vz) * nz;
+      if (closing < 0) {
+        const driftA = driftingAtContact(a),
+          driftB = driftingAtContact(b);
+        const impulse = Math.min(24, -closing * 0.52);
+        a.vx += nx * impulse;
+        a.vz += nz * impulse;
+        b.vx -= nx * impulse;
+        b.vz -= nz * impulse;
+        syncSpeed(a);
+        syncSpeed(b);
+        const impact = Math.min(1, -closing / 32);
+        registerCollision(a, impact, "kart", driftA);
+        registerCollision(b, impact, "kart", driftB);
       }
-    if (!overlap) break;
-  }
+    },
+    (c) => continuousTrack(c.x, c.z, c.lastT, track, c.routeBranch).heading,
+  );
 }

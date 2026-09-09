@@ -2,6 +2,7 @@ import { type Car, type Input } from "./race.ts";
 import {
   trackPoint,
   trackWidth,
+  shortcutWidthAt,
   continuousTrack,
   nearestTrack,
   angleDiff,
@@ -15,6 +16,10 @@ import type { ItemWorld } from "./items.ts";
 import { drivingZoneAt, getLevel } from "./levels.ts";
 import { itemCourse } from "./ai-course.ts";
 import { aiProfile } from "./ai-profiles.ts";
+import {
+  MOVING_OBSTACLE_KART_RADIUS,
+} from "./moving-obstacles.ts";
+import { predictObstaclePassage, obstaclePassageClearance } from './ai-obstacles.ts';
 export { aiProfile } from "./ai-profiles.ts";
 
 const clamp = (v: number, lo: number, hi: number) =>
@@ -76,6 +81,48 @@ function routeAhead(
   return trackPoint(end.t + distance / track.length, track);
 }
 
+/** An optional precision route is a choice before entry, never a late lane dive. */
+export function shortcutEntrySafe(
+  c: Car,
+  track: Track,
+  rivals: readonly Car[] = [],
+): boolean {
+  if (!track.shortcutDesign) return true; // Preserve legacy/custom route behaviour.
+  const entry = track.shortcut[0];
+  if (!entry) return false;
+  const p = continuousTrack(c.x, c.z, c.lastT, track, "main");
+  if (
+    Math.abs(angleDiff(c.heading, p.heading)) > 0.32 ||
+    Math.abs(p.lateral) > 2.6 ||
+    (c.boostTime > 0 && c.speed > 45)
+  )
+    return false;
+  return !rivals.some((other) => {
+    if (
+      other.id === c.id ||
+      other.finished ||
+      other.ghostTime > 0 ||
+      other.resetTime > 0
+    )
+      return false;
+    const q = continuousTrack(
+      other.x,
+      other.z,
+      other.lastT,
+      track,
+      other.routeBranch,
+    );
+    if (Math.abs(q.y - p.y) > 2) return false;
+    const forward =
+      (other.x - c.x) * Math.sin(p.heading) +
+      (other.z - c.z) * Math.cos(p.heading);
+    const side =
+      (other.x - c.x) * Math.cos(p.heading) -
+      (other.z - c.z) * Math.sin(p.heading);
+    return forward > -4 && forward < 24 && Math.abs(side) < 3.4;
+  });
+}
+
 /** Driving commands only: AI obeys the same acceleration, grip and resource rules. */
 export function aiInput(
   c: Car,
@@ -102,12 +149,15 @@ export function aiInput(
   const baseLookDistance = 7 + speed * 0.24;
   const upcomingWidth =
     c.routeBranch === "shortcut"
-      ? (track.shortcutWidth ?? 7)
+      ? shortcutWidthAt(
+          routeAhead(p, baseLookDistance, track, "shortcut").t,
+          track,
+        )
       : trackWidth(p.t + baseLookDistance / track.length, track);
   const lookDistance =
     baseLookDistance * clamp(Math.min(p.roadWidth, upcomingWidth) / 14, 0.6, 1);
   const look = routeAhead(p, lookDistance, track, c.routeBranch, true);
-  const curve = angleDiff(look.heading, p.heading) / lookDistance;
+  let curve = angleDiff(look.heading, p.heading) / lookDistance;
   // Brake before the tightest upcoming bend, using stopping distance rather than
   // applying the same low speed through the entire corner and following straight.
   let target = CFG.vehicle.maxSpeed * profile.pace;
@@ -126,7 +176,7 @@ export function aiInput(
       drivingZoneAt(track.id, a.t, p.lateral, c.routeBranch)?.kind === "ice";
     const cornerWidth =
       c.routeBranch === "shortcut"
-        ? (track.shortcutWidth ?? 7)
+        ? shortcutWidthAt(a.t, track)
         : trackWidth(a.t, track);
     const cornerSpeed = clamp(
       ((profile.cornerRate - (expert && cornerWidth < 11 ? 0.05 : 0)) *
@@ -270,6 +320,73 @@ export function aiInput(
     if (course.traps.some((t) => Math.abs(t.lane - lane) < 3.2))
       target = Math.min(target, 18);
   }
+  // Read the crossing at arrival time. Leave room for the whole kart and the
+  // obstacle's motion during passage; choose a clear lane before reaching it.
+  if (c.routeBranch === "main")
+    for (const spec of track.movingObstacles ?? []) {
+      const forward =
+        (spec.x - c.x) * Math.sin(p.heading) +
+        (spec.z - c.z) * Math.cos(p.heading);
+      const side =
+        (spec.x - c.x) * Math.cos(p.heading) -
+        (spec.z - c.z) * Math.sin(p.heading);
+      if (
+        forward < -spec.radius - 5 ||
+        forward > 110 ||
+        Math.abs(side) > p.roadWidth ||
+        Math.abs(spec.y - p.y) > 3
+      )
+        continue;
+      const crossing = nearestTrack(spec.x, spec.z, track);
+      const along = (((crossing.t - p.t + 1.5) % 1) - 0.5) * track.length;
+      if (
+        Math.abs(angleDiff(spec.heading, p.heading)) > 0.15 ||
+        Math.abs(along - forward) > 8
+      )
+        continue;
+      const eta = Math.max(0, forward) / Math.max(speed, 12);
+      const clearance = spec.radius + MOVING_OBSTACLE_KART_RADIUS + 0.7;
+      const predicted = predictObstaclePassage(spec, track, clock, eta, speed);
+      const limit =
+        Math.min(
+          p.roadWidth,
+          trackWidth(p.t + Math.max(0, forward) / track.length, track),
+        ) /
+          2 -
+        MOVING_OBSTACLE_KART_RADIUS -
+        0.35;
+      // An empty centre is a legitimate fast passing window. Always choosing
+      // an outer edge made timing obstacles irrelevant and slowed clear roads.
+      const candidates = [clamp(lane, -limit, limit), 0, -limit * .55, limit * .55, -limit, limit];
+      const gaps = new Map(candidates.map(candidate => [candidate, obstaclePassageClearance(predicted, candidate)]));
+      const cost = (candidate: number) =>
+        Math.max(0, .7 - gaps.get(candidate)!) * 36 +
+        Math.abs(candidate - p.lateral) * 0.25 + Math.abs(candidate - lane) * .12 +
+        nearby.reduce((n, other) => n + (
+          other.forward > -3 && other.forward < 22
+            ? Math.max(0, 3.5 - Math.abs(p.lateral + other.side - candidate)) * 6 : 0), 0);
+      const selected = candidates.reduce((best, candidate) => cost(candidate) < cost(best) ? candidate : best);
+      lane = selected;
+      const blocked = gaps.get(lane)! < .7;
+      avoidingObstacle = Math.abs(lane - p.lateral) > 1.1 || blocked;
+      // Stay controllable while moving across the road, and wait if traffic has
+      // temporarily taken the safe lane. No teleport, grip, or speed advantage.
+      if (avoidingObstacle)
+        target = Math.min(target, Math.abs(lane - p.lateral) > 2 ? 28 : 36);
+      if (
+        blocked ||
+        nearby.some(
+          (o) =>
+            o.forward > -3 &&
+            o.forward < 18 &&
+            Math.abs(p.lateral + o.side - lane) < 3.5,
+        )
+      )
+        target = Math.min(
+          target,
+          Math.sqrt(2 * 16 * Math.max(0, forward - clearance - 3)),
+        );
+    }
   const blockedLine = nearby.some(
     (o) =>
       o.forward > -3 &&
@@ -279,7 +396,7 @@ export function aiInput(
   // Commit to a lane that still exists at the pursuit point, before the taper.
   const aimWidth =
     c.routeBranch === "shortcut"
-      ? (track.shortcutWidth ?? 7)
+      ? shortcutWidthAt(aim.t, track)
       : trackWidth(aim.t, track);
   const laneLimit = Math.max(0, Math.min(p.roadWidth, aimWidth) / 2 - 1.8);
   lane = clamp(lane, -laneLimit, laneLimit);
@@ -309,7 +426,8 @@ export function aiInput(
     track.shortcut.length > 1 &&
     !blockedLine &&
     !avoidingObstacle &&
-    !trapThreat
+    !trapThreat &&
+    shortcutEntrySafe(c, track, rivals)
   ) {
     const entry = track.shortcut[0];
     const toEntry = (((entry.t - p.t + 1.5) % 1) - 0.5) * track.length;
@@ -328,6 +446,9 @@ export function aiInput(
       );
       lane = 0;
       target = Math.min(target, 28);
+      // The target now follows B. Main-road curvature would steer and drift
+      // away from that target before the physics can accept the actual fork.
+      curve = 0;
     }
   }
   const x = aim.x + Math.cos(aim.heading) * lane,

@@ -1,3 +1,4 @@
+import { NEW_MAPS } from './map-expansion.ts';
 export type Biome =
   | "coast"
   | "harbor"
@@ -197,7 +198,7 @@ const definitions: Record<string, LevelDefinition> = {
     ambient: 1.7,
     preview: { t: 0.115, height: 27, side: -28, forward: 26 },
     zones: [
-      zone("ice", 0.13, 0.2, 5.7),
+      zone("ice", 0.30, 0.37, 5.7),
       zone("ice", 0.41, 0.48, 5.7),
       zone("ice", 0.72, 0.77, 5.7),
     ],
@@ -224,6 +225,11 @@ const definitions: Record<string, LevelDefinition> = {
     ],
   },
 };
+for (const map of NEW_MAPS) {
+  const base=definitions[map.baseId];
+  definitions[map.id]={...base,name:map.name,brief:map.brief,landmark:map.landmark,
+    preview:{...base.preview,t:.18},zones:map.zones.map(z=>({...z}))};
+}
 for (const level of Object.values(definitions)) {
   level.zones.forEach(Object.freeze);
   Object.freeze(level.zones);

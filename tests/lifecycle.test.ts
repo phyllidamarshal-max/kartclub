@@ -5,6 +5,50 @@ import * as lifecycle from "../client/lifecycle.ts";
 import { spawnCar } from "../shared/race.ts";
 import { classify, raceDeadline } from "../shared/rules.ts";
 
+test("practice and tutorial time remain open while timed races use the new route limits", () => {
+  assert.equal(typeof lifecycle.soloSessionDeadline, "function");
+  const cars = [spawnCar(0, "local")];
+  const session = { trackId: "coast", laps: 1, raceMode: "practice" as const };
+  assert.equal(lifecycle.soloSessionDeadline(cars, session), Infinity);
+  assert.equal(
+    lifecycle.soloRaceComplete(
+      cars,
+      900,
+      lifecycle.soloSessionDeadline(cars, session),
+      false,
+    ),
+    false,
+  );
+  assert.equal(
+    lifecycle.soloSessionDeadline(cars, {
+      ...session,
+      raceMode: "race",
+      training: true,
+    }),
+    Infinity,
+  );
+  assert.equal(
+    lifecycle.soloSessionDeadline(cars, { ...session, raceMode: "time" }),
+    90,
+  );
+  assert.equal(
+    lifecycle.soloSessionDeadline(cars, {
+      trackId: "mountain-summit",
+      laps: 3,
+      raceMode: "items",
+    }),
+    450,
+  );
+  assert.equal(
+    lifecycle.soloSessionDeadline(cars, {
+      ...session,
+      raceMode: "time",
+      limit: 78,
+    }),
+    78,
+  );
+});
+
 test("a local first finish keeps the solo race open for later AI finishers", () => {
   assert.equal(typeof lifecycle.soloRaceComplete, "function");
   const local = spawnCar(0, "local"),

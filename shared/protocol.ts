@@ -43,6 +43,8 @@ export interface Snapshot {
   laps: number;
   results: RaceResult[];
   reason: string;
+  waitingRemaining?: number;
+  nextRoomId?: string;
 }
 export interface Account {
   id: string;

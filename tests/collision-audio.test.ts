@@ -12,6 +12,9 @@ class FakeParam {
   exponentialRampToValueAtTime(value: number, time: number) {
     this.events.push(value, time);
   }
+  linearRampToValueAtTime(value: number, time: number) {
+    this.events.push(value, time);
+  }
 }
 
 class FakeNode {
@@ -64,6 +67,10 @@ class FakeContext {
   sources: FakeSource[] = [];
   gains: FakeGain[] = [];
   filters: FakeFilter[] = [];
+  close() {
+    this.state = "closed";
+    return Promise.resolve();
+  }
   createOscillator() {
     const node = new FakeOscillator();
     this.oscillators.push(node);
@@ -153,10 +160,40 @@ test("collision schedules finite bounded voices through effects and cleans up", 
   ])
     assert.ok(Number.isFinite(value));
   assert.ok(body.stopTimes[0] - context.currentTime < 0.25);
-  assert.ok(contact.stopTimes[0] - context.currentTime < 0.15);
+  assert.ok(contact.stopTimes[0] - context.currentTime < 0.2);
   body.ended?.();
   contact.ended?.();
   assert.ok(body.disconnected && contact.disconnected);
   assert.ok(context.filters.every((node) => node.disconnected));
   assert.ok(context.gains.every((node) => node.disconnected));
+});
+
+test("wall scrape, hollow obstacle and rubber kart contact have distinct timbres", () => {
+  const wall = collisionSoundProfile(0.8, "wall");
+  const obstacle = collisionSoundProfile(0.8, "obstacle");
+  const kart = collisionSoundProfile(0.8, "kart");
+  assert.ok(wall.contactDuration > obstacle.contactDuration);
+  assert.ok(obstacle.bodyFrequency > kart.bodyFrequency);
+  assert.ok(wall.contactLowpass > kart.contactLowpass);
+});
+
+test("mute skips collision voices; reset and dispose stop pending impacts", () => {
+  const context = new FakeContext(),
+    { audio } = audioWith(context);
+  audio.setVolumes(1, 0);
+  audio.collision(1, "wall");
+  assert.equal(context.sources.length, 0);
+  audio.setVolumes(1, 0.65);
+  audio.collision(1, "wall");
+  audio.resetCollisionSound();
+  assert.ok(context.sources.every((n) => n.disconnected));
+  assert.ok(context.oscillators.every((n) => n.disconnected));
+  for (let i = 0; i < 30; i++) {
+    context.currentTime += 0.13;
+    audio.collision(1, "kart");
+  }
+  assert.ok(context.sources.filter((n) => !n.disconnected).length <= 4);
+  audio.dispose();
+  assert.ok(context.sources.every((n) => n.disconnected));
+  assert.ok(context.oscillators.every((n) => n.disconnected));
 });

@@ -3,7 +3,13 @@ dist/
 data/
 *.log
 .env
+.env.*
+!.env.example
 artifacts/
+# Local reports, recordings, and duplicate preview builds are not deployment inputs.
+/output/
 /output/blender-runtime/
 /scripts/scene-assets/__pycache__/
+/scripts/music/__pycache__/
+/output/music/python-runtime/
 /art/coast-rebuild/*.blend1

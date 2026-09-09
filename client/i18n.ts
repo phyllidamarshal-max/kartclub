@@ -1,6 +1,5 @@
 import {
-  CATALOG,
-  SOURCE_KEYS,
+  CATALOG as BASE_CATALOG,
   type CatalogLanguage,
 } from "./locales/catalog.ts";
 import {
@@ -9,6 +8,17 @@ import {
   STRUCTURAL_CATALOG,
   withoutLegacyBrand,
 } from "./locales/brand.ts";
+import { VISUAL_CATALOG } from "./locales/visual.ts";
+import { SHORTCUT_CATALOG } from "./locales/shortcuts.ts";
+import { MAP_CATALOG } from "./locales/maps.ts";
+import { KART_CATALOG } from "./locales/karts.ts";
+import { DRIVER_CATALOG } from './locales/drivers.ts';
+import { MULTIPLAYER_CATALOG } from './locales/multiplayer.ts';
+import { OBSTACLE_CATALOG } from './locales/obstacles.ts';
+
+// Include map templates in reverse lookup and dynamic interpolation as well as exact text.
+const CATALOG = Object.freeze({ ...BASE_CATALOG, ...MAP_CATALOG, ...KART_CATALOG, ...DRIVER_CATALOG, ...MULTIPLAYER_CATALOG, ...OBSTACLE_CATALOG });
+const SOURCE_KEYS = Object.keys(CATALOG);
 
 export type Language = "en" | "fr" | "hi" | "es" | "ar" | "zh";
 
@@ -162,7 +172,11 @@ export function tr(
   locale: Language = activeLanguage,
 ): string {
   const selected = validLanguage(locale) ? locale : DEFAULT_LANGUAGE;
-  const structural = STRUCTURAL_CATALOG[source];
+  const structural =
+    MAP_CATALOG[source] ??
+    SHORTCUT_CATALOG[source] ??
+    VISUAL_CATALOG[source] ??
+    STRUCTURAL_CATALOG[source];
   if (structural)
     return interpolate(
       withoutLegacyBrand(structural[selected as CatalogLanguage]),

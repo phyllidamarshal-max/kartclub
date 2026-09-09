@@ -7,6 +7,7 @@ import random
 import bpy
 import bmesh
 from common import material, box, mesh, beam
+from mathutils import Vector
 
 
 def _surface(name, color, kind='stone'):
@@ -57,6 +58,40 @@ class Builder:
 
     def beam(self, name, a, b, radius, mat='wood', vertices=6):
         return self.add(beam(self.name+'-'+name, a, b, radius, self.m[mat], vertices))
+
+    def timber(self, name, a, b, width=.15, depth=.15, mat='wood'):
+        a,b=Vector(a),Vector(b)
+        ob=self.box(name,(a+b)*.5,(width,depth,(b-a).length),mat,.012)
+        ob.rotation_euler=(b-a).to_track_quat('Z','Y').to_euler()
+        ob['jointStart']=list(a); ob['jointEnd']=list(b)
+        return ob
+
+    def pipe(self, name, a, b, radius=.055):
+        a,b=Vector(a),Vector(b)
+        bpy.ops.mesh.primitive_cylinder_add(vertices=8,radius=radius,depth=(b-a).length,location=(a+b)*.5)
+        ob=bpy.context.object; ob.name=self.name+'-'+name
+        ob.rotation_euler=(b-a).to_track_quat('Z','Y').to_euler()
+        ob.data.materials.append(self.m['iron'])
+        ob['jointStart']=list(a); ob['jointEnd']=list(b)
+        return self.add(ob)
+
+    def lean_roof(self,name,x0,x1,y0,y1,z0,z1):
+        """A single roof plane, continuously seated at its wall and outer header."""
+        def z(y): return z0+(z1-z0)*(y-y0)/(y1-y0)
+        def slab(label,xa,xb,ya,yb,lift,mat):
+            verts=[(x,y,z(y)+h) for h in (lift-.12,lift) for x,y in ((xa,ya),(xb,ya),(xb,yb),(xa,yb))]
+            self.mesh(label,verts,[(0,3,2,1),(4,5,6,7),(0,1,5,4),(1,2,6,5),(2,3,7,6),(3,0,4,7)],mat)
+        slab(name+'-deck',x0,x1,y0,y1,0,'roofdark')
+        cols=max(3,round((x1-x0)/.5)); rows=max(3,round(abs(y1-y0)/.38))
+        for j in range(rows):
+            ya=y0+(y1-y0)*j/rows; yb=y0+(y1-y0)*(j+1)/rows
+            for i in range(cols):
+                xa=x0+(x1-x0)*i/cols; xb=x0+(x1-x0)*(i+1)/cols-.012
+                slab(name+'-slate',xa,xb,ya,yb,.055,self.rng.choice(['slate','slate','slate2']))
+        for x in (x0,x1): self.timber(name+'-fascia',(x,y0,z0-.065),(x,y1,z1-.065),.13,.16,'roofdark')
+        self.box(name+'-outer-fascia',((x0+x1)/2,y1,z1-.07),(x1-x0,.12,.18),'roofdark',.01)
+        self.box(name+'-wall-flashing',((x0+x1)/2,y0,z0+.10),(x1-x0,.10,.28),'iron',.01)
+        self.pipe(name+'-gutter',(x0,y1,z1-.08),(x1,y1,z1-.08),.075)
 
     def wall(self, name, width, eave, peak, y, holes, offset=0, rotate=False):
         """Continuous double-faced wall with boundary reveals, never a solid box behind windows.
@@ -141,7 +176,9 @@ class Builder:
                     if vb-va<.05: continue
                     tile(name+'-slate',ua,ub,va,vb,.065+self.rng.uniform(-.012,.012),self.rng.choice(['slate','slate','slate2','slate3']))
             for y in (-depth/2-.015,depth/2+.015):
-                self.beam(name+'-barge',(cx,y,peak+.07),(cx+side*(half+.04),y,eave+.02),.105,'roofdark',4)
+                self.timber(name+'-barge',(cx,y,peak-.035),(cx+side*half,y,eave-.035),.16,.18,'roofdark')
+            self.box(name+'-fascia',(cx+side*half,cy,eave-.08),(.15,depth,.22),'roofdark',.012)
+            self.pipe(name+'-gutter',(cx+side*(half+.07),cy-depth/2,eave-.02),(cx+side*(half+.07),cy+depth/2,eave-.02),.08)
         for j in range(max(1,round(depth/.58))):
             count=round(depth/.58); y=-depth/2+(j+.5)*depth/count
             self.box(name+'-ridge',(cx,y,peak+.11),(.25,depth/count-.01,.20),'slate2',.04)
@@ -194,26 +231,73 @@ def _cottage(name,m,w,d,eave,peak,seed,variant):
     b.window('rear-window',0,front,1.8,1,1.4)
     for ob in b.objects[previous:]:
         ob.location.y=-ob.location.y; ob.rotation_euler[2]=math.pi
-    b.roof('main-roof',w+.66,d+.76,eave-.07,peak+.15)
+    # Preserve the wall's slope through the overhang: underside meets the gable
+    # and side-wall top exactly instead of leaving a widening daylight gap.
+    roofeave=eave+.13-(peak-eave)*.66/w
+    b.roof('main-roof',w+.66,d+.76,roofeave,peak+.13)
+    for sx in (-1,1):
+        gx=sx*(w/2+.40); gy=d/2+.38
+        elbow=(sx*(w/2+.13),d/2+.10,roofeave-.34)
+        b.pipe('main-drain-elbow',(gx,gy,roofeave-.02),elbow)
+        b.pipe('main-downpipe',elbow,(elbow[0],elbow[1],.28))
+        b.pipe('main-drain-shoe',(elbow[0],elbow[1],.28),(elbow[0],elbow[1]+.20,.12))
+        for z in (.65,roofeave-.65): b.box('downpipe-strap',(elbow[0],elbow[1],z),(.16,.16,.055),'iron',.008)
     b.stone_details(w,d,eave)
     doorx=(holes[0][0]+holes[0][1])/2
-    for j in range(3):
-        b.box('door-step',(doorx,front-.36-j*.26,.30-j*.08),(1.65,.80+j*.30,.16),'foundation',.04)
+    # Adjacent solid blocks have distinct footprints; every exposed rise is .12m.
+    # Landing meets the door opening floor at .36m; no layered intersecting treads.
+    b.box('porch-landing',(doorx,front-.54,.18),(2.10,1.08,.36),'foundation',0)
+    b.box('porch-middle-step',(doorx,front-1.24,.12),(2.10,.32,.24),'foundation',0)
+    b.box('porch-bottom-step',(doorx,front-1.56,.06),(2.10,.32,.12),'foundation',0)
+    sill=next(ob for ob in b.objects if ob.name==name+'-front-opening-0-sill')
+    sill.location.z=.275; sill['walkingTop']=.36
+    # A low plinth course terminates on each side of the doorway.
+    for xa,xb in ((-w/2,holes[0][0]-.19),(holes[0][1]+.19,w/2)):
+        b.box('front-plinth',((xa+xb)/2,front-.045,.23),(xb-xa,.15,.22),'foundation',.018)
     if variant!='gable':
-        # Compact lean-to entrance shelter, timber posts and diagonal brackets.
+        # Wall ledger, outer header and rafter ends form an explicit load path.
+        outer=front-.94; top=3.075; walltop=3.345
+        b.box('porch-wall-ledger',(doorx,front-.05,3.15),(2.08,.19,.18),'wood',.014)
+        b.box('porch-header',(doorx,outer,2.71),(2.12,.22,.32),'wood',.014)
         for xx in (doorx-.85,doorx+.85):
-            b.box('porch-post',(xx,front-.97,1.50),(.12,.13,2.62),'wood',.02)
-            b.beam('porch-knee',(xx,front-.98,2.18),(xx,front-.40,2.76),.06)
-        b.roof('porch-roof',2.20,1.6,2.83,3.28,doorx,front-.64)
+            b.box('porch-stone-shoe',(xx,outer,.53),(.30,.30,.34),'trim',.025)
+            b.box('porch-post',(xx,outer,1.625),(.20,.20,1.85),'wood',.014)
+            inside=xx+(.38 if xx<doorx else -.38)
+            b.timber('porch-knee',(xx,outer,2.14),(inside,outer,2.58),.12,.14)
+        for xx in (doorx-.86,doorx,doorx+.86):
+            b.timber('porch-rafter',(xx,outer,top-.203),(xx,front-.05,walltop-.203),.12,.16)
+        b.lean_roof('porch-roof',doorx-1.12,doorx+1.12,front-.04,front-1.10,walltop,top-.045)
+        drainx=doorx-1.12; drainy=front-1.10; drainz=top-.125
+        b.pipe('porch-downpipe',(drainx,drainy,drainz),(drainx,drainy,.22),.042)
+        b.pipe('porch-drain-shoe',(drainx,drainy,.22),(drainx,drainy-.15,.12),.042)
     chimneyx=w*.26; chimneyy=d*.16
     roofz=peak-(peak-eave)*abs(chimneyx)/(w/2)
     b.box('chimney-stack',(chimneyx,chimneyy,roofz+.56),(.66,.71,1.57),'stone',.06)
     b.box('chimney-cap',(chimneyx,chimneyy,roofz+1.34),(.88,.9,.19),'trim',.045)
     b.box('chimney-flue',(chimneyx,chimneyy,roofz+1.445),(.48,.48,.028),'shadow',0)
+    # The apron follows the roof plane and meets the chimney on all four sides.
+    slope=(peak-eave)/(w/2)
+    def flashz(x): return peak+.21-slope*x
+    for label,xa,xb,ya,yb in (
+        ('left',chimneyx-.43,chimneyx-.30,chimneyy-.46,chimneyy+.46),
+        ('right',chimneyx+.30,chimneyx+.43,chimneyy-.46,chimneyy+.46),
+        ('front',chimneyx-.43,chimneyx+.43,chimneyy-.46,chimneyy-.31),
+        ('back',chimneyx-.43,chimneyx+.43,chimneyy+.31,chimneyy+.46)):
+        verts=[(x,y,flashz(x)+dz) for dz in (0,.035) for x,y in ((xa,ya),(xb,ya),(xb,yb),(xa,yb))]
+        b.mesh('chimney-flashing-'+label,verts,[(0,3,2,1),(4,5,6,7),(0,1,5,4),(1,2,6,5),(2,3,7,6),(3,0,4,7)],'iron')
     if variant=='low':
-        # Off-centre taller gable over the left wing creates the asymmetric silhouette.
-        b.box('wing-plaster',(-1.60,.5,2.50),(2.35,3.15,1.2),'stone',.035)
-        b.roof('raised-wing',2.85,3.7,3.1,4.57,-1.6,.5)
+        # A rear lean-to attaches below the eave, retaining the main roof intact.
+        # Its wall tops follow the same roof underside plane with no pasted gable.
+        xa,xb=-2.85,-.65; ya,yb=d/2,d/2+1.02
+        z0,z1=2.96,2.53
+        b.box('wing-foundation',((xa+xb)/2,(ya+yb)/2,.15),(xb-xa,yb-ya,.30),'foundation',.025)
+        b.box('wing-rear-wall',((xa+xb)/2,yb-.12,(z1-.12+.12)/2),(xb-xa,.24,z1-.24),'stone',0)
+        for x in (xa,xb-.24):
+            verts=[(xx,y,z) for xx in (x,x+.24) for y,z in ((ya,.12),(yb,.12),(yb,z1-.12),(ya,z0-.12))]
+            b.mesh('wing-side-wall',verts,[(0,3,2,1),(4,5,6,7),(0,1,5,4),(1,2,6,5),(2,3,7,6),(3,0,4,7)])
+        # Roof projects beyond the outer wall using the exact continuation slope.
+        b.lean_roof('wing-roof',xa-.14,xb+.14,ya-.035,yb+.18,z0+.015,z1-.076)
+        b.pipe('wing-downpipe',(xa-.14,yb+.18,z1-.156),(xa-.14,yb+.18,.18))
     return b.objects
 
 

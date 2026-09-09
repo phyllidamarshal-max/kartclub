@@ -1,0 +1,12 @@
+{
+  "key": "cottage-low",
+  "model": "/art/coast-rebuild/cottage-low.glb",
+  "indirect": "/art/coast-rebuild/cottage-low-indirect.png",
+  "lighting": "asset-local diffuse indirect only; direct sun excluded",
+  "triangles": 9812,
+  "atlasSize": 1024,
+  "height": 5.22340002655983,
+  "width": 8.309999465942383,
+  "depth": 8.09500002861023,
+  "version": "architectural-junctions-20260909-v2"
+}

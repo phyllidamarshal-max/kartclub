@@ -1,0 +1,17 @@
+{
+  "blenderVersion": "4.2.23 LTS",
+  "assetVersion": "club-kart-reference-v3",
+  "sourceGlbSha256": "9e0a471d0efb1962bf332714136e3fb75bc0e059db948201c822a88a230feb3d",
+  "blendFileBytes": 3801260,
+  "meshes": 110,
+  "triangles": 25508,
+  "materials": 8,
+  "meshesWithVertexColors": 11,
+  "wheelPivots": [
+    "wheel-front-left",
+    "wheel-front-right",
+    "wheel-rear-left",
+    "wheel-rear-right"
+  ],
+  "reopenedSuccessfully": true
+}

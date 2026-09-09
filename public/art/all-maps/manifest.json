@@ -1,0 +1,935 @@
+{
+  "version": "all-map-props-catalog-v1",
+  "role": "editable representative snapshot; not a runtime-loaded asset",
+  "seed": 741,
+  "authoritativeSources": [
+    {
+      "file": "client/level-scenery.ts",
+      "sha256": "18b4d1c72adeb1d454db9f0ee6dbaaab75acead563fd486055aed42d9e0edfd3"
+    },
+    {
+      "file": "client/scene-prop-geometry.ts",
+      "sha256": "13194bed80f496a6fbd0f0ce0322360b2ae010b0c636229ca989fe567c7d9102"
+    },
+    {
+      "file": "client/scenery.ts",
+      "sha256": "525bc69e25155dc31a25992e0b29a48743ee5f686763b139006ac3373ae0b914"
+    },
+    {
+      "file": "shared/track.ts",
+      "sha256": "d663c1637539c8fcdc804f097a89267b608c0e440c6d247d97f2aecb55925d6a"
+    },
+    {
+      "file": "shared/levels.ts",
+      "sha256": "61c5784b9405f550b48477c20f9598f1193f554a7cb640e62fd3382263e393ab"
+    },
+    {
+      "file": "scripts/all-map-assets/export-props.ts",
+      "sha256": "79b97a6f1f551769cb9db6a44902681ba0a59beaa4ffdd12664a2da3b4abdb40"
+    }
+  ],
+  "runtimeIntegration": {
+    "generatedBy": "client/level-scenery.ts",
+    "geometry": "client/scene-prop-geometry.ts",
+    "loadedByWorld": false
+  },
+  "files": {
+    "glb": {
+      "path": "/art/all-maps/scene-props.glb",
+      "bytes": 166304,
+      "sha256": "e039d218298fdaf17aeadb5e547abd0a9460c521148bb24eff9ce8eb4366023e"
+    },
+    "blend": {
+      "path": "art/all-maps/scene-props.blend",
+      "bytes": 2070924,
+      "sha256": "ffb052b5edcb6185cb110f3688e6e4350d503767f7e116b2af55a7bfe4977649"
+    }
+  },
+  "coordinates": {
+    "units": "metres",
+    "gltfUp": "+Y",
+    "gltfForward": "+Z",
+    "blenderUp": "+Z",
+    "blenderForward": "-Y"
+  },
+  "layout": {
+    "columns": 4,
+    "rows": 2,
+    "spacingMetres": 32,
+    "normalizedToFloor": true,
+    "routeHeadingRemoved": true
+  },
+  "conversion": "Cloned actual procedural groups; local mesh geometry/material values preserved. Runtime flat-shading faces are expanded and normals recomputed for glTF. Route translation/yaw removed, centered horizontally and grounded in the catalog grid.",
+  "scope": "Eight representative groups from eight non-coast themes. Not a one-to-one archive of all props, routes, or authored foliage; Blender edits are independent snapshots.",
+  "license": "Original project-authored geometry and materials; no third-party assets",
+  "textures": 0,
+  "catalog": {
+    "meshes": 245,
+    "vertices": 8647,
+    "triangles": 3650,
+    "geometries": 35,
+    "materials": 37,
+    "bounds": {
+      "min": [
+        -51.93537109127641,
+        -4.440892098500626e-16,
+        -23.0125
+      ],
+      "max": [
+        54.8,
+        39.83238956844434,
+        21.58896291255951
+      ],
+      "size": [
+        106.7353710912764,
+        39.83238956844434,
+        44.60146291255951
+      ]
+    }
+  },
+  "props": [
+    {
+      "biome": "harbor",
+      "sourceTrack": "coast-harbor",
+      "sourceName": "harbor-container-yard",
+      "sourceOccurrence": 0,
+      "sourceTransform": {
+        "position": [
+          3.605141095269454,
+          -0.55,
+          -298.1973399348906
+        ],
+        "quaternion": [
+          0,
+          0.7127117717779394,
+          0,
+          0.7014570053603787
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "catalogNode": "catalog-harbor",
+      "gridPosition": [
+        -48,
+        0,
+        -16
+      ],
+      "normalizedTranslation": [
+        0,
+        6.699999999999999,
+        0
+      ],
+      "bakedFlatNormalMeshes": 8,
+      "runtimeLocal": {
+        "meshes": 77,
+        "vertices": 2064,
+        "triangles": 1020,
+        "geometries": 3,
+        "materials": 6,
+        "bounds": {
+          "min": [
+            -3.5,
+            -6.699999999999999,
+            -6
+          ],
+          "max": [
+            3.5,
+            6.2,
+            6
+          ],
+          "size": [
+            7,
+            12.899999999999999,
+            12
+          ]
+        }
+      },
+      "exported": {
+        "meshes": 77,
+        "vertices": 2160,
+        "triangles": 1020,
+        "geometries": 4,
+        "materials": 6,
+        "bounds": {
+          "min": [
+            -51.5,
+            -4.440892098500626e-16,
+            -22
+          ],
+          "max": [
+            -44.5,
+            12.9,
+            -10
+          ],
+          "size": [
+            7,
+            12.9,
+            12
+          ]
+        }
+      }
+    },
+    {
+      "biome": "city",
+      "sourceTrack": "city",
+      "sourceName": "city-neon-block",
+      "sourceOccurrence": 0,
+      "sourceTransform": {
+        "position": [
+          4.567106491989149,
+          -0.55,
+          -299.5234475278004
+        ],
+        "quaternion": [
+          0,
+          0.712236857649011,
+          0,
+          0.7019392128997086
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "catalogNode": "catalog-city",
+      "gridPosition": [
+        -16,
+        0,
+        -16
+      ],
+      "normalizedTranslation": [
+        0,
+        0,
+        -0.012500000000000178
+      ],
+      "bakedFlatNormalMeshes": 51,
+      "runtimeLocal": {
+        "meshes": 82,
+        "vertices": 2328,
+        "triangles": 1144,
+        "geometries": 6,
+        "materials": 6,
+        "bounds": {
+          "min": [
+            -6.5,
+            0,
+            -7
+          ],
+          "max": [
+            6.5,
+            39.83238956844434,
+            7.025
+          ],
+          "size": [
+            13,
+            39.83238956844434,
+            14.025
+          ]
+        }
+      },
+      "exported": {
+        "meshes": 82,
+        "vertices": 2964,
+        "triangles": 1144,
+        "geometries": 7,
+        "materials": 6,
+        "bounds": {
+          "min": [
+            -22.5,
+            0,
+            -23.0125
+          ],
+          "max": [
+            -9.5,
+            39.83238956844434,
+            -8.987499999999999
+          ],
+          "size": [
+            13,
+            39.83238956844434,
+            14.025
+          ]
+        }
+      }
+    },
+    {
+      "biome": "factory",
+      "sourceTrack": "city-factory",
+      "sourceName": "factory-machinery",
+      "sourceOccurrence": 0,
+      "sourceTransform": {
+        "position": [
+          2.299755878904697e-15,
+          -0.55,
+          -423.6578637123108
+        ],
+        "quaternion": [
+          0,
+          0.7071067811865475,
+          0,
+          0.7071067811865476
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "catalogNode": "catalog-factory",
+      "gridPosition": [
+        16,
+        0,
+        -16
+      ],
+      "normalizedTranslation": [
+        0,
+        0,
+        0
+      ],
+      "bakedFlatNormalMeshes": 3,
+      "runtimeLocal": {
+        "meshes": 30,
+        "vertices": 821,
+        "triangles": 412,
+        "geometries": 4,
+        "materials": 5,
+        "bounds": {
+          "min": [
+            -6,
+            0,
+            -6.5
+          ],
+          "max": [
+            6,
+            23,
+            6.5
+          ],
+          "size": [
+            12,
+            23,
+            13
+          ]
+        }
+      },
+      "exported": {
+        "meshes": 30,
+        "vertices": 857,
+        "triangles": 412,
+        "geometries": 5,
+        "materials": 5,
+        "bounds": {
+          "min": [
+            10,
+            0,
+            -22.5
+          ],
+          "max": [
+            22,
+            23,
+            -9.5
+          ],
+          "size": [
+            12,
+            23,
+            13
+          ]
+        }
+      }
+    },
+    {
+      "biome": "space",
+      "sourceTrack": "city-nightshift",
+      "sourceName": "space-route-dressing",
+      "sourceOccurrence": 0,
+      "sourceTransform": {
+        "position": [
+          64.26652936018208,
+          -3.9797338474943222,
+          -429.33393160094937
+        ],
+        "quaternion": [
+          0,
+          0.7071067811865475,
+          0,
+          0.7071067811865476
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "catalogNode": "catalog-space",
+      "gridPosition": [
+        48,
+        0,
+        -16
+      ],
+      "normalizedTranslation": [
+        0,
+        0.8,
+        0
+      ],
+      "bakedFlatNormalMeshes": 3,
+      "runtimeLocal": {
+        "meshes": 15,
+        "vertices": 556,
+        "triangles": 280,
+        "geometries": 4,
+        "materials": 5,
+        "bounds": {
+          "min": [
+            -6.8,
+            -0.8,
+            -6.8
+          ],
+          "max": [
+            6.8,
+            5,
+            6.8
+          ],
+          "size": [
+            13.6,
+            5.8,
+            13.6
+          ]
+        }
+      },
+      "exported": {
+        "meshes": 15,
+        "vertices": 616,
+        "triangles": 280,
+        "geometries": 5,
+        "materials": 5,
+        "bounds": {
+          "min": [
+            41.2,
+            0,
+            -22.8
+          ],
+          "max": [
+            54.8,
+            5.8,
+            -9.2
+          ],
+          "size": [
+            13.599999999999994,
+            5.8,
+            13.600000000000001
+          ]
+        }
+      }
+    },
+    {
+      "biome": "desert",
+      "sourceTrack": "coast-breakwater",
+      "sourceName": "desert-route-dressing",
+      "sourceOccurrence": 0,
+      "sourceTransform": {
+        "position": [
+          36.96382666004189,
+          -3.3348799999999974,
+          -461.06046525241425
+        ],
+        "quaternion": [
+          0,
+          0.7071067811865475,
+          0,
+          0.7071067811865476
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "catalogNode": "catalog-desert",
+      "gridPosition": [
+        -48,
+        0,
+        16
+      ],
+      "normalizedTranslation": [
+        -0.13416539981961262,
+        0,
+        -0.22041445523500447
+      ],
+      "bakedFlatNormalMeshes": 3,
+      "runtimeLocal": {
+        "meshes": 3,
+        "vertices": 284,
+        "triangles": 124,
+        "geometries": 2,
+        "materials": 2,
+        "bounds": {
+          "min": [
+            -3.801205691456795,
+            0,
+            -3.577285843849182
+          ],
+          "max": [
+            4.06953649109602,
+            6.923500000000001,
+            4.018114754319191
+          ],
+          "size": [
+            7.870742182552815,
+            6.923500000000001,
+            7.595400598168373
+          ]
+        }
+      },
+      "exported": {
+        "meshes": 3,
+        "vertices": 372,
+        "triangles": 124,
+        "geometries": 2,
+        "materials": 2,
+        "bounds": {
+          "min": [
+            -51.93537109127641,
+            0,
+            12.202299700915813
+          ],
+          "max": [
+            -44.06462890872359,
+            6.923500000000001,
+            19.797700299084184
+          ],
+          "size": [
+            7.870742182552817,
+            6.923500000000001,
+            7.595400598168371
+          ]
+        }
+      }
+    },
+    {
+      "biome": "forest",
+      "sourceTrack": "mountain",
+      "sourceName": "forest-route-dressing",
+      "sourceOccurrence": 0,
+      "sourceTransform": {
+        "position": [
+          42.440381458943854,
+          -3.16174222972596,
+          -317.4661585764937
+        ],
+        "quaternion": [
+          0,
+          0.7431974113645871,
+          0,
+          0.669072199198993
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "catalogNode": "catalog-forest",
+      "gridPosition": [
+        -16,
+        0,
+        16
+      ],
+      "normalizedTranslation": [
+        -0.13416539981961262,
+        0,
+        -0.22041445523500447
+      ],
+      "bakedFlatNormalMeshes": 7,
+      "runtimeLocal": {
+        "meshes": 7,
+        "vertices": 270,
+        "triangles": 90,
+        "geometries": 3,
+        "materials": 4,
+        "bounds": {
+          "min": [
+            -3.801205691456795,
+            0,
+            -3.577285843849182
+          ],
+          "max": [
+            4.06953649109602,
+            2.5558777755737303,
+            4.018114754319191
+          ],
+          "size": [
+            7.870742182552815,
+            2.5558777755737303,
+            7.595400598168373
+          ]
+        }
+      },
+      "exported": {
+        "meshes": 7,
+        "vertices": 270,
+        "triangles": 90,
+        "geometries": 3,
+        "materials": 4,
+        "bounds": {
+          "min": [
+            -19.935371091276405,
+            0,
+            12.202299700915813
+          ],
+          "max": [
+            -12.064628908723591,
+            2.5558777755737303,
+            19.797700299084184
+          ],
+          "size": [
+            7.870742182552814,
+            2.5558777755737303,
+            7.595400598168371
+          ]
+        }
+      }
+    },
+    {
+      "biome": "ice",
+      "sourceTrack": "mountain-pass",
+      "sourceName": "ice-glacier-wall",
+      "sourceOccurrence": 0,
+      "sourceTransform": {
+        "position": [
+          1.4640494964986466,
+          -2.680000000000003,
+          -320.30402810693874
+        ],
+        "quaternion": [
+          0,
+          0.6958886148168801,
+          0,
+          0.7181497307443928
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "catalogNode": "catalog-ice",
+      "gridPosition": [
+        16,
+        0,
+        16
+      ],
+      "normalizedTranslation": [
+        -0.11846834421157837,
+        2.6925670199911105,
+        -0.3243774175643921
+      ],
+      "bakedFlatNormalMeshes": 2,
+      "runtimeLocal": {
+        "meshes": 2,
+        "vertices": 288,
+        "triangles": 96,
+        "geometries": 2,
+        "materials": 2,
+        "bounds": {
+          "min": [
+            -3.356473016738892,
+            -2.6925670199911105,
+            -5.264585494995117
+          ],
+          "max": [
+            3.5934097051620486,
+            6.609028139978181,
+            5.913340330123901
+          ],
+          "size": [
+            6.9498827219009405,
+            9.301595159969292,
+            11.177925825119019
+          ]
+        }
+      },
+      "exported": {
+        "meshes": 2,
+        "vertices": 288,
+        "triangles": 96,
+        "geometries": 2,
+        "materials": 2,
+        "bounds": {
+          "min": [
+            12.52505863904953,
+            0,
+            10.41103708744049
+          ],
+          "max": [
+            19.47494136095047,
+            9.301595159969292,
+            21.58896291255951
+          ],
+          "size": [
+            6.949882721900941,
+            9.301595159969292,
+            11.177925825119019
+          ]
+        }
+      }
+    },
+    {
+      "biome": "mine",
+      "sourceTrack": "mountain-summit",
+      "sourceName": "mine-ore-cart",
+      "sourceOccurrence": 0,
+      "sourceTransform": {
+        "position": [
+          110.7955009459219,
+          -2.176401945253104,
+          -535.6724374326071
+        ],
+        "quaternion": [
+          0,
+          0.6892250659458432,
+          0,
+          0.7245473127905092
+        ],
+        "scale": [
+          1,
+          1,
+          1
+        ]
+      },
+      "catalogNode": "catalog-mine",
+      "gridPosition": [
+        48,
+        0,
+        16
+      ],
+      "normalizedTranslation": [
+        0,
+        0.08319298951059473,
+        0
+      ],
+      "bakedFlatNormalMeshes": 14,
+      "runtimeLocal": {
+        "meshes": 29,
+        "vertices": 916,
+        "triangles": 484,
+        "geometries": 6,
+        "materials": 7,
+        "bounds": {
+          "min": [
+            -1.7100000000000002,
+            -0.08319298951059473,
+            -3
+          ],
+          "max": [
+            1.7100000000000002,
+            2.7439999999999998,
+            3
+          ],
+          "size": [
+            3.4200000000000004,
+            2.8271929895105945,
+            6
+          ]
+        }
+      },
+      "exported": {
+        "meshes": 29,
+        "vertices": 1120,
+        "triangles": 484,
+        "geometries": 7,
+        "materials": 7,
+        "bounds": {
+          "min": [
+            46.29,
+            0,
+            13
+          ],
+          "max": [
+            49.71,
+            2.8271929895105945,
+            19
+          ],
+          "size": [
+            3.4200000000000017,
+            2.8271929895105945,
+            6
+          ]
+        }
+      }
+    }
+  ],
+  "validation": {
+    "finiteTransformsAndAttributes": true,
+    "nonOverlappingGrid": true,
+    "glbRoundTrip": {
+      "passed": true,
+      "meshes": 245,
+      "vertices": 8647,
+      "triangles": 3650,
+      "geometries": 35,
+      "materials": 37,
+      "bounds": {
+        "min": [
+          -51.93537109127641,
+          -4.440892098500626e-16,
+          -23.0125
+        ],
+        "max": [
+          54.8,
+          39.83238956844434,
+          21.58896291255951
+        ],
+        "size": [
+          106.7353710912764,
+          39.83238956844434,
+          44.60146291255951
+        ]
+      }
+    },
+    "blender": {
+      "version": "4.2.23 LTS",
+      "reopenedSuccessfully": true,
+      "props": [
+        {
+          "biome": "harbor",
+          "meshes": 77,
+          "triangles": 1020,
+          "bounds": {
+            "min": [
+              -51.5,
+              10,
+              -2.384185791015625e-7
+            ],
+            "max": [
+              -44.5,
+              22,
+              12.90000057220459
+            ]
+          }
+        },
+        {
+          "biome": "city",
+          "meshes": 82,
+          "triangles": 1144,
+          "bounds": {
+            "min": [
+              -22.5,
+              8.98750114440918,
+              0
+            ],
+            "max": [
+              -9.5,
+              23.012500762939453,
+              39.83238983154297
+            ]
+          }
+        },
+        {
+          "biome": "factory",
+          "meshes": 30,
+          "triangles": 412,
+          "bounds": {
+            "min": [
+              10,
+              9.5,
+              0
+            ],
+            "max": [
+              22,
+              22.5,
+              23
+            ]
+          }
+        },
+        {
+          "biome": "space",
+          "meshes": 15,
+          "triangles": 280,
+          "bounds": {
+            "min": [
+              41.20000076293945,
+              9.199999809265137,
+              0
+            ],
+            "max": [
+              54.79999923706055,
+              22.799999237060547,
+              5.800000190734863
+            ]
+          }
+        },
+        {
+          "biome": "desert",
+          "meshes": 3,
+          "triangles": 124,
+          "bounds": {
+            "min": [
+              -51.93537139892578,
+              -19.797700881958008,
+              0
+            ],
+            "max": [
+              -44.06462860107422,
+              -12.202300071716309,
+              6.923500061035156
+            ]
+          }
+        },
+        {
+          "biome": "forest",
+          "meshes": 7,
+          "triangles": 90,
+          "bounds": {
+            "min": [
+              -19.93537139892578,
+              -19.797700881958008,
+              0
+            ],
+            "max": [
+              -12.064628601074219,
+              -12.202300071716309,
+              2.555877923965454
+            ]
+          }
+        },
+        {
+          "biome": "ice",
+          "meshes": 2,
+          "triangles": 96,
+          "bounds": {
+            "min": [
+              12.52505874633789,
+              -21.58896255493164,
+              4.76837158203125e-7
+            ],
+            "max": [
+              19.47494125366211,
+              -10.41103744506836,
+              9.301595687866211
+            ]
+          }
+        },
+        {
+          "biome": "mine",
+          "meshes": 29,
+          "triangles": 484,
+          "bounds": {
+            "min": [
+              46.290000915527344,
+              -19,
+              -7.450580596923828e-9
+            ],
+            "max": [
+              49.709999084472656,
+              -13,
+              2.827192783355713
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

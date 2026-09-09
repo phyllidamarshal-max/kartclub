@@ -6,9 +6,14 @@ import {
   disposeCoastAssets,
   updateCoastAssets,
 } from "../client/coast-assets.ts";
-import { createCoastLayout, COAST_FOOTPRINTS } from "../client/coast-layout.ts";
+import {
+  createCoastLayout,
+  COAST_FOOTPRINTS,
+  coastCottageApproach,
+} from "../client/coast-layout.ts";
 import { DEFAULT_TRACK } from "../shared/track.ts";
 import { roadsideClear } from "../client/scenery.ts";
+import { createCoastPaths } from "../client/coast-gardens.ts";
 
 const keys = Object.keys(COAST_FOOTPRINTS);
 function fixture() {
@@ -77,7 +82,10 @@ function fixture() {
 test("coast load preserves atlas channels and source transforms, batches shared resources", async () => {
   const f = fixture();
   const group = await loadCoastAssets(DEFAULT_TRACK, f.options);
-  assert.equal(group.children.length, 1);
+  assert.equal(
+    group.children.filter((c) => c.name !== "coast:cottage-paths").length,
+    1,
+  );
   const mesh = group.children[0] as THREE.InstancedMesh;
   assert.equal(mesh.count, 2);
   const matrix = new THREE.Matrix4();
@@ -161,13 +169,22 @@ test("different materials never combine even with shared geometry", async () => 
     return result;
   };
   const group = await loadCoastAssets(DEFAULT_TRACK, f.options);
-  assert.equal(group.children.length, 2);
+  assert.equal(
+    group.children.filter((c) => c.name !== "coast:cottage-paths").length,
+    2,
+  );
   disposeCoastAssets(group);
 });
 
 test("layout uses road-clear full footprints and avoids cottages with ground patches", () => {
   const layout = createCoastLayout(DEFAULT_TRACK);
   const houses = layout.filter((p) => p.asset.startsWith("cottage"));
+  const patches = layout.filter((p) => /meadow|shrub/.test(p.asset));
+  assert.ok(patches.length >= 1000 && patches.length <= 1100);
+  for (const rock of layout.filter((p) => p.asset === "rock-cluster")) {
+    assert.ok(rock.y < -4);
+    assert.ok(rock.y + 1.742078 * rock.scale < 0.3);
+  }
   assert.ok(
     houses.length >= 7 && houses.length <= 10,
     `got ${houses.length} houses`,
@@ -193,6 +210,95 @@ test("layout uses road-clear full footprints and avoids cottages with ground pat
               1,
         );
   }
+});
+
+test("cottage paths stop clear of road ribbons and release their own buffers", async () => {
+  const layout = createCoastLayout(DEFAULT_TRACK);
+  const paths = createCoastPaths(DEFAULT_TRACK, layout)!;
+  // Path length follows the rebuilt outer stairs; paving beneath the stairs is
+  // no longer counted. Every cottage still has an approach (checked below).
+  assert.ok(paths.count >= layout.filter(p=>p.asset.startsWith('cottage')).length);
+  const matrix = new THREE.Matrix4();
+  for (let i = 0; i < paths.count; i++) {
+    paths.getMatrixAt(i, matrix);
+    assert.ok(
+      roadsideClear(
+        DEFAULT_TRACK,
+        matrix.elements[12],
+        matrix.elements[14],
+        1.19,
+      ),
+    );
+    assert.ok(matrix.elements[13] < -0.1);
+  }
+  paths.dispose();
+  paths.geometry.dispose();
+  (paths.material as THREE.Material).dispose();
+  const f = fixture(),
+    group = await loadCoastAssets(DEFAULT_TRACK, {
+      ...f.options,
+      layout: [f.options.layout[0]],
+    });
+  const loaded = group.getObjectByName(
+    "coast:cottage-paths",
+  ) as THREE.InstancedMesh;
+  let disposed = 0;
+  loaded.addEventListener("dispose", () => disposed++);
+  loaded.geometry.addEventListener("dispose", () => disposed++);
+  (loaded.material as THREE.Material).addEventListener(
+    "dispose",
+    () => disposed++,
+  );
+  disposeCoastAssets(group);
+  disposeCoastAssets(group);
+  assert.equal(disposed, 3);
+});
+
+test("paving follows authored off-centre doors and the same planting corridor", () => {
+  const layout = createCoastLayout(DEFAULT_TRACK);
+  for (const house of layout.filter((p) => p.asset.startsWith("cottage"))) {
+    const paths = createCoastPaths(DEFAULT_TRACK, [house])!;
+    assert.ok(paths);
+    const matrix = new THREE.Matrix4();
+    paths.getMatrixAt(0, matrix);
+    const dx = matrix.elements[12] - house.x,
+      dz = matrix.elements[14] - house.z;
+    const expected =
+      (house.asset === "cottage-hero"
+        ? -1.5
+        : house.asset === "cottage-low"
+          ? -1.45
+          : 0) * house.scale;
+    assert.ok(
+      Math.abs(
+        dx * Math.cos(house.heading) - dz * Math.sin(house.heading) - expected,
+      ) < 1e-4,
+    );
+    const origin = coastCottageApproach(house);
+    const exportedStair={"cottage-hero":4.67,"cottage-gable":5.02,"cottage-low":4.27}[house.asset as 'cottage-hero'|'cottage-gable'|'cottage-low'];
+    const slabRear=(matrix.elements[12]-origin.x)*Math.sin(house.heading)+(matrix.elements[14]-origin.z)*Math.cos(house.heading)-.4*house.scale;
+    assert.ok(Math.abs(slabRear-exportedStair*house.scale)<1e-4,'first slab meets exported stair edge');
+    for (const patch of layout.filter((p) => /meadow|shrub/.test(p.asset))) {
+      const x = patch.x - origin.x,
+        z = patch.z - origin.z;
+      const forward = x * Math.sin(house.heading) + z * Math.cos(house.heading);
+      if (forward > 0 && forward < 22)
+        assert.ok(
+          Math.abs(x * Math.cos(house.heading) - z * Math.sin(house.heading)) >=
+            COAST_FOOTPRINTS[patch.asset] * patch.scale + 1,
+        );
+    }
+    paths.dispose();
+    paths.geometry.dispose();
+    (paths.material as THREE.Material).dispose();
+  }
+  const shore = layout.slice(-220);
+  assert.equal(shore.length, 220);
+  assert.ok(
+    shore.every(
+      (p) => /meadow|shrub/.test(p.asset) && p.scale >= 0.6 && p.scale <= 0.85,
+    ),
+  );
 });
 
 test("detail batches respond to quality/distance without hiding near cottages", async () => {

@@ -1,5 +1,13 @@
 # Coast runtime asset loading and layout
 
+## Follow-up after actual renderer inspection
+
+Final root integration supersedes the intermediate counts below: 1,321 placements (8 cottages, 1 lighthouse, 214 trees, 78 rock clusters and 1,020 meadow/shrub patches), 99 instance batches, plus aligned cottage approach pavers. See `docs/coast-rebuild-2026-09-08.md` for final validation and `docs/coast-rebuild-performance-2026-09-08.json` for all measured runs and the foreground-performance limitation.
+
+The initial layout described below was revised following parent visual review. The current layout targets exactly800 small meadow/shrub instances, concentrated irregularly in village progress .16–.36 and setbacks4–36. Planting excludes conservative cottage footprints and stone-path corridors. An irregular grove now fills setbacks25–65 behind the village; prominent oak/blossom candidates at .18/.24/.30 use scale1.28. Shore rocks use scale2.7–3.2 and asset-height-derived foundations approximately y=-4.5 to-5.7, leaving their tops between-0.18 and+0.24 instead of sitting on the lawn.
+
+`client/coast-gardens.ts` adds warm stone approach pavers in one InstancedMesh using one geometry/material. Paths stop before both road ribbons and other building footprints. Their buffers/geometry/material join loader ownership cleanup. `pathPaverCount` is recorded in runtime metadata. Updated asset and World lifecycle tests:17 passed; TypeScript passes. The initial counts below are historical, superseded by the denser follow-up layout.
+
 Implemented in `client/coast-assets.ts`, `client/coast-layout.ts`, with six focused tests in `tests/coast-assets.test.ts`.
 
 ## Integration API

@@ -1,0 +1,210 @@
+{
+  "runtime": "client/fauna-models.ts and client/ambient-fauna.ts; GLBs are catalog-only, not runtime-loaded",
+  "catalog": [
+    {
+      "species": "whale",
+      "file": "whale-catalog.glb",
+      "triangles": 4616,
+      "materials": 4,
+      "drawCalls": 5,
+      "dimensions": [
+        6.670922756195068,
+        2.7216506004333496,
+        9.793418025970459
+      ]
+    },
+    {
+      "species": "camel",
+      "file": "camel-catalog.glb",
+      "triangles": 5496,
+      "materials": 4,
+      "drawCalls": 22,
+      "dimensions": [
+        1.2999999523162842,
+        4.038670531195403,
+        3.8593190753459927
+      ]
+    },
+    {
+      "species": "bird",
+      "file": "bird-catalog.glb",
+      "triangles": 1122,
+      "materials": 4,
+      "drawCalls": 6,
+      "dimensions": [
+        1.0658861902322474,
+        0.4674144834280014,
+        1.3817139102720442
+      ]
+    }
+  ],
+  "placements": [
+    {
+      "track": "coast",
+      "time": 2.5,
+      "actor0": [
+        180.82540329644894,
+        -3,
+        -468.22088149182093
+      ],
+      "paths": [
+        {
+          "species": "whale",
+          "x": 180.82540329644894,
+          "z": -468.22088149182093,
+          "heading": 0.3920391458151601,
+          "radius": 6.8,
+          "major": 4,
+          "minor": 0,
+          "count": 1
+        },
+        {
+          "species": "whale",
+          "x": 188.69315134518422,
+          "z": -349.33469870606825,
+          "heading": 0,
+          "radius": 6.8,
+          "major": 4,
+          "minor": 0,
+          "count": 1
+        }
+      ]
+    },
+    {
+      "track": "coast-breakwater",
+      "time": 13.5,
+      "actor0": [
+        480.9593888405214,
+        -3.478127378615144,
+        -379.6280984735223
+      ],
+      "paths": [
+        {
+          "species": "camel",
+          "x": 485.599527023048,
+          "z": -376.6752832664599,
+          "heading": 1.0040671092713873,
+          "radius": 2.65,
+          "major": 5.5,
+          "minor": 3.5,
+          "count": 3
+        }
+      ]
+    },
+    {
+      "track": "mountain",
+      "time": 5.5,
+      "actor0": [
+        296.2828235453669,
+        9.59215734634147,
+        -257.66143499815826
+      ],
+      "paths": [
+        {
+          "species": "bird",
+          "x": 300.35149090140055,
+          "z": -251.96530069971107,
+          "heading": 0.6202494859828118,
+          "radius": 1,
+          "major": 7,
+          "minor": 3,
+          "count": 3
+        }
+      ]
+    },
+    {
+      "track": "forest-orchard",
+      "time": 3,
+      "actor0": [
+        165.65952123688422,
+        7.606692280509184,
+        -489.1460949911276
+      ],
+      "paths": [
+        {
+          "species": "bird",
+          "x": 172.17051150926633,
+          "z": -486.5756853597759,
+          "heading": 1.1947979152733759,
+          "radius": 1,
+          "major": 7,
+          "minor": 3,
+          "count": 3
+        }
+      ]
+    },
+    {
+      "track": "coast-causeway",
+      "time": 2.5,
+      "actor0": [
+        307.8527872076275,
+        -4.83,
+        -301.02664681561106
+      ],
+      "paths": [
+        {
+          "species": "whale",
+          "x": 307.8527872076275,
+          "z": -301.02664681561106,
+          "heading": 0.9994588469612669,
+          "radius": 6.8,
+          "major": 4,
+          "minor": 0,
+          "count": 1
+        },
+        {
+          "species": "whale",
+          "x": 392.4121719915606,
+          "z": -197.25143270500345,
+          "heading": 0.207496226435212,
+          "radius": 6.8,
+          "major": 4,
+          "minor": 0,
+          "count": 1
+        }
+      ]
+    },
+    {
+      "track": "forest-ridge",
+      "time": 8.5,
+      "actor0": [
+        297.27216619398814,
+        14.543249004043926,
+        -283.65183626117954
+      ],
+      "paths": [
+        {
+          "species": "bird",
+          "x": 301.26351431919403,
+          "z": -277.9012588863922,
+          "heading": 0.6067402691628996,
+          "radius": 1,
+          "major": 7,
+          "minor": 3,
+          "count": 3
+        }
+      ]
+    },
+    {
+      "track": "desert-canyon",
+      "time": 13,
+      "actor0": [
+        453.4545643189023,
+        -3.4732245987937422,
+        -409.80264814346384
+      ],
+      "paths": [
+        {
+          "species": "camel",
+          "x": 456.58521920246903,
+          "z": -405.28059108942307,
+          "heading": 0.6055446636049745,
+          "radius": 2.65,
+          "major": 5.5,
+          "minor": 3.5,
+          "count": 3
+        }
+      ]
+    }
+  ]
+}

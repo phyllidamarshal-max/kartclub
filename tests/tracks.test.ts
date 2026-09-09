@@ -5,7 +5,7 @@ test("three match-specific circuits are distinct, closed and longer than legacy"
   assert.equal(typeof tracks.getTrack, "function");
   for (const id of ["coast", "city", "mountain"]) {
     const t = tracks.getTrack(id);
-    assert.ok(t.length > 1100 && t.length < 2000);
+    assert.ok(t.length > 2400 && t.length < 3200);
     assert.deepEqual(tracks.trackPoint(0, t), tracks.trackPoint(1, t));
     const p = tracks.trackPoint(0.37, t);
     assert.ok(tracks.nearestTrack(p.x, p.z, t).distance < 2);
@@ -27,14 +27,14 @@ test("mountain has elevation, obstacles and a driveable shortcut preserving cano
   assert.ok(n.distance < 1);
   assert.ok(Math.abs(n.t - p.t) < 0.005);
 });
-test("career routes have nine different real layouts with progressively narrower expert roads", () => {
-  assert.equal(tracks.TRACKS.length, 9);
+test("nineteen selectable routes have distinct layouts with progressively narrower expert roads", () => {
+  assert.equal(tracks.TRACKS.length, 19);
   const fingerprints = new Set(
     tracks.TRACKS.map((t) =>
       JSON.stringify(t.points.map((p) => [Math.round(p.x), Math.round(p.z)])),
     ),
   );
-  assert.equal(fingerprints.size, 9);
+  assert.equal(fingerprints.size, 19);
   assert.ok(
     tracks.getTrack("mountain-summit").width < tracks.getTrack("coast").width,
   );

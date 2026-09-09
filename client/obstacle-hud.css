@@ -1,0 +1,113 @@
+.obstacle-hud {
+  position: fixed;
+  left: var(--hud-edge, 28px);
+  bottom: 280px;
+  width: 230px;
+  display: flex;
+  gap: 9px;
+  padding: 10px 12px;
+  border: 1px solid rgba(203, 240, 107, 0.25);
+  border-radius: 10px;
+  background: var(--color-hud-bg, #173e30e6);
+  color: var(--color-bg, #f5f1e6);
+  pointer-events: none;
+  user-select: none;
+  z-index: 12;
+  text-align: start;
+  font-family: inherit;
+}
+.obstacle-hud[hidden] {
+  display: none;
+}
+.obstacle-hud svg {
+  width: 23px;
+  height: 23px;
+  flex: 0 0 23px;
+  margin-top: 14px;
+  fill: none;
+  stroke: var(--color-accent, #cbf06b);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.obstacle-hud-copy {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.obstacle-hud small {
+  font-size: 10px;
+  line-height: 1.3;
+  letter-spacing: 0.06em;
+}
+.obstacle-hud strong {
+  font-size: 14px;
+  line-height: 1.2;
+}
+.obstacle-hud span {
+  font-size: 12px;
+  line-height: 1.4;
+}
+.obstacle-hud-risk {
+  color: var(--color-accent, #cbf06b);
+}
+.obstacle-hud-copy > small:first-child {
+  font-size: 9px;
+  opacity: 0.8;
+}
+.obstacle-hud[data-risk="on-line"] {
+  border-color: #e4b56d80;
+}
+.obstacle-hud[data-risk="on-line"] .obstacle-hud-risk,
+.obstacle-hud[data-risk="on-line"] svg {
+  color: #f0c68a;
+  stroke: #f0c68a;
+}
+@media (max-width: 900px) {
+  .obstacle-hud {
+    bottom: 254px;
+  }
+}
+@media (max-width: 760px) {
+  .obstacle-hud {
+    left: 12px;
+    width: 166px;
+    padding: 8px;
+    gap: 6px;
+  }
+  .obstacle-hud strong {
+    font-size: 11px;
+  }
+  .obstacle-hud span {
+    font-size: 9px;
+  }
+  .obstacle-hud svg {
+    width: 20px;
+    flex-basis: 20px;
+  }
+}
+@media (max-width: 600px) {
+  .obstacle-hud {
+    bottom: 216px;
+  }
+}
+@media (max-height: 520px) {
+  .obstacle-hud {
+    bottom: 216px;
+    width: 166px;
+    padding: 6px 8px;
+  }
+  .obstacle-hud-copy {
+    gap: 2px;
+  }
+  .obstacle-hud-copy > small:first-child {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .obstacle-hud,
+  .obstacle-hud * {
+    animation: none;
+    transition: none;
+  }
+}

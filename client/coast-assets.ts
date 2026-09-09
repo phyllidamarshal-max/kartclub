@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import type { Track } from "../shared/track.ts";
+import { createCoastPaths } from "./coast-gardens.ts";
 import {
   createCoastLayout,
   COAST_FOOTPRINTS,
@@ -235,11 +236,18 @@ export async function loadCoastAssets(
       r.instances.add(mesh);
       group.add(mesh);
     }
+    const paths = createCoastPaths(track, layout);
+    if (paths) {
+      group.add(paths);
+      r.instances.add(paths);
+      collect(paths, r);
+    }
     group.userData.coastAssets = {
       version: manifest.version,
       assetCount: sources.size,
       placementCount: layout.length,
-      batchCount: batches.size,
+      batchCount: batches.size + (paths ? 1 : 0),
+      pathPaverCount: paths?.count ?? 0,
       cellSize: 90,
     };
     return group;

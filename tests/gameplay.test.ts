@@ -23,13 +23,14 @@ test("nine challenges unlock sequentially and only valid finishes award stars", 
 });
 test("shield blocks tracking hit, item press is edge-triggered, finished cars cannot collect", () => {
   const track = getTrack("coast"),
-    a = spawnCar(0, "a"),
-    b = spawnCar(1, "b"),
-    w = createItems(["a", "b"]);
+    a = spawnCar(0, "a", track),
+    b = spawnCar(1, "b", track),
+    w = createItems(["a", "b"], track);
   w.players.a.held = "missile";
   w.players.b.shield = 4;
-  b.progress = 0.1;
-  b.x = a.x + 5;
+  b.progress = a.progress + 5 / track.length;
+  b.x = a.x + Math.sin(a.heading) * 5;
+  b.z = a.z + Math.cos(a.heading) * 5;
   stepItems(w, [a, b], { a: { ...EMPTY_INPUT, item: true } }, 0.016, track);
   for (let i = 0; i < 20; i++)
     stepItems(w, [a, b], { a: { ...EMPTY_INPUT, item: true } }, 0.016, track);

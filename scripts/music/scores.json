@@ -1,0 +1,56 @@
+[
+  {
+    "id": "coast",
+    "title": "Sunlit Starting Line",
+    "bpm": 152,
+    "palette": "#87ad31"
+  },
+  {
+    "id": "coast-harbor",
+    "title": "Dockside Groove",
+    "bpm": 148,
+    "palette": "#b87b64"
+  },
+  {
+    "id": "coast-breakwater",
+    "title": "Dune Dash",
+    "bpm": 158,
+    "palette": "#c69a40"
+  },
+  {
+    "id": "city",
+    "title": "Neon Apex",
+    "bpm": 164,
+    "palette": "#b85ca9"
+  },
+  {
+    "id": "city-factory",
+    "title": "Assembly Overdrive",
+    "bpm": 168,
+    "palette": "#b19250"
+  },
+  {
+    "id": "city-nightshift",
+    "title": "Orbital Slipstream",
+    "bpm": 160,
+    "palette": "#5597b3"
+  },
+  {
+    "id": "mountain",
+    "title": "Treetop Sprint",
+    "bpm": 152,
+    "palette": "#588455"
+  },
+  {
+    "id": "mountain-pass",
+    "title": "Aurora Switchback",
+    "bpm": 156,
+    "palette": "#6fa4c0"
+  },
+  {
+    "id": "mountain-summit",
+    "title": "Ember Rails",
+    "bpm": 172,
+    "palette": "#b46a46"
+  }
+]

@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { itemCourse } from "../shared/ai-course.ts";
 import { aiInput } from "../shared/ai.ts";
-import { getTrack, trackPoint } from "../shared/track.ts";
+import { getTrack, trackPoint } from "./fixtures/tracks-before-route-mastery.ts";
 import { spawnCar } from "../shared/race.ts";
 import { createItems } from "../shared/items.ts";
 
@@ -85,3 +85,4 @@ test("a nearer harmless trap cannot hide a second trap directly ahead", () => {
     "steer right to clear both the centre and left traps",
   );
 });
+

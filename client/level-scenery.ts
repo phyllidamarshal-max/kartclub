@@ -1,8 +1,10 @@
 import * as THREE from "three";
+import {ArchitectureJoints} from './architecture-joints.ts';
 import {
   nearestTrack,
   trackPoint,
   trackWidth,
+  shortcutWidthAt,
   continuousTrack,
   roadBoundaryOpen,
   type Point,
@@ -10,6 +12,12 @@ import {
 } from "../shared/track.ts";
 import { getLevel, type Biome } from "../shared/levels.ts";
 import { worldUV, roadsideClear } from "./scenery.ts";
+import { buildAnimalVerges } from './obstacle-clearance.ts';
+import {
+  boxBevel,
+  createChamferedBoxGeometry,
+  createStratifiedRockGeometry,
+} from "./scene-prop-geometry.ts";
 
 const mat = (color: string, glow = false) =>
   new THREE.MeshStandardMaterial({
@@ -46,7 +54,7 @@ function foundationFloor(track: Track, p: Point, x: number, z: number) {
   }
   return floor;
 }
-function terrainHeight(track: Track, x: number, z: number) {
+export function terrainHeight(track: Track, x: number, z: number) {
   const biome = getLevel(track.id).biome;
   if (biome === "harbor" || biome === "city" || biome === "factory")
     return -0.55;
@@ -144,7 +152,7 @@ export function buildLevelLandscape(
       ribbon(
         scene,
         track.shortcut,
-        (track.shortcutWidth ?? 7) + 5,
+        (p) => shortcutWidthAt(p.t, track) + 5,
         3.8,
         ground,
         false,
@@ -168,7 +176,7 @@ export function buildLevelLandscape(
       ribbon(
         scene,
         track.shortcut,
-        (track.shortcutWidth ?? 7) + 6,
+        (p) => shortcutWidthAt(p.t, track) + 6,
         6.4,
         ground,
         false,
@@ -187,6 +195,7 @@ export function buildLevelLandscape(
   geometry.computeVertexNormals();
   worldUV(geometry, 7);
   mesh(scene, geometry, ground).name = "level-terrain";
+  buildAnimalVerges(scene, track, ground, (x, z) => terrainHeight(track, x, z));
 }
 
 export function decorateLevel(
@@ -211,9 +220,14 @@ export function decorateLevel(
     h: number,
     d: number,
   ) => {
+    const bevel = boxBevel(w, h, d);
     const object = mesh(
       parent,
-      primitive("box", () => new THREE.BoxGeometry(1, 1, 1)),
+      bevel
+        ? primitive(`chamfer/${bevel.join("/")}`, () =>
+            createChamferedBoxGeometry(bevel),
+          )
+        : primitive("box", () => new THREE.BoxGeometry(1, 1, 1)),
       material,
       x,
       y,
@@ -313,10 +327,14 @@ export function decorateLevel(
   const colors = ["#b84f3f", "#d39839", "#407f85", "#52657f"].map((c) =>
     mat(c),
   );
-  metal.roughness = 0.38;
-  metal.metalness = 0.62;
-  dark.roughness = 0.64;
-  dark.metalness = 0.22;
+  // The same shared materials shade the new chamfers and curved tank walls.
+  // Moderate metalness keeps their unlit sides readable without an environment map.
+  metal.roughness = 0.46;
+  metal.metalness = 0.36;
+  metal.flatShading = false;
+  dark.roughness = 0.68;
+  dark.metalness = 0.1;
+  dark.flatShading = false;
   wood.roughness = 0.96;
   bark.roughness = 1;
   warm.roughness = 0.9;
@@ -327,8 +345,9 @@ export function decorateLevel(
   }
   if (["harbor", "factory", "space"].includes(biome))
     for (const paint of [accent, ...colors]) {
-      paint.roughness = 0.54;
-      paint.metalness = 0.25;
+      paint.roughness = 0.6;
+      paint.metalness = 0.12;
+      paint.flatShading = false;
     }
   // The emissive colors are accents; broad glazed facades retain shading.
   cyan.emissiveIntensity = 0.48;
@@ -467,12 +486,16 @@ export function decorateLevel(
         length = h * (i === 0 ? 1 : 0.45 + random() * 0.35);
       const object = mesh(
         g,
-        new THREE.CylinderGeometry(0, length * 0.22, length, 5),
+        primitive(
+          "crystal-spire",
+          () => new THREE.CylinderGeometry(0, 0.22, 1, 5),
+        ),
         material,
         Math.sin(a) * h * 0.18,
         length * 0.48,
         Math.cos(a) * h * 0.18,
       );
+      object.scale.setScalar(length);
       object.rotation.z = Math.sin(a) * 0.25;
       cylinder(
         g,
@@ -650,6 +673,8 @@ export function decorateLevel(
     root.name = name;
     scene.add(root);
     const steps = Math.ceil(length / 4);
+    const joints = style === 'factory' ? new ArchitectureJoints({steel:metal,dark,stone:pale}) : undefined;
+    let previousFrame: {point:Point;span:number} | undefined;
     for (let i = 0; i <= steps; i++) {
       const p = trackPoint(start + (i * 4) / track.length, track);
       const span = trackWidth(p.t, track) / 2 + (style === "ice" ? 4.5 : 2.7);
@@ -657,6 +682,26 @@ export function decorateLevel(
       g.position.set(p.x, p.y, p.z);
       g.rotation.y = p.heading;
       root.add(g);
+      if(joints){
+        const grounds:[number,number]=[0,0],supports:[boolean,boolean]=[false,false];
+        for(const [index,side] of [[0,-1],[1,1]] as const){
+          const x=p.x+Math.cos(p.heading)*side*span,z=p.z-Math.sin(p.heading)*side*span;
+          grounds[index]=terrainHeight(track,x,z)-p.y;
+          supports[index]=isClear(track,x,z,1.12);
+        }
+        const frame=joints.portal({span,grounds,supports});g.add(frame);
+        if(frame.children.length&&previousFrame){
+          // These ties are anchored to both actual frame centers. Transform
+          // from world coordinates into the route-root space, so curved racks
+          // have seated connections instead of disconnected repeated portals.
+          for(const side of [-1,1]){
+            const a=previousFrame.point;
+            joints.link(root,new THREE.Vector3(a.x+Math.cos(a.heading)*side*previousFrame.span,a.y+9.65,a.z-Math.sin(a.heading)*side*previousFrame.span),new THREE.Vector3(p.x+Math.cos(p.heading)*side*span,p.y+9.65,p.z-Math.sin(p.heading)*side*span));
+          }
+        }
+        previousFrame=frame.children.length?{point:p,span}:undefined;
+        continue;
+      }
       const material =
         style === "forest" || style === "mine"
           ? wood
@@ -1042,22 +1087,6 @@ export function decorateLevel(
     }
     for (const t of [level.preview.t + 0.01, 0.37, 0.64, 0.84]) {
       passage("factory-overhead-pipe-rack", t, 5, "factory");
-      const p = trackPoint(t, track),
-        g = new THREE.Group();
-      scene.add(g);
-      g.position.set(p.x, p.y, p.z);
-      g.rotation.y = p.heading;
-      for (let j = 0; j < 3; j++) {
-        beam(
-          g,
-          j === 1 ? accent : metal,
-          [-trackWidth(t, track) / 2 - 3, 10.5 + j * 0.4, j * 2 - 2],
-          [trackWidth(t, track) / 2 + 3, 10.5 + j * 0.4, j * 2 - 2],
-          0.55,
-        );
-        ring(g, dark, 0.63, 0.1, 0, 10.5 + j * 0.4, j * 2 - 2).rotation.y =
-          Math.PI / 2;
-      }
     }
     crane(landmark("factory-service-crane", 27, 55), 24);
   } else if (biome === "space") {
@@ -1235,12 +1264,14 @@ export function decorateLevel(
       if (!g) continue;
       mesh(
         g,
-        new THREE.DodecahedronGeometry(2.2, 0),
+        primitive(`forest-boulder/${i % 3}`, () =>
+          createStratifiedRockGeometry(i % 3),
+        ),
         i % 2 ? foliage[1] : rocks[1],
         0,
         0.65,
         0,
-      ).scale.y = 0.6;
+      ).scale.set(2.2, 2.2, 2.2);
       const fernGeometry = primitive("folded-fern-frond", () => {
         const geo = new THREE.BufferGeometry();
         geo.setAttribute(
@@ -1306,7 +1337,7 @@ export function decorateLevel(
       ribbon(
         bridge,
         track.shortcut,
-        (track.shortcutWidth ?? 7) + 3.5,
+        (p) => shortcutWidthAt(p.t, track) + 3.5,
         0.6,
         warm,
         false,
@@ -1320,9 +1351,9 @@ export function decorateLevel(
         g.rotation.y = p.heading;
         bridge.add(g);
         g.position.y = foundationFloor(track, p, p.x, p.z) + 0.15;
-        box(g, wood, 0, -0.65, 0, (track.shortcutWidth ?? 7) + 4.2, 0.45, 0.3);
+        box(g, wood, 0, -0.65, 0, shortcutWidthAt(p.t, track) + 4.2, 0.45, 0.3);
         for (const side of [-1, 1]) {
-          const half = (track.shortcutWidth ?? 7) / 2 + 2;
+          const half = shortcutWidthAt(p.t, track) / 2 + 2;
           const x = p.x + Math.cos(p.heading) * half * side,
             z = p.z - Math.sin(p.heading) * half * side;
           if (!isClear(track, x, z, 0.25)) continue;
@@ -1366,12 +1397,14 @@ export function decorateLevel(
       const h = 4 + random() * 7;
       mesh(
         g,
-        new THREE.DodecahedronGeometry(6, 0),
+        primitive(`ice-outcrop/${i % 3}`, () =>
+          createStratifiedRockGeometry(i % 3),
+        ),
         rocks[i % 3],
         0,
         h * 0.4,
         0,
-      ).scale.set(0.6, h / 6, 1);
+      ).scale.set(3.6, h * 1.9, 6);
       const snowcap = mesh(
         g,
         primitive("snow-drift", () => new THREE.DodecahedronGeometry(1, 0)),
@@ -1407,12 +1440,14 @@ export function decorateLevel(
       if (!g) continue;
       mesh(
         g,
-        new THREE.CylinderGeometry(radius * 0.68, radius, h, 5),
+        primitive(`mine-outcrop/${i % 3}`, () =>
+          createStratifiedRockGeometry(i % 3),
+        ),
         rocks[i % 3],
         0,
         h / 2,
         0,
-      );
+      ).scale.set(radius, h, radius);
       for (const y of [h * 0.25, h * 0.65])
         cylinder(
           g,
@@ -1480,5 +1515,171 @@ export function decorateLevel(
         ).scale.y = 0.6;
       }
     }
+  }
+
+  // Supplement the expanded routes without shifting any original landmark,
+  // random sequence, or named environmental emitter. Budgets are total target
+  // attempts, with a hard cap per theme; all additions retain roadsideClear.
+  const coverage: Partial<Record<Biome, [number, number, number]>> = {
+    harbor: [66, 25, 132],
+    desert: [110, 27, 176],
+    city: [96, 23, 144],
+    factory: [53, 44, 104],
+    space: [30, 75, 64],
+    forest: [70, 29, 104],
+    ice: [65, 26, 112],
+    mine: [105, 27, 176],
+  };
+  const budget = coverage[biome];
+  if (!budget) return;
+  const extraCount = Math.max(
+    0,
+    Math.min(budget[2], Math.ceil(track.length / budget[1])) - budget[0],
+  );
+  for (let i = 0; i < extraCount; i++) {
+    // Integer variation is independent of the caller's random stream.
+    const variation = ((Math.imul(i + 1, 1597334677) >>> 0) % 1000) / 1000;
+    const side = i % 2 ? -1 : 1;
+    const t = (i + 0.43) / extraCount;
+    const radius =
+      biome === "city"
+        ? 10
+        : biome === "harbor"
+          ? 7
+          : biome === "factory"
+            ? 7
+            : biome === "space"
+              ? 8
+              : 5;
+    const offset =
+      track.width / 2 + radius + 5 + variation * (biome === "city" ? 18 : 9);
+    const g = roadside(`${biome}-route-dressing`, t, side * offset, radius);
+    if (!g) continue;
+    if (biome === "harbor") {
+      box(g, dark, 0, -3.4, 0, 7, 6.6, 12);
+      container(g, 0, 0, 0, colors[(i + 2) % 4]);
+      if (i % 4 === 0) container(g, 0, 3.1, 0, colors[i % 4]);
+    } else if (biome === "city") {
+      tower(g, 10 + variation * 10, i);
+    } else if (biome === "factory") {
+      box(g, dark, 0, 0.3, 0, 8.8, 0.6, 9.5);
+      box(g, colors[3], 0, 3.1, 0, 7, 5.6, 8);
+      box(g, pale, 0, 6.2, 0, 7.6, 0.6, 8.6);
+      for (const x of [-1.9, 1.9]) {
+        cylinder(g, metal, x, 7.2, -1.6, 1.05, 1.6, 0.9, 12);
+        ring(g, dark, 1, 0.13, x, 8.05, -1.6).rotation.x = Math.PI / 2;
+      }
+      box(g, metal, 0, 2.8, 4.04, 5.7, 3.8, 0.12);
+      for (let slat = 0; slat < 6; slat++)
+        box(g, dark, 0, 1.3 + slat * 0.55, 4.12, 5.4, 0.2, 0.1);
+      box(g, accent, 0, 5.1, 4.08, 6.2, 0.32, 0.1);
+    } else if (biome === "space") {
+      g.position.y = trackPoint(t, track).y - 4;
+      cylinder(g, dark, 0, 0, 0, 6.8, 1.6, 6.4, 12);
+      box(g, metal, 0, 2.4, 0, 5.8, 4, 6.5);
+      box(g, pale, 0, 4.65, 0, 6.1, 0.7, 6.8);
+      for (const direction of [-1, 1]) {
+        box(g, dark, direction * 2.93, 2.8, 0, 0.1, 1.8, 4.8);
+        box(g, cyan, direction * 2.995, 2.9, 0, 0.08, 0.45, 4.2);
+        box(g, dark, direction * 4.7, 3.9, 0, 3.2, 0.2, 7.6);
+        for (let panel = 0; panel < 3; panel++)
+          box(
+            g,
+            colors[3],
+            direction * 4.7,
+            4.05,
+            -2.5 + panel * 2.5,
+            3,
+            0.08,
+            2.25,
+          );
+      }
+    } else {
+      const height =
+        biome === "mine"
+          ? 7 + variation * 10
+          : biome === "ice"
+            ? 3 + variation * 4
+            : biome === "desert"
+              ? 3.2 + variation * 5.5
+              : 1.7 + variation;
+      const rockMaterial = biome === "forest" ? rocks[1] : rocks[i % 3];
+      const outcrop = mesh(
+        g,
+        primitive(`route-outcrop/${i % 3}`, () =>
+          createStratifiedRockGeometry(i % 3),
+        ),
+        rockMaterial,
+        0,
+        height / 2,
+        0,
+      );
+      outcrop.scale.set(3.4 + variation, height, 3.4 + variation);
+      if (biome === "mine" || biome === "desert") {
+        for (const fraction of [0.27, 0.65])
+          cylinder(
+            g,
+            rocks[(i + 1) % 3],
+            0,
+            height * fraction,
+            0,
+            3.45,
+            0.38,
+            3.25,
+            8,
+          );
+      } else if (biome === "ice") {
+        const cap = mesh(
+          g,
+          primitive("snow-drift", () => new THREE.DodecahedronGeometry(1, 0)),
+          pale,
+          0,
+          height * 0.94,
+          0,
+        );
+        cap.scale.set(2.8, 0.65, 2.8);
+      } else if (biome === "forest") {
+        const moss = mesh(
+          g,
+          primitive("route-moss", () => new THREE.IcosahedronGeometry(1, 0)),
+          foliage[1],
+          0,
+          height * 0.95,
+          0,
+        );
+        moss.scale.set(2.9, 0.35, 2.5);
+        for (let frond = 0; frond < 5; frond++) {
+          const a = frond * Math.PI * 0.4;
+          const leaf = mesh(
+            g,
+            primitive("route-fern", () => {
+              const geometry = new THREE.BufferGeometry();
+              geometry.setAttribute(
+                "position",
+                new THREE.Float32BufferAttribute(
+                  [
+                    0, 0, 0, -0.3, 0.55, 0.45, 0, 0.8, 1.55, 0, 0, 0, 0, 0.8,
+                    1.55, 0.3, 0.5, 0.45,
+                  ],
+                  3,
+                ),
+              );
+              geometry.computeVertexNormals();
+              return geometry;
+            }),
+            foliage[frond % 3],
+            -2.2,
+            0,
+            -1.5,
+          );
+          leaf.rotation.y = a;
+        }
+      }
+    }
+    // World batches these in their own spatial cells and shortens their range
+    // on low quality; original landmarks retain their current visibility rules.
+    g.traverse((object) => {
+      object.userData.decorative = true;
+    });
   }
 }

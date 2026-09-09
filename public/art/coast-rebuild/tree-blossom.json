@@ -3,9 +3,16 @@
   "model": "/art/coast-rebuild/tree-blossom.glb",
   "indirect": "/art/coast-rebuild/tree-blossom-indirect.png",
   "lighting": "asset-local diffuse indirect only; direct sun excluded",
-  "triangles": 554,
+  "triangles": 436,
   "atlasSize": 512,
-  "height": 6.341986656188965,
-  "width": 3.2730319499969482,
-  "depth": 2.310972809791565
+  "height": 6.519660949707031,
+  "width": 4.469880104064941,
+  "depth": 2.466646671295166,
+  "version": "reference-match-20260908-v2",
+  "radius": 2.367922504974891,
+  "materialCount": 1,
+  "modelBytes": 223628,
+  "textureBytes": 233927,
+  "modelSha256": "4b62d1606022a25205ea279d9885eb5619f9758f227e838f41a6d06656e228e3",
+  "indirectSha256": "147164ca0ea9892729fbbd7d095bc7c405ee8ad6c613694a6137cc785df05e07"
 }

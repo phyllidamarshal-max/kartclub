@@ -48,7 +48,7 @@ export function enhanceAsphalt(material: THREE.MeshStandardMaterial) {
       "#include <normal_fragment_maps>",
       `
       #include <normal_fragment_maps>
-      float kcHeight=(kcGrain*.011+kcChip*.004)*kcDetail;
+      float kcHeight=(kcGrain*.004+kcChip*.0012)*kcDetail;
       vec3 kcDx=normalize(dFdx(-vViewPosition));
       vec3 kcDy=normalize(dFdy(-vViewPosition));
       vec3 kcR1=cross(kcDy,normal),kcR2=cross(normal,kcDx);
@@ -58,7 +58,7 @@ export function enhanceAsphalt(material: THREE.MeshStandardMaterial) {
     `,
     );
   };
-  material.customProgramCacheKey = () => "kart-coast-asphalt-aggregate-v1";
+  material.customProgramCacheKey = () => "kart-coast-asphalt-aggregate-v2";
   material.needsUpdate = true;
 }
 

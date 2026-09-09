@@ -1,8 +1,10 @@
 import * as THREE from "three";
+import { createLevelSky } from './scene-style.ts';
 import {
   nearestTrack,
   trackPoint,
   trackWidth,
+  shortcutWidthAt,
   trackWidthRange,
   type Track,
 } from "../shared/track.ts";
@@ -13,6 +15,10 @@ import {
   coastalShoreMargin,
 } from "./coast-details.ts";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
+import { enhanceCoastCliff } from "./coast-rock.ts";
+import { buildReferenceHeadland } from './reference-layout.ts';
+import {createCoastSky} from './coast-sky.ts';
+import { obstacleSceneryClear } from './obstacle-clearance.ts';
 
 type Random = () => number;
 const material = (color: string, roughness = 0.85) =>
@@ -47,6 +53,7 @@ export function roadsideClear(
   z: number,
   radius: number,
 ) {
+  if (!obstacleSceneryClear(track, x, z, radius)) return false;
   const nearest = nearestTrack(x, z, track);
   if (
     nearest.distance >
@@ -73,7 +80,7 @@ export function roadsideClear(
       );
       const t = (a.t + ((b.t < a.t ? b.t + 1 : b.t) - a.t) * f) % 1;
       const width = shortcut
-        ? (track.shortcutWidth ?? 7)
+        ? shortcutWidthAt(t, track)
         : trackWidth(t, track);
       if (
         Math.hypot(x - a.x - dx * f, z - a.z - dz * f) <
@@ -95,7 +102,7 @@ export function buildLandscape(
     .map((p) => {
       const margin =
         trackWidth(p.t, track) / 2 +
-        (track.theme === "coast" ? coastalShoreMargin(p.t) : 22);
+        (track.theme === "coast" ? coastalShoreMargin(p.t,track) : 22);
       return new THREE.Vector2(
         p.x + Math.cos(p.heading) * margin,
         -p.z + Math.sin(p.heading) * margin,
@@ -129,7 +136,7 @@ export function buildLandscape(
   const cliffs = new THREE.ExtrudeGeometry(shape, {
     depth: 7,
     bevelEnabled: true,
-    bevelSize: 2.4,
+    bevelSize: track.theme === "coast" ? 1.2 : 2.4,
     bevelThickness: 1.4,
     bevelSegments: 1,
     steps: 1,
@@ -140,8 +147,10 @@ export function buildLandscape(
   cliffs.translate(0, track.theme === "coast" ? -8.59 : -9, 0);
   const rock = material(track.theme === "city" ? "#6f7c79" : "#aa9876");
   rock.flatShading = true;
+  if (track.theme === "coast") enhanceCoastCliff(rock);
   const cliff = solid(scene, cliffs, rock);
   if (track.theme === "coast") cliff.name = "coast-cliff";
+  if(track.id==='reference-coast-v1')buildReferenceHeadland(scene,grass,track);
 }
 
 export function createSea(scene: THREE.Scene, color: string, molten = false) {
@@ -187,15 +196,21 @@ export function createSea(scene: THREE.Scene, color: string, molten = false) {
         vec3 normal=normalize(vec3(-slope.x*detail,1.,-slope.y*detail));
         vec3 eye=normalize(cameraPosition-vWorld);
         float fresnel=pow(1.-max(0.,dot(normal,eye)),4.);
-        vec3 halfLight=normalize(eye+normalize(vec3(52.,72.,-33.)));
+        vec3 halfLight=normalize(eye+normalize(vec3(52.,54.,-33.)));
         float glint=pow(max(0.,dot(normal,halfLight)),68.);
         float crest=smoothstep(.74,.96,swell)*smoothstep(.46,.72,broken)*detail;
         float faraway=smoothstep(180.,1800.,distanceToEye);
+        float longWave=sin(phaseA*.31+broken*.6);
+        float broadDetail=(1.-smoothstep(700.,2600.,distanceToEye))
+          *(1.-smoothstep(1.5,6.,footprint));
         vec3 water=mix(deep,vec3(.018,.27,.32),.35);
         water*=.88+.18*swell*detail;
         water=mix(water,vec3(.19,.37,.43),fresnel*.48+faraway*.35);
         water+=vec3(.43,.42,.33)*glint*.48*detail;
         water=mix(water,vec3(.68,.81,.76),crest*.52);
+        water*=1.+longWave*.075*broadDetail;
+        float longCrest=smoothstep(.89,.99,longWave)*smoothstep(.38,.7,broad)*broadDetail;
+        water=mix(water,vec3(.60,.78,.77),longCrest*.32);
         gl_FragColor=vec4(water,1.);
         #include <tonemapping_fragment>
         #include <colorspace_fragment>
@@ -220,6 +235,8 @@ export function createSky(
   theme: Track["theme"],
   level?: LevelDefinition,
 ) {
+  if(level?.biome==='coast'||(!level&&theme==='coast'))return createCoastSky(scene);
+  if(level)return createLevelSky(scene,level);
   const night = theme === "city";
   const sky = new THREE.Mesh(
     new THREE.SphereGeometry(2100, 32, 16),
@@ -227,42 +244,47 @@ export function createSky(
       side: THREE.BackSide,
       depthWrite: false,
       uniforms: {
+        coastLook: {
+          value: 0,
+        },
         cloudStrength: {
-          value:
-            level?.biome === "mine" || level?.biome === "space"
-              ? 0
-              : night
-                ? 0.16
-                : 1,
+          value: night ? 0.16 : 1,
         },
         zenith: {
-          value: new THREE.Color(level?.sky ?? (night ? "#394e83" : "#299fce")),
+          value: new THREE.Color(night ? "#394e83" : "#299fce"),
         },
         horizon: {
           value: new THREE.Color(
-            level?.horizon ?? (night ? "#e2b3a0" : "#dfebd8"),
+            night ? "#e2b3a0" : "#dfebd8",
           ),
         },
       },
       vertexShader: `varying vec3 direction; void main(){direction=position;
       gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}`,
       fragmentShader: `varying vec3 direction; uniform vec3 zenith; uniform vec3 horizon;
-      uniform float cloudStrength;
+      uniform float cloudStrength; uniform float coastLook;
       float puff(vec2 p,vec2 c,vec2 r){return 1.-smoothstep(.84,1.,length((p-c)/r));}
       void main(){
       vec3 d=normalize(direction);
-      float h=clamp(d.y*1.8+.13,0.,1.);
-      vec3 color=mix(horizon,zenith,pow(h,.75));
+      float h=clamp(d.y*mix(1.8,2.7,coastLook)+.13,0.,1.);
+      vec3 color=mix(horizon,zenith,pow(h,mix(.75,.65,coastLook)));
       // A handful of rounded, sunlit cloud silhouettes in the sky draw call.
-      vec2 q=vec2(atan(d.z,d.x)*4.8,d.y*14.);
+      // An integer cloud-cell count closes the longitude seam in an empty gap.
+      vec2 q=vec2((atan(d.z,d.x)+3.14159265)*(mix(8.,16.,coastLook)*3.8/6.2831853),d.y*mix(14.,19.,coastLook));
       float cell=floor(q.x/3.8);
-      vec2 c=vec2(mod(q.x,3.8)-1.9,q.y-2.3-sin(cell*7.3)*.65);
+      float variation=fract(sin(cell*127.1+3.7)*43758.5453);
+      float silhouette=fract(sin(cell*311.7+19.1)*17341.317);
+      vec2 c=vec2(mod(q.x,3.8)-1.9,q.y-2.3-sin(cell*7.3)*mix(.65,1.35,coastLook));
+      // Unequal scale and lobe height keep the static cloud silhouettes from
+      // looking like a repeated row of identical icons. No animated sky layer.
+      c.x/=mix(1.,.62+variation*.75,coastLook);
+      c.y/=mix(1.,.72+silhouette*.68,coastLook);
       float clouds=puff(c,vec2(-.62,0.),vec2(.53,.18));
       clouds=max(clouds,puff(c,vec2(-.2,.17),vec2(.39,.34)));
-      clouds=max(clouds,puff(c,vec2(.18,.25),vec2(.35,.43)));
+      clouds=max(clouds,puff(c,vec2(.18,.25),vec2(.35,mix(.43,.32+variation*.20,coastLook))));
       clouds=max(clouds,puff(c,vec2(.53,.07),vec2(.39,.22)));
       clouds*=smoothstep(-.12,.02,c.y)*cloudStrength;
-      vec3 cloudColor=mix(vec3(.73,.77,.72),vec3(1.,.97,.85),smoothstep(-.04,.39,c.y));
+      vec3 cloudColor=mix(mix(vec3(.73,.77,.72),vec3(.59,.65,.63),coastLook),vec3(1.,.97,.85),smoothstep(-.10,.31,c.y));
       color=mix(color,cloudColor,clouds*.91);
       float sunlight=pow(max(0.,dot(d,normalize(vec3(-.65,.18,-.55)))),24.);
       color+=vec3(.11,.072,.018)*sunlight*cloudStrength;
@@ -797,7 +819,7 @@ export function decorateLandscape(
       const y = ground(x, z) + 0.02;
       for (let blade = 0; blade < 5; blade++) {
         const a = random() * Math.PI * 2,
-          height = 0.28 + random() * 0.5;
+          height = coast ? 0.14 + random() * 0.26 : 0.28 + random() * 0.5;
         const dx = Math.cos(a),
           dz = Math.sin(a),
           w = 0.045 + random() * 0.055;

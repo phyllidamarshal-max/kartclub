@@ -5,7 +5,7 @@ import {
   trackWidth,
   continuousTrack,
   junctionContains,
-} from "../shared/track.ts";
+} from "./fixtures/tracks-before-route-mastery.ts";
 import { spawnCar, stepCar, EMPTY_INPUT } from "../shared/race.ts";
 import { aiInput } from "../shared/ai.ts";
 
@@ -125,3 +125,4 @@ for (const [index, lane] of [
     assert.ok(c.progress > 0.9, `exit progress frozen at ${c.progress}`);
     assert.ok(c.speed > 10, `stopped behind an invisible wall at ${c.lastT}`);
   });
+

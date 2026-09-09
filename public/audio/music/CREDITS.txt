@@ -1,0 +1,132 @@
+KART CLUB - Living scene soundtracks (revision 8)
+
+Revision 8 rebuilds all nineteen map scores with 380 newly written musical bars
+and independent environmental stems. Instrumental and environmental layers
+start, loop and crossfade together. Previous editions are described below for
+historical rebuilds; their recordings are retained only in the comparison folder.
+
+Environmental recording credits:
+- Ambient Bird Sounds by isaiah658, CC0 1.0.
+  https://opengameart.org/content/ambient-bird-sounds
+- Birds forest by Barracuda1983, public-domain dedication by its author.
+  https://commons.wikimedia.org/wiki/File:Birds_forest.ogg
+- Beach Ocean Waves by jasinski; excerpt submitted by qubodup, CC0 1.0.
+  https://opengameart.org/content/beach-ocean-waves
+- Icy Heights: wind.ogg ONLY by Ecrivain, CC0 1.0.
+  https://opengameart.org/content/icy-heights
+  The third-party musical theme from this page is NOT included.
+CC0 license: https://creativecommons.org/publicdomain/zero/1.0/
+
+These recordings are cropped, filtered, faded and spatially arranged. Additional
+gulls, small creature calls, leaf/grass/snow/sand textures, magma bubbles, ice
+resonance, machinery, rail sounds, crowd murmur and station effects are original
+designed/synthesized sound effects, not field recordings. No intelligible crowd
+dialogue is included. Source file checksums: environment-sources.json.
+
+Current rebuild: scripts/music/render_living.py
+Checks: scripts/music/check_living.py and scripts/music/validate_living.py
+Local installation: scripts/music/publish_living.py
+Paired and isolated previews: output/music/living-v8/
+
+Historical editions:
+
+Revision 7 adds ten circuit-specific compositions with 240 newly authored bars.
+Each has independent A, B and bridge melodies, chord progressions, bass parts
+and percussion. The existing nine revision-6 audio masters are retained.
+New scene arrangements include orchard bluegrass, tropical causeway samba,
+street electro swing, canopy marimba breaks, canyon guitar, crystalline liquid
+breaks, a nautical fanfare, clockwork electro, chiptune and a train shuffle.
+These are original stylized game scores rendered with the licensed instruments
+below. No additional third-party recordings are included.
+Rebuild new tracks: scripts/music/render_expansion.py
+Validate: scripts/music/check_expansion_composition.py and
+scripts/music/validate.py --expansion
+Install locally: scripts/music/publish_expansion.py
+New-score previews: output/music/expansion-v7/*-melody.wav and *-highlight.wav
+The revision-6 commands below are retained for rebuilding the original edition.
+
+
+Revision 6 replaces all nine scene compositions with 216 authored bars across
+independent A, B and bridge sections. Loops use different forms and meters.
+The desert piece uses Phrygian-dominant color, plucked strings, a reed patch and
+hand drums. It is an original cinematic scene score, not an authentic maqam
+performance or a recording of traditional regional instruments.
+Rebuild: scripts/music/render_worlds.py; validate: scripts/music/validate.py --staging;
+install locally: scripts/music/publish_worlds.py. New melodies can be compared on
+one piano, key and tempo in output/music/world-v6/*-melody.wav.
+
+Lobby addition: Clubhouse Sunshine (revision 1), original 132 BPM C-major piano/guitar theme.
+The lobby cue uses the same licensed FluidR3 GM instruments listed below.
+Interface tap, select, confirm and back cues are original synthesized sounds.
+
+Original melodies and arrangements created for KART CLUB. No KartRider audio recordings or melodies are included.
+
+Instrument samples: FluidR3 GM by Frank Wen and contributors, MIT license.
+Bank SHA-256: 74594e8f4250680adf590507a306655a299935343583256f3b722c48a1bc1cb0
+Source: https://ftp.debian.org/debian/pool/main/f/fluid-soundfont/fluid-soundfont-gm_3.1-5.2_all.deb
+Offline rendering: tinysoundfont 0.3.7 (MIT), plus original synthesizer voices. The instrument bank and renderer are not loaded by the game.
+
+This package was debianized by Toby Smithe <tsmithe@ubuntu.com> on
+Fri, 08 Feb 2008 00:08:09 +0000.
+
+It was downloaded from 
+<http://www.musescore.org/download/fluid-soundfont.tar.gz>
+
+Upstream Author: 
+
+    Frank Wen <getfrank@gmail.com>
+    
+Copyright: 
+
+    Copyright © 2000-2002, 2008 Frank Wen
+    Copyright © 2008 Toby Smithe
+    
+Contributors (quoting from README):
+
+"Fluid was constructed in part from samples found in the public domain that I
+edited/cleaned/remixed/programmed and largely from recordings of my own and
+in conjunction with the people below who helped along the way:
+
+Suren M. Seron
+Scott Hanan
+Steve Aupperle
+Chris Gillman
+Alex Taubr
+Chris Prola
+Andrew Klenk
+Winfried Hubbe 
+Dylan
+Tim
+Gort
+Uros Katic 
+Ethan Winer (http://www.ethanwiner.com)"
+
+License:
+
+ From README: 
+  "I hereby release Fluid under the MIT license, as described in COPYING."
+
+ Permission is hereby granted, free of charge, to any person
+ obtaining a copy of this software and associated documentation
+ files (the "Software"), to deal in the Software without
+ restriction, including without limitation the rights to use,
+ copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the
+ Software is furnished to do so, subject to the following
+ conditions:
+
+ The above copyright notice and this permission notice shall be
+ included in all copies or substantial portions of the Software.
+
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+ OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+ HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+ WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+ OTHER DEALINGS IN THE SOFTWARE.
+
+The Debian packaging is Copyright © 2008 Toby Smithe <tsmithe@ubuntu.com> and
+is licensed under the GPL; either version 2 of the License, or (at your
+option) any later version, see `/usr/share/common-licenses/GPL-2'.

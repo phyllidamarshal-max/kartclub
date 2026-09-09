@@ -1,0 +1,12 @@
+{
+  "key": "cottage-gable",
+  "model": "/art/coast-rebuild/cottage-gable.glb",
+  "indirect": "/art/coast-rebuild/cottage-gable-indirect.png",
+  "lighting": "asset-local diffuse indirect only; direct sun excluded",
+  "triangles": 8860,
+  "atlasSize": 1024,
+  "height": 7.5199998915195465,
+  "width": 5.809999942779541,
+  "depth": 8.795000076293945,
+  "version": "architectural-junctions-20260909-v2"
+}

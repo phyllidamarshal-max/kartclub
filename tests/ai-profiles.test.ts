@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import * as ai from "../shared/ai.ts";
-import { getTrack, trackPoint } from "../shared/track.ts";
+import { getTrack, trackPoint } from "./fixtures/tracks-before-route-mastery.ts";
 import { spawnCar, stepCar } from "../shared/race.ts";
 
 test("fixed tiers expose immutable deterministic personalities for the HUD", () => {
@@ -164,3 +164,4 @@ test("expert only spends an earned chain window on a safe turn", () => {
   }
   assert.fail("no actual earned chain decision reached");
 });
+

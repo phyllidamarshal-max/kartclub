@@ -8,11 +8,13 @@
   },
   "scripts": {
     "dev": "node scripts/dev.mjs",
+    "start": "node scripts/start.mjs",
     "server": "tsx server/index.ts",
     "client": "vite --host 0.0.0.0",
     "build": "tsc --noEmit && vite build",
     "test": "tsx --test tests/*.test.ts",
     "smoke": "tsx scripts/smoke.ts",
+    "validate:multiplayer": "tsx --test tests/multiplayer-*.test.ts",
     "validate:network": "tsx scripts/network-validation.ts"
   },
   "dependencies": {

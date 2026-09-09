@@ -1,7 +1,7 @@
 import type { Challenge } from "./gameplay.ts";
 import type { Car } from "./race.ts";
 
-export const CAREER_EVENT_VERSION = "events-v2";
+export const CAREER_EVENT_VERSION = "events-v3";
 export type EventKind =
   | "race"
   | "sectors"
@@ -73,11 +73,11 @@ export class ChallengeRun {
     this.challenge.techniqueCorners?.forEach((corner, index) => {
       // A clean recovery may occur just past the bend. Each distinct target counts once.
       const offset = ((t - corner + 1.5) % 1) - 0.5;
-      if (
-        offset >= -0.035 &&
-        offset <= 0.085 &&
-        !this.completedCorners.includes(index)
-      )
+      const range = this.challenge.techniqueRanges?.[index];
+      const inRange = range
+        ? (t - range.start + 1) % 1 <= range.end - range.start
+        : offset >= -0.035 && offset <= 0.085;
+      if (inRange && !this.completedCorners.includes(index))
         this.completedCorners.push(index);
     });
   }

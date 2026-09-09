@@ -1,0 +1,105 @@
+{
+  "version": "club-kart-reference-v3",
+  "model": "/models/kart/club-kart.glb",
+  "authoring": {
+    "implementation": "client/kart-model.ts",
+    "editable": "art/kart/club-kart.blend",
+    "separated": "art/kart/club-kart-source.glb"
+  },
+  "coordinates": {
+    "units": "metres",
+    "up": "+Y",
+    "forward": "+Z",
+    "tireGroundY": 0.1
+  },
+  "wheel": {
+    "radius": 0.52,
+    "steeringAxis": "+Y",
+    "rollingAxis": "+X",
+    "centres": [
+      [
+        -1.18,
+        0.62,
+        1.2
+      ],
+      [
+        1.18,
+        0.62,
+        1.2
+      ],
+      [
+        -1.18,
+        0.62,
+        -1.12
+      ],
+      [
+        1.18,
+        0.62,
+        -1.12
+      ]
+    ]
+  },
+  "materialNames": [
+    "kart-paint",
+    "kart-dark",
+    "kart-rubber",
+    "kart-silver",
+    "kart-suit",
+    "kart-upholstery",
+    "kart-visor",
+    "kart-helmet-paint"
+  ],
+  "source": {
+    "meshes": 110,
+    "triangles": 25508,
+    "vertices": 30478,
+    "geometryBytes": 1087652,
+    "materials": 8,
+    "bounds": {
+      "min": [
+        -1.4400000007599592,
+        0.10000001907348632,
+        -1.7500000059604646
+      ],
+      "max": [
+        1.4400000007599592,
+        2.8285771280527117,
+        2.0672222208976745
+      ],
+      "size": [
+        2.8800000015199183,
+        2.7285771089792252,
+        3.817222226858139
+      ]
+    },
+    "fileBytes": 1213488
+  },
+  "runtime": {
+    "meshes": 23,
+    "triangles": 25508,
+    "vertices": 15924,
+    "geometryBytes": 557806,
+    "materials": 8,
+    "bounds": {
+      "min": [
+        -1.4399999904632568,
+        0.10000001907348632,
+        -1.75
+      ],
+      "max": [
+        1.4399999904632568,
+        2.8285770416259766,
+        2.0672222208976745
+      ],
+      "size": [
+        2.8799999809265135,
+        2.72857702255249,
+        3.8172222208976745
+      ]
+    },
+    "fileBytes": 582828
+  },
+  "textures": 0,
+  "lighting": "Runtime PBR; neutral cloth recess vertex colors, no baked direct lighting",
+  "license": "Original project-authored geometry and materials; no third-party assets"
+}

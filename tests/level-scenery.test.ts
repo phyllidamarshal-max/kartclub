@@ -157,7 +157,7 @@ for (const track of TRACKS.filter((t) => getLevel(t.id).biome !== "coast")) {
         }
       }
     }
-    if (biome === "forest") {
+    if (biome === "forest" && track.shortcut.length) {
       assert.ok(scene.getObjectByName("forest-shortcut-bridge"));
       assert.ok(
         scene.getObjectByName("forest-bridge-support"),

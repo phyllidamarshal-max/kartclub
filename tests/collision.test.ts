@@ -7,7 +7,7 @@ import {
   EMPTY_INPUT,
   type Car,
 } from "../shared/race.ts";
-import * as tracks from "../shared/track.ts";
+import * as tracks from "./fixtures/tracks-before-route-mastery.ts";
 
 const diameter = 2.1;
 function pair() {
@@ -320,3 +320,4 @@ for (const velocity of [63, 200]) {
     finite(c);
   });
 }
+

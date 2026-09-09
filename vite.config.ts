@@ -16,5 +16,5 @@ export default defineConfig({
       },
     },
   },
-  build: { chunkSizeWarningLimit: 800 },
+  build: { chunkSizeWarningLimit: 800,rollupOptions:{input:{main:'index.html',reference:'reference.html'}} },
 });

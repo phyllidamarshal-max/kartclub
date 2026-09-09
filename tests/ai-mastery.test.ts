@@ -3,13 +3,14 @@ import assert from "node:assert/strict";
 import { aiInput } from "../shared/ai.ts";
 import { aiInput as precedingAI } from "./fixtures/ai-before-mastery.ts";
 import { TRACKS } from "../shared/track.ts";
+import { raceHardLimit } from "../shared/rules.ts";
 import { spawnCar, stepCar } from "../shared/race.ts";
 
 test("every difficulty can earn drift nitro and use recovery boosts through legal driving", () => {
   for (const difficulty of ["easy", "normal", "hard"] as const) {
     const track = TRACKS[0],
       car = spawnCar(1, "skills", track);
-    for (let i = 0; i < 60 * 180 && car.lap < 3; i++)
+    for (let i = 0; i < 60 * raceHardLimit(track.id, 3) && car.lap < 3; i++)
       stepCar(car, aiInput(car, track, difficulty, i / 60), 1 / 60, track);
     assert.equal(car.lap, 3);
     assert.ok(
@@ -29,7 +30,7 @@ test("expert driving charges and spends nitro on every route, including while bo
     const car = spawnCar(1, "mastery", track);
     let chargeDuringBoost = 0,
       resets = 0;
-    for (let i = 0; i < 60 * 240 && car.lap < 3; i++) {
+    for (let i = 0; i < 60 * raceHardLimit(track.id, 3) && car.lap < 3; i++) {
       const input = aiInput(car, track, "hard", i / 60);
       const energy = car.driftTotal,
         boosting = car.boostTime > 1 / 60;
@@ -45,7 +46,11 @@ test("expert driving charges and spends nitro on every route, including while bo
       `${track.id}: only ${chargeDuringBoost} charge during nitro`,
     );
     const preceding = spawnCar(1, "mastery", track);
-    for (let i = 0; i < 60 * 240 && preceding.lap < 3; i++)
+    for (
+      let i = 0;
+      i < 60 * raceHardLimit(track.id, 3) && preceding.lap < 3;
+      i++
+    )
       stepCar(
         preceding,
         precedingAI(preceding, track, "hard", i / 60),

@@ -2,7 +2,8 @@ import * as THREE from "three";
 import { trackPoint, trackWidth, type Track } from "../shared/track.ts";
 
 /** Decorative shore profile shared by the meadow edge, cliff rocks and surf. */
-export function coastalShoreMargin(t: number) {
+export function coastalShoreMargin(t: number,track?:Track) {
+  if(track?.id==='reference-coast-v1')return 8+43*Math.exp(-Math.pow((t-.677)/.057,2))+8*Math.exp(-Math.pow((t-.539)/.012,2));
   return 8 + 4 * Math.exp(-Math.pow((t - 0.23) / 0.07, 2));
 }
 
@@ -324,6 +325,7 @@ export function addCoastalMeadow(
   // Broken translucent ribbons sit at the cliff foot and read as moving surf
   // against the animated water without creating one mesh per crest.
   const foamPositions: number[] = [],
+    foamUVs: number[] = [],
     foamColors: number[] = [],
     foamColor = new THREE.Color("#d8f4df");
   for (let i = 0; i < 96; i++) {
@@ -363,23 +365,42 @@ export function addCoastalMeadow(
       outer0,
       foamColor,
     );
+    foamUVs.push(0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1);
   }
   const foamGeometry = new THREE.BufferGeometry();
   foamGeometry.setAttribute(
     "position",
     new THREE.Float32BufferAttribute(foamPositions, 3),
   );
-  const foam = new THREE.Mesh(
-    foamGeometry,
-    new THREE.MeshBasicMaterial({
-      color: "#d8f4df",
-      transparent: true,
-      opacity: 0.62,
-      depthWrite: false,
-      side: THREE.DoubleSide,
-    }),
-  );
+  foamGeometry.setAttribute("uv", new THREE.Float32BufferAttribute(foamUVs, 2));
+  const foamMaterial = new THREE.ShaderMaterial({
+    uniforms: { clock: { value: 0 }, tint: { value: foamColor } },
+    vertexShader: `varying vec2 foamUV; varying vec2 foamWorld;
+      void main(){foamUV=uv;vec4 world=modelMatrix*vec4(position,1.);foamWorld=world.xz;gl_Position=projectionMatrix*viewMatrix*world;}`,
+    fragmentShader: `uniform float clock; uniform vec3 tint; varying vec2 foamUV; varying vec2 foamWorld;
+      float foamHash(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453);}
+      float foamNoise(vec2 p){vec2 i=floor(p),f=fract(p);f=f*f*(3.-2.*f);return mix(mix(foamHash(i),foamHash(i+vec2(1,0)),f.x),mix(foamHash(i+vec2(0,1)),foamHash(i+1.),f.x),f.y);}
+      void main(){
+        float broad=foamNoise(foamWorld*.57+vec2(clock*.04,-clock*.07));
+        float grain=foamNoise(foamWorld*3.2-vec2(clock*.09,0.));
+        float edge=smoothstep(0.,.16,foamUV.x)*(1.-smoothstep(.78,1.,foamUV.x));
+        edge*=smoothstep(0.,.12,foamUV.y)*(1.-smoothstep(.42+.25*broad,1.,foamUV.y));
+        float crest=1.-smoothstep(.045,.23,abs(foamUV.y-(.25+.12*sin(clock*.6+broad*5.))));
+        float alpha=edge*mix(.12,.58,crest)*smoothstep(.27,.67,broad*.55+grain*.45);
+        gl_FragColor=vec4(tint,alpha);
+        #include <tonemapping_fragment>
+        #include <colorspace_fragment>
+      }`,
+    transparent: true,
+    depthWrite: false,
+    side: THREE.DoubleSide,
+  });
+  const foam = new THREE.Mesh(foamGeometry, foamMaterial);
   foam.name = "coast-shore-foam";
+  foam.userData.dynamic = true;
+  foam.onBeforeRender = () => {
+    foamMaterial.uniforms.clock.value = performance.now() / 1000;
+  };
   foam.renderOrder = 1;
   scene.add(foam);
 }

@@ -2,7 +2,7 @@
 :root {
   --color-bg: #f5f1e6;
   --color-brand: #173e30;
-  --color-accent: #cbf06b;
+  --color-accent: #c0fa67;
   --color-accent-strong: #a8d454;
   --color-text: #173e30;
   --color-text-muted: #5f7065;
@@ -56,7 +56,7 @@ button {
     opacity 140ms,
     transform 140ms;
 }
-button:hover {
+button:hover:not(:disabled):not([aria-disabled="true"]) {
   background-color: rgba(23, 62, 48, 0.06);
 }
 button:active:not(:disabled) {
@@ -483,20 +483,20 @@ kbd {
   background: var(--color-brand);
   color: var(--color-bg);
 }
-.button.primary:hover {
+.button.primary:hover:not(:disabled) {
   background: var(--color-text-muted);
 }
 .button.accent {
   background: var(--color-accent);
   color: var(--color-brand);
 }
-.button.accent:hover {
+.button.accent:hover:not(:disabled) {
   background: var(--color-accent-strong);
 }
 .button.outline {
   border-color: var(--color-border);
 }
-.button.outline:hover {
+.button.outline:hover:not(:disabled) {
   border-color: var(--color-brand);
   background: rgba(23, 62, 48, 0.04);
 }
@@ -897,6 +897,106 @@ kbd {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
+}
+.map-filter-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.map-filter-heading b {
+  font-size: 14px;
+}
+.map-filter-status,
+.map-rating-help,
+.map-filter-selection,
+.map-filter-empty {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-muted);
+}
+.map-rating-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.map-rating-filter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  min-width: 44px;
+  padding: 10px 14px;
+  border: 1px solid var(--color-brand);
+  border-radius: 8px;
+  color: var(--color-brand);
+  background: var(--color-bg);
+  font-size: 13px;
+}
+.map-rating-filter:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--color-accent);
+}
+.map-rating-filter.selected,
+.map-rating-filter.selected:hover:not(:disabled):not([aria-disabled="true"]) {
+  background: var(--color-brand);
+  color: var(--color-accent);
+  font-weight: 700;
+}
+.map-rating-filter.selected::before { content: "✓"; }
+.map-rating-filter:focus-visible {
+  outline: 3px solid var(--color-brand);
+  outline-offset: 3px;
+}
+.map-filter-count {
+  font-variant-numeric: tabular-nums;
+  font-size: 11px;
+}
+.map-rating-help {
+  margin: 10px 0 18px;
+}
+.map-filter-selection {
+  padding: 10px 12px;
+  margin: 0 0 16px;
+  border-inline-start: 3px solid var(--color-brand);
+  background: var(--color-accent);
+  color: var(--color-brand);
+}
+.map-filter-empty {
+  grid-column: 1 / -1;
+  padding: 20px 0;
+}
+.map-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+.map-rating-tag,
+.map-mechanic-tag,
+.map-new-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.3;
+  color: var(--color-brand);
+}
+.map-rating-tag {
+  background: var(--color-brand);
+  color: var(--color-bg);
+}
+.map-mechanic-tag {
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+}
+.map-new-tag {
+  background: var(--color-accent);
 }
 .track-option {
   position: relative;
@@ -2258,5 +2358,677 @@ input[type="range"] {
     animation: none !important;
     transition: none !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* Existing kart viewer and compact race information. No scene effects. */
+.quick-mode {
+  min-width: 0;
+}
+.quick-modes {
+  margin-bottom: 8px;
+}
+.mode-description {
+  min-height: 36px;
+  margin-bottom: 16px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.kart-preview-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-inline-start: auto;
+  padding: 4px;
+  border-radius: var(--radius-control);
+  font-size: 12px;
+}
+.kart-preview-link .ui-icon {
+  width: 16px;
+  height: 16px;
+}
+.panel-brand {
+  gap: 8px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  font-size: 14px;
+}
+.panel-brand .club-logo {
+  width: 28px;
+}
+.mode-applicability {
+  margin-top: 12px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+select:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+#app.page-garage {
+  background: transparent;
+}
+.page-garage .lobby-main {
+  display: flex;
+  align-items: center;
+  max-width: none;
+  padding: 24px;
+}
+.page-garage .footer {
+  background: var(--color-bg);
+}
+.garage-panel {
+  width: 320px;
+  max-width: 100%;
+  padding: 24px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-bg);
+  box-shadow: var(--shadow-overlay);
+}
+.garage-panel h1 {
+  margin-block: 12px 16px;
+  font-size: 32px;
+}
+.garage-panel > p {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+.garage-kart-name {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-block: 24px;
+  margin-block: 8px 24px;
+  border-bottom: 1px solid var(--color-border);
+}
+.garage-kart-name span {
+  display: block;
+  margin-top: 8px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+}
+.view-controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.view-controls .button {
+  min-height: 44px;
+  padding: 8px 4px;
+  font-size: 14px;
+}
+.view-controls .selected {
+  color: var(--color-bg);
+  border-color: var(--color-brand);
+  background: var(--color-brand);
+}
+.garage-panel > .button {
+  margin-top: 24px;
+  font-size: 14px;
+}
+.race-position {
+  min-width: 128px;
+  padding: 12px;
+}
+.race-position b,
+.speedometer b {
+  font-size: 44px;
+}
+.race-position label,
+.race-position small,
+.race-title > span,
+.race-time > span,
+.minimap-box > span {
+  font-size: 12px;
+  letter-spacing: 0;
+}
+.race-position small {
+  margin-top: 4px;
+}
+.mode-time .race-position > div,
+.mode-practice .race-position > div {
+  display: none;
+}
+.mode-time .race-position,
+.mode-practice .race-position {
+  min-width: 0;
+}
+.race-time {
+  min-width: 164px;
+  padding: 12px;
+}
+.race-time b {
+  font-size: 36px;
+}
+.race-time small {
+  font-size: 18px;
+}
+.race-title {
+  min-width: 176px;
+  max-width: 248px;
+  padding: 12px 16px;
+}
+.race-title > span {
+  margin-bottom: 4px;
+}
+.race-title > b {
+  font-size: 18px;
+}
+.race-objective {
+  top: 152px;
+  max-width: 224px;
+  padding: 12px;
+  font-size: 12px;
+}
+.race-bottom {
+  gap: 24px;
+  bottom: 44px;
+}
+.minimap-box {
+  padding: 8px;
+}
+.minimap-box canvas {
+  width: 160px;
+  height: 125px;
+}
+.hud-driving-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 244px;
+  flex: 0 0 auto;
+}
+.driving-instruments {
+  width: 100%;
+  padding: 12px 16px;
+}
+.energy-label b,
+.energy-label small,
+.nitro-inventory,
+.speedometer small {
+  font-size: 12px;
+}
+.nitro-box {
+  margin-top: 12px;
+  padding-top: 12px;
+}
+.nitro-track {
+  height: 6px;
+  margin-bottom: 12px;
+}
+.nitro-inventory {
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.nitro-inventory > span:first-child {
+  gap: 6px;
+}
+.nitro-charge {
+  width: 10px;
+  height: 16px;
+}
+.nitro-status {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--color-bg);
+  line-height: 1.4;
+}
+.nitro-status small {
+  font-size: 12px;
+  opacity: 0.85;
+}
+.nitro-box[data-state="collect"] #nitro-state,
+.nitro-box[data-state="full"] #nitro-state,
+.nitro-box[data-state="releasing"] #nitro-state {
+  color: var(--color-accent);
+}
+.nitro-release {
+  height: 3px;
+  margin-top: 8px;
+  background: rgba(245, 241, 230, 0.2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.nitro-release i {
+  display: block;
+  height: 100%;
+  background: var(--color-accent);
+}
+.nitro-release[hidden],
+.nitro-status[hidden] {
+  display: none;
+}
+.race-feedback-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.race-feedback-stack:has(.race-feedback:empty):has(.skill-feedback[hidden]) {
+  display: none;
+}
+.race-feedback-stack .race-feedback,
+.race-feedback-stack .skill-feedback {
+  position: static;
+  max-width: none;
+  padding: 8px 12px;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.road-condition {
+  bottom: 216px;
+  max-width: 176px;
+  font-size: 12px;
+}
+.race-hint {
+  font-size: 12px;
+}
+.item-hud {
+  top: 124px;
+  max-width: 244px;
+}
+.item-hud b {
+  font-size: 12px;
+}
+.pause-modal {
+  width: 480px;
+}
+.pause-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px 16px;
+  border-block: 1px solid var(--color-border);
+  padding-block: 16px;
+  margin-top: 24px;
+  font-size: 14px;
+}
+.pause-summary b {
+  font-size: 24px;
+}
+.pause-summary > small {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.result-modal {
+  display: flex;
+  flex-direction: column;
+  width: 760px;
+  padding: 0;
+  overflow: hidden;
+}
+.result-scroll {
+  min-height: 0;
+  overflow: auto;
+  padding: 24px 32px;
+  overscroll-behavior: contain;
+}
+.result-scroll h2 {
+  margin: 12px 0 16px;
+}
+.result-scroll > p {
+  font-size: 14px;
+  margin-top: 12px;
+  color: var(--color-text-muted);
+}
+.result-emblem {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 0;
+}
+.result-emblem .ui-icon {
+  width: 24px;
+  height: 24px;
+}
+.result-stats {
+  margin-top: 16px;
+  padding-block: 16px;
+  gap: 16px;
+}
+.result-stats b {
+  font-size: 36px;
+}
+.result-stats span {
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.classification > div {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto auto;
+  gap: 12px;
+}
+.classification > div > span:nth-child(2) {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.classification > div > span:nth-child(3) {
+  font-variant-numeric: tabular-nums;
+}
+.result-actions {
+  flex-wrap: wrap;
+  padding: 16px 24px;
+}
+.result-actions .button {
+  flex: 1 1 auto;
+}
+.reward-status {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: 16px;
+  margin-top: 24px;
+  text-align: start;
+}
+.reward-status > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-block: 8px;
+}
+.reward-status h3 {
+  font-size: 16px;
+}
+.reward-status b {
+  font-size: 24px;
+}
+.reward-status p,
+.audit-status,
+.reward-status b small {
+  font-size: 12px;
+}
+.audit-status {
+  display: block;
+  color: var(--color-text-muted);
+  border-top: 1px solid var(--color-border);
+  margin-top: 12px;
+  padding-top: 12px;
+}
+.reward-status[data-state="credited"],
+.claim-confirmation {
+  background: rgba(192, 250, 103, 0.18);
+}
+.claim-confirmation {
+  border: 1px solid var(--color-border);
+  padding: 12px;
+  border-radius: var(--radius-control);
+  font-size: 14px;
+  margin-top: 12px;
+}
+.claim-confirmation small {
+  display: block;
+  overflow-wrap: anywhere;
+  margin-top: 8px;
+  font-size: 12px;
+}
+[dir="rtl"] .eyebrow,
+[dir="rtl"] .field-heading {
+  letter-spacing: 0;
+}
+[dir="rtl"] .modal-heading {
+  padding-inline: 32px 72px;
+}
+@media (max-height: 800px) and (min-width: 901px) {
+  .panel-brand {
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+  }
+  .lobby-panel-heading {
+    margin-bottom: 12px;
+  }
+  .quick-modes {
+    margin-bottom: 8px;
+  }
+  .lobby-panel-heading h1 {
+    font-size: 26px;
+  }
+}
+@media (max-width: 900px) {
+  .race-position {
+    min-width: 100px;
+  }
+  .race-position b,
+  .speedometer b {
+    font-size: 40px;
+  }
+  .race-title {
+    min-width: 140px;
+    max-width: 184px;
+    padding: 8px 12px;
+  }
+  .race-time {
+    min-width: 136px;
+    padding: 8px 12px;
+  }
+  .race-time b {
+    font-size: 32px;
+  }
+  .hud-driving-rail {
+    width: 224px;
+  }
+  .minimap-box canvas {
+    width: 136px;
+    height: 106px;
+  }
+  .road-condition {
+    bottom: 192px;
+    max-width: 152px;
+  }
+  .race-objective {
+    top: 140px;
+    max-width: 192px;
+  }
+}
+@media (max-width: 600px) {
+  .page-garage .lobby-main {
+    padding: 260px 16px 24px;
+  }
+  .garage-panel {
+    width: 100%;
+    padding: 20px;
+  }
+  .garage-panel h1 {
+    font-size: 28px;
+  }
+  .garage-kart-name {
+    padding-block: 16px;
+    margin-block: 0 16px;
+  }
+  .race-title {
+    min-width: 104px;
+    max-width: 128px;
+    padding: 8px;
+  }
+  .race-title > span {
+    font-size: 12px;
+  }
+  .race-title > b {
+    font-size: 14px;
+  }
+  .race-position {
+    min-width: 64px;
+    padding: 8px;
+  }
+  .race-position b {
+    font-size: 36px;
+  }
+  .race-position label {
+    font-size: 12px;
+  }
+  .race-time {
+    min-width: 96px;
+    padding: 8px;
+  }
+  .race-time b {
+    font-size: 28px;
+  }
+  .race-time > span {
+    font-size: 12px;
+  }
+  .race-bottom {
+    gap: 8px;
+    bottom: 44px;
+  }
+  .hud-driving-rail {
+    width: 196px;
+  }
+  .driving-instruments {
+    padding: 12px;
+  }
+  .speedometer b {
+    font-size: 36px;
+  }
+  .minimap-box canvas {
+    width: 96px;
+    height: 75px;
+  }
+  .minimap-box > span {
+    display: none;
+  }
+  .nitro-inventory > span:first-child {
+    font-size: 12px;
+    flex-basis: 100%;
+  }
+  .nitro-inventory kbd {
+    margin-inline-start: auto;
+  }
+  .nitro-charges {
+    margin-inline-start: auto;
+  }
+  .race-objective {
+    top: 140px;
+    max-width: 150px;
+    font-size: 12px;
+  }
+  .road-condition {
+    bottom: 144px;
+    max-width: 112px;
+    padding: 8px;
+  }
+  .race-hint {
+    font-size: 12px;
+  }
+  .race-hint span {
+    display: none;
+  }
+  .race-hint kbd {
+    font-size: 12px;
+    min-width: 24px;
+    min-height: 24px;
+  }
+  .item-hud {
+    top: 160px;
+    max-width: 156px;
+  }
+  .result-scroll {
+    padding: 20px;
+  }
+  .result-scroll h2 {
+    font-size: 26px;
+  }
+  .result-stats b {
+    font-size: 32px;
+  }
+  .result-actions {
+    padding: 12px 16px;
+  }
+  .result-actions .button {
+    font-size: 14px;
+    padding-inline: 12px;
+  }
+  .classification > div {
+    grid-template-columns: 20px minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+  .classification strong {
+    grid-column: 2 / -1;
+  }
+  [dir="rtl"] .modal-heading {
+    padding-inline: 16px 56px;
+  }
+}
+@media (max-height: 540px) and (min-width: 601px) {
+  .race-top {
+    inset: 8px 16px auto;
+  }
+  .race-position {
+    top: 8px;
+    inset-inline-start: 16px;
+    padding: 8px 12px;
+  }
+  .race-position small {
+    display: none;
+  }
+  .race-position b {
+    font-size: 32px;
+  }
+  .race-time b {
+    font-size: 32px;
+  }
+  .race-title {
+    padding: 8px 12px;
+  }
+  .race-time {
+    padding: 8px 12px;
+  }
+  .race-bottom {
+    inset-inline: 16px;
+    bottom: 32px;
+  }
+  .hud-driving-rail {
+    width: 216px;
+  }
+  .driving-instruments {
+    padding: 8px 12px;
+  }
+  .speedometer b {
+    font-size: 32px;
+  }
+  .nitro-box {
+    margin-top: 8px;
+    padding-top: 8px;
+  }
+  .nitro-status {
+    margin-top: 8px;
+  }
+  .minimap-box canvas {
+    width: 112px;
+    height: 88px;
+  }
+  .minimap-box > span {
+    display: none;
+  }
+  .race-objective {
+    top: 96px;
+    max-width: 200px;
+  }
+  .road-condition {
+    bottom: 144px;
+    max-width: 128px;
+    padding: 8px;
+  }
+  .race-hint {
+    bottom: 4px;
+    font-size: 12px;
+  }
+  .race-hint span {
+    display: none;
+  }
+  .item-hud {
+    top: 96px;
+    max-width: 216px;
+    padding: 8px;
+  }
+  .garage-panel {
+    padding: 20px;
+  }
+  .garage-panel h1 {
+    font-size: 28px;
   }
 }

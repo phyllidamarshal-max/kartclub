@@ -1,6 +1,15 @@
 import { EXTRA_ROUTES } from "./route-data.ts";
+import { NEW_MAPS } from "./map-expansion.ts";
+import { mapProfile } from "./map-profiles.ts";
+import type { MovingObstacleSpec } from "./moving-obstacles.ts";
 import { getLevel } from "./levels.ts";
 import { ROAD_PROFILES, type WidthStop } from "./road-design.ts";
+import { authorCourse, courseWidths, type TrackBend } from "./route-course.ts";
+import {
+  SHORTCUT_DESIGNS,
+  shortcutOffset,
+  type ShortcutDesign,
+} from "./shortcut-design.ts";
 export const ROAD_WIDTH = 16;
 export const TRACK_ID = "tide-coast-v1";
 export interface Point {
@@ -11,6 +20,10 @@ export interface Point {
   readonly t: number;
 }
 export interface Track {
+  readonly layout?: "circuit" | "ab";
+  readonly movingObstacles?: readonly MovingObstacleSpec[];
+  readonly bends?: readonly TrackBend[];
+  readonly raceMinutes?: 3 | 5;
   readonly id: string;
   readonly name: string;
   readonly subtitle: string;
@@ -18,6 +31,7 @@ export interface Track {
   readonly width: number;
   readonly widthProfile?: readonly WidthStop[];
   readonly shortcutWidth?: number;
+  readonly shortcutDesign?: ShortcutDesign;
   readonly length: number;
   readonly points: readonly Point[];
   readonly obstacles: readonly {
@@ -69,7 +83,9 @@ function create(
         (-p[0][k] + 3 * p[1][k] - 3 * p[2][k] + p[3][k]) * f * f * f);
     return { x: v(0), z: v(1) };
   }
-  const raw = Array.from({ length: 2401 }, (_, i) => spline(i / 2400)),
+  const course = id === TRACK_ID ? null : authorCourse(id, anchors, scale);
+  const raw =
+      course?.raw ?? Array.from({ length: 2401 }, (_, i) => spline(i / 2400)),
     ds = [0];
   for (let i = 1; i < raw.length; i++)
     ds.push(
@@ -77,44 +93,63 @@ function create(
     );
   const length = ds.at(-1)!,
     points: { -readonly [K in keyof Point]: Point[K] }[] = [];
+  const count = id === TRACK_ID ? 720 : Math.max(720, Math.ceil(length / 2));
   let j = 0;
-  for (let i = 0; i < 720; i++) {
-    const d = (i / 720) * length;
+  for (let i = 0; i < count; i++) {
+    const d = (i / count) * length;
     while (ds[j + 1] < d) j++;
     const f = (d - ds[j]) / (ds[j + 1] - ds[j]),
-      t = i / 720;
+      t = i / count;
     points.push({
       x: raw[j].x + (raw[j + 1].x - raw[j].x) * f,
       z: raw[j].z + (raw[j + 1].z - raw[j].z) * f,
       y:
-        id === "mountain-pass"
+        id === "mountain-pass" || id === "ice-lagoon"
           ? 16 * (1 - Math.cos(t * Math.PI * 2)) +
             3 * (1 - Math.cos(t * Math.PI * 6))
-          : id === "mountain-summit"
+          : id === "mountain-summit" || id === "mine-transit"
             ? 9 * (1 - Math.cos(t * Math.PI * 6)) +
               4 * (1 - Math.cos(t * Math.PI * 2))
             : theme === "mountain"
               ? 10 * (1 - Math.cos(t * Math.PI * 4))
-              : id === "city-nightshift"
+              : id === "city-nightshift" || id === "space-interchange"
                 ? 5 * (1 - Math.cos(t * Math.PI * 2))
                 : 0,
       t,
       heading: 0,
     });
   }
-  for (let i = 0; i < 720; i++) {
-    const a = points[(i + 719) % 720],
-      b = points[(i + 1) % 720];
+  for (let i = 0; i < count; i++) {
+    const a = points[(i + count - 1) % count],
+      b = points[(i + 1) % count];
     points[i].heading = Math.atan2(b.x - a.x, b.z - a.z);
   }
   return {
     id,
+    layout: mapProfile(id).layout,
+    movingObstacles: [] as MovingObstacleSpec[],
     name: id === TRACK_ID ? name : getLevel(id).name,
     subtitle,
     theme,
     width,
-    widthProfile: ROAD_PROFILES[id],
+    widthProfile: course
+      ? courseWidths(
+          ROAD_PROFILES[id] ??
+            NEW_MAPS.find((m) => m.id === id)!.widths.map(([t, width]) => ({
+              t,
+              width,
+            })),
+          course,
+          id === "mountain-pass" || id === "ice-lagoon",
+        ).map((stop) => ({
+          ...stop,
+          width: Math.max(stop.width, mapProfile(id).minWidth),
+        }))
+      : ROAD_PROFILES[id],
+    bends: course?.bends,
+    raceMinutes: course?.minutes,
     shortcutWidth: 7,
+    shortcutDesign: undefined as ShortcutDesign | undefined,
     length,
     points,
     obstacles: [] as { x: number; z: number; radius: number }[],
@@ -185,6 +220,10 @@ for (const r of EXTRA_ROUTES)
   assembledTracks.push(
     create(r.id, r.name, r.subtitle, r.theme, r.anchors, r.scale, r.width),
   );
+for (const r of NEW_MAPS)
+  assembledTracks.push(
+    create(r.id, r.name, r.name.toUpperCase(), r.theme, r.anchors, 1, r.width),
+  );
 export const TRACKS: readonly Track[] = assembledTracks;
 export function getTrack(id: string): Track {
   const t = id === TRACK_ID ? DEFAULT_TRACK : TRACKS.find((t) => t.id === id);
@@ -195,7 +234,14 @@ export function trackWidth(t: number, track: Track = DEFAULT_TRACK): number {
   const profile = track.widthProfile;
   if (!profile?.length) return track.width;
   const u = ((t % 1) + 1) % 1;
-  const next = profile.findIndex((p) => p.t > u);
+  let lo = 0,
+    hi = profile.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >>> 1;
+    if (profile[mid].t <= u) lo = mid + 1;
+    else hi = mid;
+  }
+  const next = lo === profile.length ? -1 : lo;
   const a = profile[Math.max(0, next - 1)];
   const b = profile[next < 0 ? profile.length - 1 : next];
   const f = Math.max(0, Math.min(1, (u - a.t) / (b.t - a.t || 1)));
@@ -207,6 +253,34 @@ export function trackWidthRange(track: Track): { min: number; max: number } {
     : [track.width];
   return { min: Math.min(...widths), max: Math.max(...widths) };
 }
+/** The same authored ribbon is used by contact, rails, surfaces and AI. */
+export function shortcutWidthAt(t: number, track: Track): number {
+  const design = track.shortcutDesign;
+  if (!design || track.shortcut.length < 2) return track.shortcutWidth ?? 7;
+  const entry = track.shortcut[0].t,
+    exit = track.shortcut.at(-1)!.t;
+  const f = Math.max(0, Math.min(1, (t - entry) / (exit - entry)));
+  const index = design.widths.findIndex((p) => p.f >= f);
+  const b = design.widths[index < 0 ? design.widths.length - 1 : index];
+  const a = design.widths[Math.max(0, index - 1)];
+  const u = Math.max(0, Math.min(1, (f - a.f) / (b.f - a.f || 1)));
+  return a.width + (b.width - a.width) * u * u * (3 - 2 * u);
+}
+/** A same-level crossing must be one surface, including its sloped edges. */
+export function shortcutSurfaceHeight(
+  x: number,
+  z: number,
+  t: number,
+  y: number,
+  track: Track,
+): number {
+  if (!track.shortcutDesign) return y;
+  const main = continuousTrack(x, z, t, track, "main");
+  if (Math.abs(main.y - y) > 3) return y; // Preserve genuinely separate elevations.
+  const outside = main.distance - main.roadWidth / 2;
+  const blend = Math.max(0, Math.min(1, 1 - outside / 12));
+  return y + (main.y - y) * blend * blend * (3 - 2 * blend);
+}
 /** Open only those road edges occupied by the connected branch at a junction. */
 export function roadBoundaryOpen(
   p: Point,
@@ -217,7 +291,7 @@ export function roadBoundaryOpen(
 ): boolean {
   if (track.shortcut.length < 2) return false;
   const half =
-    (branch === "main" ? trackWidth(p.t, track) : (track.shortcutWidth ?? 7)) /
+    (branch === "main" ? trackWidth(p.t, track) : shortcutWidthAt(p.t, track)) /
       2 +
     extra;
   const x = p.x + Math.cos(p.heading) * half * side;
@@ -239,7 +313,7 @@ export function roadBoundaryOpen(
     );
     const t = a.t + (b.t < a.t ? b.t + 1 - a.t : b.t - a.t) * f;
     const otherHalf =
-      (branch === "main" ? (track.shortcutWidth ?? 7) : trackWidth(t, track)) /
+      (branch === "main" ? shortcutWidthAt(t, track) : trackWidth(t, track)) /
       2;
     if (
       Math.abs(p.y - (a.y + (b.y - a.y) * f)) < 2 &&
@@ -309,11 +383,12 @@ export function junctionContains(
   return true;
 }
 export function trackPoint(t: number, track: Track = DEFAULT_TRACK): Point {
-  const u = (((t % 1) + 1) % 1) * 720,
+  const count = track.points.length;
+  const u = (((t % 1) + 1) % 1) * count,
     i = Math.floor(u),
     f = u - i,
     a = track.points[i],
-    b = track.points[(i + 1) % 720];
+    b = track.points[(i + 1) % count];
   return {
     x: a.x + (b.x - a.x) * f,
     y: a.y + (b.y - a.y) * f,
@@ -322,31 +397,19 @@ export function trackPoint(t: number, track: Track = DEFAULT_TRACK): Point {
     t: ((t % 1) + 1) % 1,
   };
 }
-const mountain = assembledTracks[2],
-  start = trackPoint(0.49, mountain),
-  end = trackPoint(0.62, mountain);
-for (let i = 0; i <= 80; i++) {
-  const f = i / 80;
-  mountain.shortcut.push({
-    x: start.x + (end.x - start.x) * f,
-    y: start.y + (end.y - start.y) * f,
-    z: start.z + (end.z - start.z) * f,
-    t: 0.49 + 0.13 * f,
-    heading: Math.atan2(end.x - start.x, end.z - start.z),
-  });
-}
+const mountain = assembledTracks[2];
 // Tangent-continuous side routes exchange a shorter distance for a narrower
 // racing line. They share the main circuit's progress at both junctions.
-for (const [id, entryT, exitT, tangentScale, width] of [
-  ["coast-harbor", 0.76, 0.9, 0.9, 7],
-  ["coast-breakwater", 0.2, 0.34, 0.9, 6.8],
-  ["city-factory", 0.64, 0.8, 1.4, 6.5],
-  ["city-nightshift", 0.44, 0.56, 1.4, 6.4],
-] as const) {
+for (const [id, design] of Object.entries(SHORTCUT_DESIGNS)) {
   const track = assembledTracks.find((t) => t.id === id)!;
+  const section = track.bends!.find((b) => b.kind === "S")!;
+  const entryT = section.start - 40 / track.length;
+  const exitT = section.end + 60 / track.length;
   const a = trackPoint(entryT, track),
     b = trackPoint(exitT, track);
-  const distance = Math.hypot(b.x - a.x, b.z - a.z) * tangentScale;
+  const distance = Math.hypot(b.x - a.x, b.z - a.z) * design.tangentScale;
+  const normalX = (b.z - a.z) / Math.hypot(b.x - a.x, b.z - a.z);
+  const normalZ = -(b.x - a.x) / Math.hypot(b.x - a.x, b.z - a.z);
   const slope = (t: number) =>
     (trackPoint(t + 1 / track.length, track).y -
       trackPoint(t - 1 / track.length, track).y) /
@@ -365,9 +428,12 @@ for (const [id, entryT, exitT, tangentScale, width] of [
     (2 * f ** 3 - 3 * f ** 2 + 1) * a[key] +
     (f ** 3 - 2 * f ** 2 + f) * tangentA[key] +
     (-2 * f ** 3 + 3 * f ** 2) * b[key] +
-    (f ** 3 - f ** 2) * tangentB[key];
-  for (let i = 0; i <= 160; i++) {
-    const f = i / 160;
+    (f ** 3 - f ** 2) * tangentB[key] +
+    (key === "x" ? normalX : key === "z" ? normalZ : 0) *
+      shortcutOffset(f, design);
+  const count = Math.max(160, Math.ceil(distance / 1.5));
+  for (let i = 0; i <= count; i++) {
+    const f = i / count;
     const d0 = Math.max(0, f - 0.0001),
       d1 = Math.min(1, f + 0.0001);
     track.shortcut.push({
@@ -381,27 +447,55 @@ for (const [id, entryT, exitT, tangentScale, width] of [
       t: entryT + (exitT - entryT) * f,
     });
   }
-  track.shortcutWidth = width;
+  track.shortcutDesign = design;
+  track.shortcutWidth = Math.max(...design.widths.map((p) => p.width));
+  track.shortcut = track.shortcut.map((p, i) =>
+    i === 0 || i === track.shortcut.length - 1
+      ? p
+      : { ...p, y: shortcutSurfaceHeight(p.x, p.z, p.t, p.y, track) },
+  );
 }
-for (const [t, side] of [
+function obstacleStraight(track: Track, desired: number) {
+  return (
+    track.points
+      .filter((p) => {
+        const a = trackPoint(p.t - 45 / track.length, track),
+          b = trackPoint(p.t + 45 / track.length, track);
+        return (
+          p.t > 0.035 &&
+          Math.abs(angleDiff(a.heading, b.heading)) < 0.12 &&
+          trackWidth(p.t, track) >= 13 &&
+          (!track.shortcut.length ||
+            p.t < track.shortcut[0].t - 40 / track.length ||
+            p.t > track.shortcut.at(-1)!.t + 40 / track.length)
+        );
+      })
+      .sort((a, b) => Math.abs(a.t - desired) - Math.abs(b.t - desired))[0]
+      ?.t ?? desired
+  );
+}
+for (const [desired, side] of [
   [0.24, 3],
   [0.72, -3],
 ] as const) {
+  const t = obstacleStraight(mountain, desired);
   const p = trackPoint(t, mountain);
+  const offset = Math.sign(side) * (trackWidth(t, mountain) / 2 - 1.6);
   mountain.obstacles.push({
-    x: p.x + Math.cos(p.heading) * side,
-    z: p.z - Math.sin(p.heading) * side,
+    x: p.x + Math.cos(p.heading) * offset,
+    z: p.z - Math.sin(p.heading) * offset,
     radius: 1.5,
   });
 }
 for (const track of assembledTracks.filter(
   (t) => t.id === "city-factory" || t.id === "mountain-summit",
 ))
-  for (const [t, side] of [
+  for (const [desired, side] of [
     [0.22, 1],
     [0.44, -1],
     [0.76, 1],
   ]) {
+    const t = obstacleStraight(track, desired);
     const p = trackPoint(t, track),
       offset = side * (trackWidth(t, track) / 2 - 1.6);
     track.obstacles.push({
@@ -410,6 +504,74 @@ for (const track of assembledTracks.filter(
       radius: 1.1,
     });
   }
+// Crossings are authored as driving decisions with a long visible approach.
+// Wildlife can rest off-road; even at mid-crossing a complete passing lane exists.
+for (const [id, kinds] of [
+  ["harbor-dual", ["hauler", "shuttle"]],
+  ["factory-shift", ["pendulum", "pendulum", "pendulum"]],
+  ["city-switchback", ["spinner", "spinner"]],
+  ["space-interchange", ["shuttle", "shuttle", "spinner"]],
+  ["mine-transit", ["pendulum", "pendulum", "minecart"]],
+  ["forest-orchard", ["sheep"]],
+  ["forest-ridge", ["deer", "deer"]],
+] as const) {
+  const track = assembledTracks.find((t) => t.id === id)!;
+  const placed: Point[] = [];
+  for (let i = 0; i < kinds.length; i++) {
+    const kind = kinds[i];
+    const desired = 0.18 + i * 0.28;
+    const candidates = track.points
+      .filter((p) => {
+        if (
+          p.t * track.length < 150 ||
+          p.t > 0.92 ||
+          trackWidth(p.t, track) < 18
+        )
+          return false;
+        if (placed.some((q) => Math.hypot(q.x - p.x, q.z - p.z) < 160))
+          return false;
+        if (track.shortcut.some(q => Math.hypot(q.x - p.x, q.z - p.z) < 40))
+          return false;
+        if (
+          track.shortcut.length &&
+          p.t > track.shortcut[0].t - 70 / track.length &&
+          p.t < track.shortcut.at(-1)!.t + 70 / track.length
+        )
+          return false;
+        return (kind === 'shuttle' ? [-38, 38] : [-96, -64, -38, 38]).every(distance => {
+          const q = trackPoint(p.t + distance / track.length, track);
+          return Math.abs(angleDiff(q.heading, p.heading)) < (kind === 'shuttle' ? .04 : .12);
+        });
+      })
+      .sort((a, b) => Math.abs(a.t - desired) - Math.abs(b.t - desired));
+    const p = candidates[0];
+    if (!p) throw new Error(`No safe traffic crossing on ${id}/${i}`);
+    placed.push(p);
+    const animal = kind === 'sheep' || kind === 'deer';
+    const radius = kind === 'spinner' ? 3.5 : kind === 'minecart' ? 2.1
+      : kind === 'hauler' ? 2.4 : kind === 'pendulum' ? 2.2
+      : kind === 'deer' ? 1.8 : animal ? 1.7 : 1.65;
+    const halfWidth = trackWidth(p.t, track) / 2;
+    (track.movingObstacles as MovingObstacleSpec[]).push({
+      id: `${id}/traffic-${i}`,
+      kind,
+      x: p.x,
+      y: p.y,
+      z: p.z,
+      heading: p.heading,
+      radius,
+      amplitude: kind === 'spinner' ? 0 : kind === 'minecart'
+        ? Math.min(4.5, halfWidth - radius - 1.2) : kind === 'hauler'
+        ? Math.min(3.5, halfWidth - radius - 1.2)
+        : animal ? halfWidth + radius + 1.5 : kind === 'pendulum'
+        ? Math.min(3, halfWidth - radius - 1.5) : Math.min(2.6, halfWidth - 6),
+      period: kind === 'sheep' ? 22 : kind === 'deer' ? 19 + i * 2
+        : kind === 'pendulum' ? 6.5 + i * .8 : kind === 'minecart' ? 14
+        : kind === 'hauler' ? 18 + i * 2 : kind === 'spinner' ? 11 + i : 10 + i * 1.5,
+      phase: i * 2.1,
+    });
+  }
+}
 // Freeze only after all branches and obstacles are assembled, before indexing.
 // Callers may still construct independent custom tracks using clones/spreads.
 const tourOrder = [
@@ -422,12 +584,26 @@ const tourOrder = [
   "mountain",
   "mountain-pass",
   "mountain-summit",
+  ...NEW_MAPS.map((map) => map.id),
 ];
 assembledTracks.sort(
   (a, b) => tourOrder.indexOf(a.id) - tourOrder.indexOf(b.id),
 );
 for (const track of [DEFAULT_TRACK, ...TRACKS]) {
-  for (const collection of [track.points, track.shortcut, track.obstacles]) {
+  if (track.bends) {
+    track.bends.forEach(Object.freeze);
+    Object.freeze(track.bends);
+  }
+  if (track.widthProfile) {
+    track.widthProfile.forEach(Object.freeze);
+    Object.freeze(track.widthProfile);
+  }
+  for (const collection of [
+    track.points,
+    track.shortcut,
+    track.obstacles,
+    track.movingObstacles ?? [],
+  ]) {
     for (const value of collection) Object.freeze(value);
     Object.freeze(collection);
   }
@@ -499,7 +675,7 @@ export function continuousTrack(
     progressScale: 1,
   };
   const window = Math.max(30 / track.length, 3 / track.points.length);
-  const consider = (a: Point, b: Point, width: number | undefined) => {
+  const consider = (a: Point, b: Point, shortcut: boolean) => {
     let span = b.t - a.t;
     if (span < 0) span++;
     const dx = b.x - a.x,
@@ -528,7 +704,7 @@ export function continuousTrack(
       heading,
       distance: Math.sqrt(d),
       lateral: (x - px) * Math.cos(heading) - (z - pz) * Math.sin(heading),
-      roadWidth: width ?? trackWidth(t, track),
+      roadWidth: shortcut ? shortcutWidthAt(t, track) : trackWidth(t, track),
       progressScale:
         (span * track.length) /
         (Math.sqrt(len2) || 1) /
@@ -544,13 +720,13 @@ export function continuousTrack(
   const follow = (
     points: readonly Point[],
     centre: number,
-    width: number | undefined,
+    shortcut: boolean,
     closed: boolean,
   ) => {
     const count = closed ? points.length : points.length - 1;
     if (count < 1) return;
     const project = (i: number) =>
-      consider(points[i], points[(i + 1) % points.length], width);
+      consider(points[i], points[(i + 1) % points.length], shortcut);
     const initial = project(centre);
     if (!Number.isFinite(initial)) return;
     for (const direction of [-1, 1]) {
@@ -571,13 +747,13 @@ export function continuousTrack(
     follow(
       track.points,
       Math.floor(normalizedT * track.points.length),
-      undefined,
+      false,
       true,
     );
   if (branch !== "main" && track.shortcut.length > 1) {
     const next = track.shortcut.findIndex((p) => p.t > normalizedT);
     const centre = next < 0 ? track.shortcut.length - 2 : Math.max(0, next - 1);
-    follow(track.shortcut, centre, track.shortcutWidth ?? 7, false);
+    follow(track.shortcut, centre, true, false);
   }
   return result;
 }

@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
+import { mergeVertices } from "three/addons/utils/BufferGeometryUtils.js";
 
 type MaterialSet = {
   paint: THREE.MeshPhysicalMaterial;
@@ -7,6 +8,7 @@ type MaterialSet = {
   rubber: THREE.MeshStandardMaterial;
   silver: THREE.MeshStandardMaterial;
   suit: THREE.MeshStandardMaterial;
+  upholstery: THREE.MeshStandardMaterial;
   visor: THREE.MeshPhysicalMaterial;
 };
 
@@ -16,6 +18,31 @@ function addMesh(
   material: THREE.Material,
   name: string,
 ) {
+  // Every cloth piece carries the same attribute so the material still batches once.
+  if (
+    (material as THREE.MeshStandardMaterial).vertexColors &&
+    !geometry.hasAttribute("color")
+  ) {
+    geometry.setAttribute(
+      "color",
+      new THREE.Uint8BufferAttribute(
+        new Uint8Array(geometry.getAttribute("position").count * 3).fill(255),
+        3,
+        true,
+      ),
+    );
+  }
+  // Lathed pole duplicates can have zero computed normals; keep exported PBR normals valid.
+  const normals = geometry.getAttribute("normal");
+  const positions = geometry.getAttribute("position");
+  if (normals)
+    for (let i = 0; i < normals.count; i++) {
+      const normal = new THREE.Vector3().fromBufferAttribute(normals, i);
+      if (normal.lengthSq() < 1e-12)
+        normal.set(0, Math.sign(positions.getY(i)) || 1, 0);
+      else normal.normalize();
+      normals.setXYZ(i, normal.x, normal.y, normal.z);
+    }
   const mesh = new THREE.Mesh(geometry, material);
   mesh.name = name;
   mesh.castShadow = true;
@@ -34,7 +61,7 @@ function roundedBox(
 ) {
   const mesh = addMesh(
     parent,
-    new RoundedBoxGeometry(size[0], size[1], size[2], 3, radius),
+    new RoundedBoxGeometry(size[0], size[1], size[2], 2, radius),
     material,
     name,
   );
@@ -94,62 +121,58 @@ function cylinderBetween(
   return mesh;
 }
 
-/** A faceted multi-section shell whose high rear edge falls toward the bumper. */
+/** A broad cowl with a rounded crown that falls smoothly into the low bumper. */
 function noseGeometry() {
   const sections = [
-    { z: 0.34, halfWidth: 0.54, bottom: 0.57, top: 1.43 },
-    { z: 0.76, halfWidth: 0.55, bottom: 0.53, top: 1.31 },
-    { z: 1.18, halfWidth: 0.49, bottom: 0.51, top: 1.09 },
-    { z: 1.58, halfWidth: 0.39, bottom: 0.52, top: 0.76 },
+    { z: 0.35, halfWidth: 0.5, bottom: 0.61, top: 1.3 },
+    { z: 0.58, halfWidth: 0.55, bottom: 0.59, top: 1.32 },
+    { z: 0.9, halfWidth: 0.535, bottom: 0.56, top: 1.22 },
+    { z: 1.22, halfWidth: 0.48, bottom: 0.54, top: 1.02 },
+    { z: 1.48, halfWidth: 0.415, bottom: 0.52, top: 0.77 },
+    { z: 1.61, halfWidth: 0.385, bottom: 0.52, top: 0.67 },
   ];
   const positions: number[] = [];
   const indices: number[] = [];
-
-  // Eight points form a beveled, flat-topped cross-section at each Z station.
+  const sides = 17;
   for (const { z, halfWidth: w, bottom, top } of sections) {
-    const bevel = Math.min(0.17, (top - bottom) * 0.25);
-    positions.push(
-      -w * 0.73,
-      top,
-      z,
-      w * 0.73,
-      top,
-      z,
-      w,
-      top - bevel,
-      z,
-      w,
-      bottom + bevel,
-      z,
-      w * 0.72,
-      bottom,
-      z,
-      -w * 0.72,
-      bottom,
-      z,
-      -w,
-      bottom + bevel,
-      z,
-      -w,
-      top - bevel,
-      z,
-    );
+    const rx = w * 0.26;
+    const ry = Math.min(0.12, (top - bottom) * 0.32);
+    const corners = [
+      [w - rx, top - ry],
+      [w - rx, bottom + ry],
+      [-w + rx, bottom + ry],
+      [-w + rx, top - ry],
+    ];
+    for (let corner = 0; corner < 4; corner++) {
+      for (let segment = 0; segment <= 3; segment++) {
+        const a =
+          Math.PI / 2 - (corner * Math.PI) / 2 - ((segment / 3) * Math.PI) / 2;
+        positions.push(
+          corners[corner][0] + rx * Math.cos(a),
+          corners[corner][1] + ry * Math.sin(a),
+          z,
+        );
+      }
+    }
+    positions.push(0, top + 0.008, z);
   }
   for (let section = 0; section < sections.length - 1; section++) {
-    const a = section * 8;
-    const b = (section + 1) * 8;
-    for (let side = 0; side < 8; side++) {
-      const next = (side + 1) % 8;
+    for (let side = 0; side < sides; side++) {
+      const next = (side + 1) % sides;
+      const a = section * sides,
+        b = a + sides;
       indices.push(a + side, b + side, b + next, a + side, b + next, a + next);
     }
   }
   for (const [offset, reverse] of [
     [0, true],
-    [(sections.length - 1) * 8, false],
+    [(sections.length - 1) * sides, false],
   ] as const) {
-    for (let side = 1; side < 7; side++) {
-      if (reverse) indices.push(offset, offset + side, offset + side + 1);
-      else indices.push(offset, offset + side + 1, offset + side);
+    const start = positions.length / 3;
+    positions.push(...positions.slice(offset * 3, (offset + sides) * 3));
+    for (let side = 1; side < sides - 1; side++) {
+      if (reverse) indices.push(start, start + side, start + side + 1);
+      else indices.push(start, start + side + 1, start + side);
     }
   }
 
@@ -160,7 +183,21 @@ function noseGeometry() {
   );
   geometry.setIndex(indices);
   geometry.computeVertexNormals();
-  return geometry.toNonIndexed();
+  // The reference cowl has a broad planar centre, with rounding confined to its
+  // shoulders. Large side quads must not pull the roof normals into a cylinder.
+  const normals = geometry.getAttribute("normal");
+  for (let section = 0; section < sections.length; section++) {
+    const before = sections[Math.max(0, section - 1)];
+    const after = sections[Math.min(sections.length - 1, section + 1)];
+    const normal = new THREE.Vector3(
+      0,
+      after.z - before.z,
+      before.top - after.top,
+    ).normalize();
+    for (const side of [0, 15, 16])
+      normals.setXYZ(section * sides + side, normal.x, normal.y, normal.z);
+  }
+  return geometry;
 }
 
 /** Beveled horizontal bodywork: the front corners sweep back around the tires. */
@@ -170,14 +207,15 @@ function bumperGeometry(width: number, height: number, depth: number) {
   const outline = new THREE.Shape();
   outline.moveTo(-w + 0.23, d);
   outline.quadraticCurveTo(0, d + 0.14, w - 0.23, d);
-  outline.lineTo(w, d - 0.17);
-  outline.lineTo(w, -d + 0.04);
-  outline.lineTo(w - 0.16, -d);
+  outline.quadraticCurveTo(w - 0.06, d - 0.04, w, d - 0.17);
+  outline.lineTo(w, -d + 0.07);
+  outline.quadraticCurveTo(w - 0.035, -d, w - 0.16, -d);
   outline.lineTo(w - 0.36, -d + 0.13);
   outline.lineTo(-w + 0.36, -d + 0.13);
   outline.lineTo(-w + 0.16, -d);
-  outline.lineTo(-w, -d + 0.04);
+  outline.quadraticCurveTo(-w + 0.035, -d, -w, -d + 0.07);
   outline.lineTo(-w, d - 0.17);
+  outline.quadraticCurveTo(-w + 0.06, d - 0.04, -w + 0.23, d);
   outline.closePath();
   const geometry = new THREE.ExtrudeGeometry(outline, {
     depth: height - 0.11,
@@ -185,7 +223,7 @@ function bumperGeometry(width: number, height: number, depth: number) {
     bevelSize: 0.055,
     bevelThickness: 0.055,
     bevelSegments: 3,
-    curveSegments: 10,
+    curveSegments: 3,
     steps: 1,
   });
   geometry.rotateX(Math.PI / 2);
@@ -198,22 +236,130 @@ function crownStripeGeometry() {
   const vertices: number[] = [];
   const indices: number[] = [];
   for (let i = 0; i <= 12; i++) {
-    const a = -0.3 + (i / 12) * 0.94;
-    for (const x of [-0.075, 0.075]) {
-      const r = Math.sqrt(0.648 ** 2 - x ** 2);
-      vertices.push(x, Math.cos(a) * r * 0.98, Math.sin(a) * r * 0.97);
+    const a = -0.38 + (i / 12) * 0.9;
+    for (const [x, radius] of [
+      [-0.072, 0.648],
+      [0.072, 0.648],
+      [0.072, 0.679],
+      [-0.072, 0.679],
+    ]) {
+      const r = Math.sqrt(radius ** 2 - x ** 2);
+      vertices.push(x, Math.cos(a) * r * 0.98, Math.sin(a) * r * 0.94);
     }
     if (i < 12) {
-      const k = i * 2;
-      indices.push(k, k + 2, k + 1, k + 1, k + 2, k + 3);
+      const k = i * 4;
+      for (let side = 0; side < 4; side++) {
+        const n = (side + 1) % 4;
+        indices.push(
+          k + side,
+          k + n,
+          k + 4 + n,
+          k + side,
+          k + 4 + n,
+          k + 4 + side,
+        );
+      }
     }
   }
+  indices.push(0, 2, 1, 0, 3, 2, 48, 49, 50, 48, 50, 51);
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute(
     "position",
     new THREE.Float32BufferAttribute(vertices, 3),
   );
   geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
+/** Shared full-face helmet surface; the chin is subtly narrower and projects forward. */
+function helmetPoint(yaw: number, latitude: number, radius: number) {
+  const chin = Math.max(0, -Math.sin(latitude));
+  return new THREE.Vector3(
+    radius * Math.cos(latitude) * Math.sin(yaw) * (1 - chin * 0.055),
+    radius * Math.sin(latitude) * 0.98,
+    radius * Math.cos(latitude) * Math.cos(yaw) * 0.94 + chin * 0.04,
+  );
+}
+
+function helmetGeometry() {
+  const geometry = new THREE.SphereGeometry(0.64, 48, 28);
+  const p = geometry.getAttribute("position");
+  for (let i = 0; i < p.count; i++) {
+    const point = helmetPoint(
+      Math.atan2(p.getX(i), p.getZ(i)),
+      Math.asin(THREE.MathUtils.clamp(p.getY(i) / 0.64, -1, 1)),
+      0.64,
+    );
+    p.setXYZ(i, point.x, point.y, point.z);
+  }
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
+/** Rounded visor edges are part of the curved surface, with a thin surrounding gasket. */
+function visorGeometry(trim: boolean) {
+  const positions: number[] = [],
+    indices: number[] = [];
+  const columns = 40,
+    rows = 10;
+  const spread = THREE.MathUtils.degToRad(trim ? 82 : 79);
+  for (let row = 0; row <= rows; row++) {
+    const v = row / rows;
+    for (let column = 0; column <= columns; column++) {
+      const u = (column / columns) * 2 - 1;
+      const yaw = u * (spread - 0.045 * Math.pow(Math.abs(v * 2 - 1), 6));
+      const corner = Math.pow(Math.abs(u), 6);
+      const top = (trim ? 0.165 : 0.13) - corner * 0.07;
+      const bottom = (trim ? -0.55 : -0.51) + corner * 0.12;
+      const point = helmetPoint(
+        yaw,
+        top + (bottom - top) * v,
+        trim ? 0.652 : 0.663,
+      );
+      positions.push(point.x, point.y, point.z);
+      if (row < rows && column < columns) {
+        const k = row * (columns + 1) + column;
+        indices.push(
+          k,
+          k + columns + 1,
+          k + 1,
+          k + 1,
+          k + columns + 1,
+          k + columns + 2,
+        );
+      }
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(positions, 3),
+  );
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  return geometry;
+}
+
+function seatShellGeometry() {
+  const blank = new RoundedBoxGeometry(1.06, 0.72, 0.58, 3, 0.16);
+  blank.deleteAttribute("normal");
+  blank.deleteAttribute("uv");
+  const geometry = mergeVertices(blank, 1e-5);
+  blank.dispose();
+  const positions = geometry.getAttribute("position");
+  for (let i = 0; i < positions.count; i++) {
+    const y = positions.getY(i),
+      x = positions.getX(i);
+    const height = THREE.MathUtils.clamp((y + 0.36) / 0.72, 0, 1);
+    // Rounded shoulders taper gently; lateral wings curl forward around the driver.
+    positions.setXYZ(
+      i,
+      x * (1 - height * 0.13),
+      y,
+      positions.getZ(i) + 0.23 * Math.pow(Math.abs(x) / 0.53, 2),
+    );
+  }
   geometry.computeVertexNormals();
   return geometry;
 }
@@ -226,10 +372,20 @@ function addWheel(
   axle: "front" | "rear",
   side: "left" | "right",
 ) {
+  const mount = new THREE.Group();
+  mount.name = `wheel-${axle}-${side}`;
+  mount.position.set(x, 0.62, z);
+  mount.userData = {
+    wheelRadius: 0.52,
+    steerable: axle === "front",
+    axle,
+    side,
+    spinNode: `wheel-spin-${axle}-${side}`,
+  };
+  root.add(mount);
   const wheel = new THREE.Group();
-  wheel.name = `wheel-${axle}-${side}`;
-  wheel.position.set(x, 0.62, z);
-  root.add(wheel);
+  wheel.name = mount.userData.spinNode;
+  mount.add(wheel);
 
   const tire = addMesh(
     wheel,
@@ -238,25 +394,26 @@ function addWheel(
         new THREE.Vector2(0.22, -0.2),
         new THREE.Vector2(0.33, -0.205),
         new THREE.Vector2(0.39, -0.201),
-        new THREE.Vector2(0.438, -0.185),
-        new THREE.Vector2(0.475, -0.157),
-        new THREE.Vector2(0.5, -0.119),
-        new THREE.Vector2(0.515, -0.072),
+        new THREE.Vector2(0.46, -0.185),
+        new THREE.Vector2(0.5, -0.157),
+        new THREE.Vector2(0.517, -0.119),
+        new THREE.Vector2(0.52, -0.072),
         new THREE.Vector2(0.52, 0),
-        new THREE.Vector2(0.515, 0.072),
-        new THREE.Vector2(0.5, 0.119),
-        new THREE.Vector2(0.475, 0.157),
-        new THREE.Vector2(0.438, 0.185),
+        new THREE.Vector2(0.52, 0.072),
+        new THREE.Vector2(0.517, 0.119),
+        new THREE.Vector2(0.5, 0.157),
+        new THREE.Vector2(0.46, 0.185),
         new THREE.Vector2(0.39, 0.201),
         new THREE.Vector2(0.33, 0.205),
         new THREE.Vector2(0.22, 0.2),
       ],
-      40,
+      32,
     ),
     materials.rubber,
     "tire",
   );
   tire.rotation.z = Math.PI / 2;
+  tire.scale.y = 1.17;
 
   const hub = addMesh(
     wheel,
@@ -273,7 +430,7 @@ function addWheel(
     materials.silver,
     "rim",
   );
-  rim.position.x = outward * 0.19;
+  rim.position.x = outward * 0.224;
   rim.rotation.y = Math.PI / 2;
 
   const cap = addMesh(
@@ -291,7 +448,7 @@ function addWheel(
       `sidewall-bead-${face}`,
     );
     bead.rotation.y = Math.PI / 2;
-    bead.position.x = face * 0.203;
+    bead.position.x = face * 0.237;
   }
   const brake = addMesh(
     wheel,
@@ -300,7 +457,7 @@ function addWheel(
     "brake-disc",
   );
   brake.rotation.z = Math.PI / 2;
-  brake.position.x = outward * 0.176;
+  brake.position.x = outward * 0.211;
   for (let spoke = 0; spoke < 5; spoke++) {
     const a = (spoke * Math.PI * 2) / 5;
     cylinderBetween(
@@ -308,12 +465,12 @@ function addWheel(
       materials.silver,
       `rim-spoke-${spoke}`,
       new THREE.Vector3(
-        outward * 0.215,
+        outward * 0.225,
         Math.cos(a) * 0.07,
         Math.sin(a) * 0.07,
       ),
       new THREE.Vector3(
-        outward * 0.203,
+        outward * 0.227,
         Math.cos(a + 0.12) * 0.224,
         Math.sin(a + 0.12) * 0.224,
       ),
@@ -327,7 +484,7 @@ function addWheel(
     "axle-nut",
   );
   axleNut.rotation.z = Math.PI / 2;
-  axleNut.position.x = outward * 0.223;
+  axleNut.position.x = outward * 0.244;
 }
 
 function addSuspension(root: THREE.Group, materials: MaterialSet) {
@@ -400,6 +557,76 @@ function addSuspension(root: THREE.Group, materials: MaterialSet) {
   );
 }
 
+/** Neutral fabric occlusion in compressed cloth; independent of sun direction. */
+function clothRecessColors(
+  geometry: THREE.BufferGeometry,
+  shade: (p: THREE.Vector3, i: number) => number,
+) {
+  const positions = geometry.getAttribute("position");
+  const colors = new Uint8Array(positions.count * 3);
+  const point = new THREE.Vector3();
+  for (let i = 0; i < positions.count; i++) {
+    const value = Math.round(
+      255 *
+        THREE.MathUtils.clamp(
+          shade(point.fromBufferAttribute(positions, i), i),
+          0.65,
+          1,
+        ),
+    );
+    colors.set([value, value, value], i * 3);
+  }
+  geometry.setAttribute(
+    "color",
+    new THREE.Uint8BufferAttribute(colors, 3, true),
+  );
+  return geometry;
+}
+
+/** Elliptical fitted chest, broad at the shoulders and compressed into the seat. */
+function torsoGeometry() {
+  const geometry = new THREE.LatheGeometry(
+    [
+      new THREE.Vector2(0, -0.35),
+      new THREE.Vector2(0.25, -0.35),
+      new THREE.Vector2(0.32, -0.29),
+      new THREE.Vector2(0.345, -0.16),
+      new THREE.Vector2(0.37, 0.02),
+      new THREE.Vector2(0.415, 0.17),
+      new THREE.Vector2(0.4, 0.245),
+      new THREE.Vector2(0.34, 0.3),
+      new THREE.Vector2(0.225, 0.34),
+      new THREE.Vector2(0, 0.34),
+    ],
+    24,
+  );
+  const positions = geometry.getAttribute("position");
+  for (let i = 0; i < positions.count; i++) {
+    const x = positions.getX(i),
+      y = positions.getY(i),
+      z = positions.getZ(i);
+    // Squared oval cross-section makes a seated chest instead of a round cylinder.
+    const fullness = 1 + 0.075 * Math.pow(Math.sin(Math.atan2(x, z) * 2), 2);
+    const waistFold =
+      0.012 * Math.exp(-Math.pow((y + 0.18 + x * 0.08) / 0.045, 2));
+    positions.setXYZ(
+      i,
+      x * fullness,
+      y,
+      z * 0.78 * fullness - Math.sign(z) * waistFold,
+    );
+  }
+  geometry.computeVertexNormals();
+  return clothRecessColors(geometry, (p) => {
+    const seatContact =
+      (Math.max(0, -p.z) / 0.34) * Math.exp(-Math.pow((p.y + 0.19) / 0.18, 2));
+    const underarm =
+      Math.pow(Math.min(1, Math.abs(p.x) / 0.42), 4) *
+      Math.exp(-Math.pow((p.y - 0.07) / 0.16, 2));
+    return 1 - seatContact * 0.2 - underarm * 0.12;
+  });
+}
+
 function addDriver(root: THREE.Group, materials: MaterialSet) {
   const driver = new THREE.Group();
   driver.name = "driver";
@@ -409,69 +636,162 @@ function addDriver(root: THREE.Group, materials: MaterialSet) {
     driver,
     materials.suit,
     "driver-hips",
-    [0.74, 0.38, 0.55],
-    [0, 1.09, -0.22],
+    [0.72, 0.31, 0.59],
+    [0, 1.025, -0.2],
     0.16,
   );
   hips.rotation.x = -0.08;
 
   const torso = addMesh(
     driver,
-    new THREE.CapsuleGeometry(0.38, 0.28, 8, 20),
+    torsoGeometry(),
     materials.suit,
     "driver-torso",
   );
-  torso.position.set(0, 1.44, -0.25);
-  torso.rotation.x = -0.1;
-  torso.scale.set(1.08, 1, 0.9);
+  torso.position.set(0, 1.42, -0.21);
+  torso.rotation.x = -0.13;
 
   for (const side of [-1, 1]) {
     const prefix = side < 0 ? "left" : "right";
-    capsuleBetween(
+    addMesh(
       driver,
+      new THREE.TubeGeometry(
+        new THREE.CatmullRomCurve3([
+          new THREE.Vector3(side * 0.25, 1.05, -0.12),
+          new THREE.Vector3(side * 0.49, 1.02, 0.34),
+          new THREE.Vector3(side * 0.57, 0.88, 0.7),
+        ]),
+        14,
+        0.145,
+        10,
+        false,
+      ),
       materials.suit,
       `driver-leg-${prefix}`,
-      new THREE.Vector3(side * 0.25, 1.08, -0.09),
-      new THREE.Vector3(side * 0.34, 0.84, 0.72),
-      0.16,
     );
-    const shoulder = new THREE.Vector3(side * 0.34, 1.66, -0.05);
-    const elbow = new THREE.Vector3(side * 0.52, 1.35, 0.24);
-    const hand = new THREE.Vector3(side * 0.38, 1.48, 0.6);
-    capsuleBetween(
-      driver,
-      materials.suit,
-      `driver-upper-arm-${prefix}`,
+    const shoulder = new THREE.Vector3(side * 0.315, 1.6, -0.15);
+    const elbow = new THREE.Vector3(side * 0.61, 1.29, 0.15);
+    const hand = new THREE.Vector3(side * 0.366, 1.465, 0.522);
+    const sleevePath = new THREE.CatmullRomCurve3([
       shoulder,
+      new THREE.Vector3(side * 0.51, 1.47, -0.035),
       elbow,
-      0.18,
-      16,
-    );
-    capsuleBetween(
-      driver,
-      materials.suit,
-      `driver-forearm-${prefix}`,
-      elbow,
+      new THREE.Vector3(side * 0.54, 1.34, 0.36),
       hand,
-      0.17,
-      16,
+    ]);
+    const sleeveGeometry = new THREE.TubeGeometry(sleevePath, 24, 1, 12, false);
+    const sleeveVertices = sleeveGeometry.getAttribute("position");
+    // Broad shoulder cap, relaxed elbow, tapered wrist. Two shallow folds occur
+    // only on the inside of the bent elbow, not as rings around a hose.
+    const recess: number[] = [];
+    for (let ring = 0; ring <= 24; ring++) {
+      const t = ring / 24;
+      const centre = sleevePath.getPointAt(t);
+      const radius =
+        t < 0.28
+          ? THREE.MathUtils.lerp(0.205, 0.185, t / 0.28)
+          : THREE.MathUtils.lerp(
+              0.185,
+              0.108,
+              Math.pow((t - 0.28) / 0.72, 1.4),
+            );
+      for (let vertex = 0; vertex <= 12; vertex++) {
+        const i = ring * 13 + vertex;
+        const radial = new THREE.Vector3()
+          .fromBufferAttribute(sleeveVertices, i)
+          .sub(centre);
+        const inside = THREE.MathUtils.smoothstep(radial.y, -0.15, 0.8);
+        const creaseA = Math.exp(
+          -Math.pow((t - 0.43 - radial.x * side * 0.055) / 0.04, 2),
+        );
+        const creaseB = Math.exp(
+          -Math.pow((t - 0.59 + radial.z * 0.035) / 0.035, 2),
+        );
+        const cuff = Math.exp(-Math.pow((t - 0.91) / 0.025, 2));
+        const compression =
+          inside * (creaseA * 0.018 + creaseB * 0.013) + cuff * 0.006;
+        const point = radial.multiplyScalar(radius - compression).add(centre);
+        sleeveVertices.setXYZ(i, point.x, point.y, point.z);
+        recess[i] =
+          1 - inside * (creaseA * 0.16 + creaseB * 0.12) - cuff * 0.09;
+      }
+    }
+    // Close the cloth under the overlapping chest/glove. This also prevents a
+    // black triangular opening behind the helmet when viewed from the rear.
+    const closedPositions = Array.from(sleeveVertices.array);
+    const closedIndices = Array.from(sleeveGeometry.index!.array);
+    for (const ring of [0, 24]) {
+      const centre = sleevePath.getPointAt(ring / 24);
+      const cap = closedPositions.length / 3;
+      closedPositions.push(centre.x, centre.y, centre.z);
+      recess[cap] = 1;
+      for (let side = 0; side < 12; side++) {
+        const a = ring * 13 + side;
+        if (ring === 0) closedIndices.push(cap, a, a + 1);
+        else closedIndices.push(cap, a + 1, a);
+      }
+    }
+    sleeveGeometry.setAttribute(
+      "position",
+      new THREE.Float32BufferAttribute(closedPositions, 3),
+    );
+    sleeveGeometry.deleteAttribute("normal");
+    sleeveGeometry.deleteAttribute("uv");
+    sleeveGeometry.setIndex(closedIndices);
+    sleeveGeometry.computeVertexNormals();
+    clothRecessColors(sleeveGeometry, (_p, i) => recess[i]);
+    const sleeve = addMesh(
+      driver,
+      sleeveGeometry,
+      materials.suit,
+      `driver-sleeve-${prefix}`,
+    );
+    sleeve.userData.role = "continuous-bent-sleeve";
+    const gloveGeometry = new THREE.SphereGeometry(0.155, 16, 10);
+    const glovePoints = gloveGeometry.getAttribute("position");
+    for (let i = 0; i < glovePoints.count; i++) {
+      const x = glovePoints.getX(i),
+        y = glovePoints.getY(i),
+        z = glovePoints.getZ(i);
+      // Soft knuckle pad with three restrained valleys across the curled fingers.
+      const front = THREE.MathUtils.smoothstep(z, 0, 0.12);
+      const grooves = [-0.062, -0.005, 0.05].reduce(
+        (sum, fold) => sum + Math.exp(-Math.pow((y - fold) / 0.009, 2)),
+        0,
+      );
+      glovePoints.setXYZ(
+        i,
+        x * 0.91,
+        y * 0.94,
+        z * 1.1 - front * grooves * 0.008,
+      );
+    }
+    gloveGeometry.computeVertexNormals();
+    clothRecessColors(
+      gloveGeometry,
+      (p) => 1 - (0.14 * Math.max(0, -p.z)) / 0.17,
     );
     const glove = addMesh(
       driver,
-      new THREE.SphereGeometry(0.18, 20, 12),
+      gloveGeometry,
       materials.suit,
       `driver-glove-${prefix}`,
     );
     glove.position.copy(hand);
-    glove.scale.set(1.05, 0.9, 1.1);
-    const shoulderPad = addMesh(
+    glove.rotation.x = -0.64;
+    const thumb = capsuleBetween(
       driver,
-      new THREE.SphereGeometry(0.205, 20, 12),
       materials.suit,
-      `driver-shoulder-${prefix}`,
+      `driver-glove-thumb-${prefix}`,
+      hand.clone().add(new THREE.Vector3(-side * 0.075, 0.05, 0.09)),
+      hand.clone().add(new THREE.Vector3(-side * 0.13, -0.045, 0.105)),
+      0.067,
+      8,
     );
-    shoulderPad.position.copy(shoulder);
-    shoulderPad.scale.set(1, 1.03, 0.96);
+    clothRecessColors(
+      thumb.geometry,
+      (p) => 0.94 + 0.06 * Math.max(0, p.z / 0.067),
+    );
   }
 
   const neck = addMesh(
@@ -480,52 +800,27 @@ function addDriver(root: THREE.Group, materials: MaterialSet) {
     materials.dark,
     "helmet-neck-ring",
   );
-  neck.position.set(0, 1.88, -0.16);
+  neck.position.set(0, 1.78, -0.1);
 
   const helmetPaint = materials.paint.clone();
+  helmetPaint.name = "kart-helmet-paint";
   helmetPaint.flatShading = false;
-  helmetPaint.roughness = 0.34;
-  helmetPaint.clearcoatRoughness = 0.25;
-  const helmet = addMesh(
-    driver,
-    new THREE.SphereGeometry(0.64, 48, 32),
-    helmetPaint,
-    "helmet",
-  );
+  helmetPaint.roughness = 0.3;
+  helmetPaint.clearcoat = 0.32;
+  helmetPaint.clearcoatRoughness = 0.32;
+  const helmet = addMesh(driver, helmetGeometry(), helmetPaint, "helmet");
   helmet.position.set(0, 2.35, -0.1);
-  helmet.scale.set(1, 0.98, 0.97);
 
   const visorTrim = addMesh(
     driver,
-    new THREE.SphereGeometry(
-      0.647,
-      32,
-      10,
-      Math.PI * 0.08,
-      Math.PI * 0.84,
-      Math.PI * 0.425,
-      Math.PI * 0.25,
-    ),
+    visorGeometry(true),
     materials.dark,
     "visor-trim",
   );
   visorTrim.position.copy(helmet.position);
   visorTrim.scale.copy(helmet.scale);
 
-  const visor = addMesh(
-    driver,
-    new THREE.SphereGeometry(
-      0.653,
-      32,
-      10,
-      Math.PI * 0.105,
-      Math.PI * 0.79,
-      Math.PI * 0.445,
-      Math.PI * 0.215,
-    ),
-    materials.visor,
-    "visor",
-  );
+  const visor = addMesh(driver, visorGeometry(false), materials.visor, "visor");
   visor.position.copy(helmet.position);
   visor.scale.copy(helmet.scale);
   visor.receiveShadow = false;
@@ -545,7 +840,7 @@ function addDriver(root: THREE.Group, materials: MaterialSet) {
       `visor-hinge-${side}`,
     );
     hinge.rotation.z = Math.PI / 2;
-    hinge.position.set(side * 0.61, 2.31, 0.02);
+    hinge.position.set(side * 0.629, 2.23, -0.12);
     const screw = addMesh(
       driver,
       new THREE.CylinderGeometry(0.024, 0.024, 0.028, 8),
@@ -560,22 +855,29 @@ function addDriver(root: THREE.Group, materials: MaterialSet) {
       driver,
       materials.dark,
       `driver-boot-${side}`,
-      [0.29, 0.23, 0.43],
-      [side * 0.34, 0.78, 0.74],
+      [0.25, 0.23, 0.4],
+      [side * 0.57, 0.84, 0.78],
       0.09,
     );
     boot.rotation.x = -0.13;
-    const cuff = capsuleBetween(
-      driver,
-      materials.suit,
-      `driver-cuff-${side}`,
-      new THREE.Vector3(side * 0.42, 1.435, 0.53),
-      new THREE.Vector3(side * 0.38, 1.48, 0.6),
-      0.176,
-      16,
-    );
-    cuff.scale.multiplyScalar(1.015);
   }
+  // Retain the round helmet identity while reducing its mass above the cockpit.
+  const head = new THREE.Group();
+  head.name = "driver-helmet";
+  head.position.set(0, 2.2, -0.1);
+  head.scale.setScalar(0.95);
+  const oldHeadCentre = new THREE.Vector3(0, 2.35, -0.1);
+  for (const child of [...driver.children]) {
+    if (
+      child.name === "helmet" ||
+      child.name.startsWith("visor") ||
+      child.name === "helmet-top-stripe"
+    ) {
+      child.position.sub(oldHeadCentre);
+      head.add(child);
+    }
+  }
+  driver.add(head);
 }
 
 /**
@@ -586,85 +888,103 @@ function addDriver(root: THREE.Group, materials: MaterialSet) {
 export function createKartModel(color: string): THREE.Group {
   const root = new THREE.Group();
   root.name = "kart-model";
+  root.userData = {
+    assetVersion: "club-kart-reference-v3",
+    units: "metres",
+    up: "+Y",
+    forward: "+Z",
+  };
 
   const materials: MaterialSet = {
     paint: new THREE.MeshPhysicalMaterial({
       color,
-      roughness: 0.32,
-      metalness: 0.08,
-      clearcoat: 0.85,
-      clearcoatRoughness: 0.18,
-      flatShading: true,
+      roughness: 0.36,
+      metalness: 0.02,
+      clearcoat: 0.36,
+      clearcoatRoughness: 0.3,
+      flatShading: false,
     }),
     dark: new THREE.MeshStandardMaterial({
-      color: "#182022",
-      roughness: 0.48,
-      metalness: 0.18,
+      color: "#18272e",
+      roughness: 0.46,
+      metalness: 0,
     }),
     rubber: new THREE.MeshStandardMaterial({
-      color: "#111719",
-      roughness: 0.92,
+      color: "#1b2020",
+      roughness: 0.84,
     }),
     silver: new THREE.MeshStandardMaterial({
-      color: "#a7afa6",
-      roughness: 0.4,
-      metalness: 0.65,
+      color: "#7d898a",
+      roughness: 0.42,
+      metalness: 0.82,
     }),
-    suit: new THREE.MeshStandardMaterial({ color: "#e7dec5", roughness: 0.83 }),
+    suit: new THREE.MeshStandardMaterial({
+      color: "#e9dfc7",
+      roughness: 0.86,
+      vertexColors: true,
+    }),
+    upholstery: new THREE.MeshStandardMaterial({
+      color: "#253333",
+      roughness: 0.66,
+    }),
     visor: new THREE.MeshPhysicalMaterial({
-      color: "#080f13",
-      roughness: 0.17,
-      metalness: 0.2,
-      clearcoat: 1,
-      clearcoatRoughness: 0.08,
-      envMapIntensity: 1.8,
+      color: "#101b22",
+      roughness: 0.23,
+      metalness: 0,
+      ior: 1.5,
+      clearcoat: 0.6,
+      clearcoatRoughness: 0.18,
+      envMapIntensity: 1.2,
       flatShading: false,
     }),
   };
+  for (const [key, material] of Object.entries(materials))
+    material.name = `kart-${key}`;
+  materials.paint.userData.kartTint = true;
 
   roundedBox(
     root,
     materials.dark,
     "chassis",
-    [1.76, 0.28, 2.82],
-    [0, 0.43, -0.04],
-    0.12,
+    [1.59, 0.19, 2.72],
+    [0, 0.4, -0.04],
+    0.075,
   );
   roundedBox(
     root,
     materials.paint,
     "left-side-pod",
-    [0.34, 0.42, 1.72],
-    [-0.77, 0.65, 0.05],
-    0.15,
+    [0.37, 0.32, 1.6],
+    [-0.79, 0.65, -0.08],
+    0.09,
   );
   roundedBox(
     root,
     materials.paint,
     "right-side-pod",
-    [0.34, 0.42, 1.72],
-    [0.77, 0.65, 0.05],
-    0.15,
+    [0.37, 0.32, 1.6],
+    [0.79, 0.65, -0.08],
+    0.09,
   );
   const frontRubber = addMesh(
     root,
-    bumperGeometry(2.3, 0.2, 0.7),
+    bumperGeometry(2.18, 0.16, 0.56),
     materials.rubber,
     "front-bumper-rubber",
   );
-  frontRubber.position.set(0, 0.4, 1.61);
+  frontRubber.position.set(0, 0.37, 1.67);
   const frontBumper = addMesh(
     root,
-    bumperGeometry(2.25, 0.35, 0.68),
+    bumperGeometry(2.12, 0.25, 0.54),
     materials.paint,
     "front-bumper",
   );
-  frontBumper.position.set(0, 0.635, 1.6);
+  frontBumper.position.set(0, 0.565, 1.66);
   roundedBox(
     root,
     materials.dark,
     "rear-bumper-rubber",
-    [1.96, 0.18, 0.37],
+    [1.8, 0.15, 0.3],
     [0, 0.42, -1.6],
     0.08,
   );
@@ -672,9 +992,9 @@ export function createKartModel(color: string): THREE.Group {
     root,
     materials.paint,
     "rear-bumper",
-    [1.9, 0.33, 0.4],
-    [0, 0.65, -1.53],
-    0.13,
+    [1.9, 0.23, 0.31],
+    [0, 0.69, -1.52],
+    0.065,
   );
 
   addSuspension(root, materials);
@@ -694,16 +1014,16 @@ export function createKartModel(color: string): THREE.Group {
       materials.dark,
       `side-pod-insert-${side}`,
       [0.18, 0.1, 0.72],
-      [side * 0.79, 0.877, -0.11],
+      [side * 0.79, 0.805, -0.11],
       0.045,
     );
     roundedBox(
       root,
       materials.paint,
       `rear-body-shoulder-${side}`,
-      [0.33, 0.3, 0.9],
-      [side * 0.73, 0.85, -1.08],
-      0.12,
+      [0.32, 0.26, 0.86],
+      [side * 0.78, 0.72, -1.03],
+      0.08,
     );
   }
 
@@ -711,31 +1031,30 @@ export function createKartModel(color: string): THREE.Group {
     root,
     materials.paint,
     "rear-cockpit-deck",
-    [1.64, 0.2, 0.65],
-    [0, 0.8, -1.19],
-    0.09,
+    [1.48, 0.11, 0.41],
+    [0, 0.71, -1.28],
+    0.045,
   );
   const seatBack = roundedBox(
     root,
-    materials.dark,
+    materials.upholstery,
     "seat-back",
-    [1.02, 0.86, 0.36],
-    [0, 1.22, -0.67],
-    0.15,
+    [0.79, 0.63, 0.24],
+    [0, 1.18, -0.53],
+    0.1,
   );
   seatBack.rotation.x = 0.18;
-  const seatShell = roundedBox(
+  const seatShell = addMesh(
     root,
+    seatShellGeometry(),
     materials.dark,
     "seat-rear-shell",
-    [1.03, 0.7, 0.3],
-    [0, 1.18, -0.91],
-    0.09,
   );
-  seatShell.rotation.x = 0.44;
+  seatShell.position.set(0, 1.13, -0.67);
+  seatShell.rotation.x = 0.22;
   roundedBox(
     root,
-    materials.dark,
+    materials.upholstery,
     "seat-base",
     [0.92, 0.3, 0.78],
     [0, 0.81, -0.31],
@@ -744,12 +1063,12 @@ export function createKartModel(color: string): THREE.Group {
 
   const steering = new THREE.Group();
   steering.name = "steering-wheel";
-  steering.position.set(0, 1.43, 0.63);
-  steering.rotation.x = -0.48;
+  steering.position.set(0, 1.36, 0.6);
+  steering.rotation.x = -0.64;
   root.add(steering);
   addMesh(
     steering,
-    new THREE.TorusGeometry(0.43, 0.055, 8, 20),
+    new THREE.TorusGeometry(0.39, 0.052, 8, 24),
     materials.dark,
     "steering-rim",
   );
@@ -785,27 +1104,36 @@ export function createKartModel(color: string): THREE.Group {
     engine,
     materials.dark,
     "engine-block",
-    [0.64, 0.27, 0.55],
-    [0.34, 0.57, -1.25],
-    0.08,
+    [0.42, 0.2, 0.48],
+    [0.44, 0.69, -1.13],
+    0.06,
   );
-  for (let index = 0; index < 5; index++)
-    roundedBox(
-      engine,
+  for (const side of [-1, 1]) {
+    cylinderBetween(
+      root,
       materials.dark,
-      `engine-fin-${index + 1}`,
-      [0.67, 0.02, 0.58],
-      [0.34, 0.47 + index * 0.045, -1.25],
-      0.008,
+      `rear-bumper-support-${side}`,
+      new THREE.Vector3(side * 0.69, 0.38, -1.64),
+      new THREE.Vector3(side * 0.69, 0.69, -1.48),
+      0.055,
     );
+  }
   const exhaust = addMesh(
     engine,
     new THREE.CylinderGeometry(0.08, 0.1, 0.58, 12),
-    materials.dark,
+    materials.silver,
     "exhaust",
   );
   exhaust.position.set(-0.48, 0.5, -1.35);
   exhaust.rotation.x = Math.PI / 2;
+  const outlet = addMesh(
+    engine,
+    new THREE.CircleGeometry(0.063, 12),
+    materials.dark,
+    "exhaust-outlet",
+  );
+  outlet.rotation.y = Math.PI;
+  outlet.position.set(-0.48, 0.5, -1.641);
   addMesh(
     engine,
     new THREE.CylinderGeometry(0.07, 0.07, 0.48, 10),

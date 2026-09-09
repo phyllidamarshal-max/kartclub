@@ -3,11 +3,12 @@ import assert from "node:assert/strict";
 import { TRACKS } from "../shared/track.ts";
 import { spawnCar, stepCar } from "../shared/race.ts";
 import { aiInput } from "../shared/ai.ts";
+import { raceHardLimit } from "../shared/rules.ts";
 test("AI completes three legal-input laps on each track at every difficulty", () => {
   for (const t of TRACKS)
     for (const difficulty of ["easy", "normal", "hard"] as const) {
       const c = spawnCar(1, "ai", t);
-      for (let i = 0; i < 60 * 300 && c.lap < 3; i++)
+      for (let i = 0; i < 60 * raceHardLimit(t.id, 3) && c.lap < 3; i++)
         stepCar(c, aiInput(c, t, difficulty, i / 60), 1 / 60, t);
       assert.equal(
         c.lap,

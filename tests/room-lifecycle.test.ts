@@ -36,6 +36,7 @@ function fixture() {
 }
 test("ready timeout cancels with a reason; countdown never moves or charges a kart", () => {
   const r = fixture();
+  r.config = { ...r.config, free: false };
   r.phase = "waiting";
   for (let i = 0; i < 1801; i++) (r as any).tick(1 / 60);
   assert.equal(r.phase, "cancelled");

@@ -40,6 +40,7 @@ export interface Challenge {
   startDelay?: number;
   sectorSeconds?: number[];
   techniqueCorners?: readonly number[];
+  techniqueRanges?: readonly { start: number; end: number }[];
   startingItem?: Item;
   id: string;
   title: string;
@@ -136,7 +137,15 @@ export const CHALLENGES: Challenge[] = [
     rank: 0,
     opponents: 0,
     event: "technique",
-    techniqueCorners: [0.24375, 0.60625],
+    techniqueCorners: getTrack("city-factory")
+      .bends!.filter((b) => b.kind === "V" || b.kind === "U")
+      .map((b) => b.apex),
+    techniqueRanges: getTrack("city-factory")
+      .bends!.filter((b) => b.kind === "V" || b.kind === "U")
+      .map((b) => ({
+        start: b.start,
+        end: b.end + 65 / getTrack("city-factory").length,
+      })),
     limit: 0,
     gold: 0,
     uses: 0,
@@ -208,16 +217,15 @@ export const CHALLENGES: Challenge[] = [
     drift: 0,
   },
 ];
-// Authored against driving-v3.2 / routes-0.4.0 measured runs, not route-length estimates.
-// See docs/gameplay-phase-one-report.md for reference pace and the human-sample limitation.
-const goldSeconds = [96, 40, 84, 96, 106, 108, 146, 204, 160];
+// Recalibrated for the longer routes; see track-mastery-report.md for measured runs.
+const goldSeconds = [190, 64, 206, 138, 206, 207, 196, 248, 310];
 CHALLENGES.forEach((q, i) => {
   q.gold = goldSeconds[i];
 });
-CHALLENGES[1].sectorSeconds = [17, 16, 17];
-CHALLENGES[1].limit = 50;
-CHALLENGES[4].limit = 130;
-CHALLENGES[7].limit = 240;
+CHALLENGES[1].sectorSeconds = [26, 26, 26];
+CHALLENGES[1].limit = 78;
+CHALLENGES[4].limit = 260;
+CHALLENGES[7].limit = 330;
 
 export function isUnlocked(
   index: number,
