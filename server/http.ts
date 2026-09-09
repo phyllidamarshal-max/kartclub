@@ -2,7 +2,21 @@ import express, { type Application } from "express";
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { matchMaker } from "@colyseus/core";
+import { createRouter, matchMaker } from "@colyseus/core";
+
+export function matchmakingRouter() {
+  return createRouter({}, {
+    onResponse(response) {
+      // Colyseus domain codes 520–526 collide with Cloudflare's proxy errors.
+      // Keep the SDK's JSON error payload, but use an ordinary HTTP failure.
+      if (response.status >= 520 && response.status <= 526) {
+        const headers = new Headers(response.headers);
+        headers.set("Cache-Control", "no-store");
+        return new Response(response.body, { status: 400, headers });
+      }
+    },
+  });
+}
 
 export function configureHttp(app: Application) {
   const allowed = (process.env.ALLOWED_ORIGINS || "")

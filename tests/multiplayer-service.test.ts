@@ -96,6 +96,16 @@ test(
         cors.headers.get("access-control-allow-origin"),
         "https://club.example",
       );
+      // Cloudflare replaces origin 520–527 responses with its own error pages.
+      // Matchmaking must keep domain errors in JSON and use a standard HTTP status.
+      const missingRoom = await fetch(base + "/matchmake/joinById/ABCD1234", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Origin: "https://club.example" },
+        body: "{}",
+      });
+      assert.equal(missingRoom.status, 400);
+      assert.equal(missingRoom.headers.get("access-control-allow-origin"), "https://club.example");
+      assert.match((await missingRoom.json()).error, /not found/);
       for (let i = 0; i < 9; i++) {
         clients.push(
           new Network({
@@ -132,6 +142,13 @@ test(
         () => clients[8].join("Ninth", firstId),
         /已满|开始/,
       );
+      const fullRoom = await fetch(base + "/matchmake/joinById/" + firstId, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: clients[8].token, versions: VERSIONS }),
+      });
+      assert.equal(fullRoom.status, 400);
+      assert.match((await fullRoom.json()).error, /locked|full/i);
       assert.equal(
         new Set(clients[0].snapshot!.players.map((player) => player.slot)).size,
         8,

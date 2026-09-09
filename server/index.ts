@@ -8,7 +8,7 @@ import { Auth } from "./auth.ts";
 import {RaceRecords} from "./race-records.ts";
 import { KartRoom } from "./room.ts";
 import { VERSIONS } from "../shared/rules.ts";
-import { configureHttp, serveClient } from './http.ts';
+import { configureHttp, matchmakingRouter, serveClient } from './http.ts';
 const data =
   process.env.PONS_DATA_DIR ||
   path.join(path.dirname(fileURLToPath(import.meta.url)), "../data");
@@ -74,6 +74,7 @@ const server = new Server({
     serveClient(app);
   },
 });
+server.router = matchmakingRouter();
 server.define("kart", KartRoom);
 await server.listen(Number(process.env.PORT || 2567), "0.0.0.0");
 console.log(
