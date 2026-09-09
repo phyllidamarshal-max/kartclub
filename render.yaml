@@ -3,6 +3,7 @@ services:
   - type: web
     name: kart-club
     runtime: docker
+    region: singapore
     plan: 0.5c-512mb
     numInstances: 1
     healthCheckPath: /api/health
