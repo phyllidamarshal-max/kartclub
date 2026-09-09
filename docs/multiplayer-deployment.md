@@ -1,10 +1,12 @@
 # 好友公网联机部署
 
-2026-09-09：可部署版本已上传到 GitHub 的 `main` 和 `codex/pons-kart` 分支，Netlify 发布已成功，入口为 `https://kartclub.xyz`。Render 已登录并连接仓库，部署配置已指定新加坡区域；创建付费服务时平台提示 **Payment Information Required**，需要账户持有人先在 Render 添加付款方式。目前尚未创建赛事服务器，也未设置实际的 `VITE_GAME_SERVER_URL`。当前的多人测试运行于本机实际 HTTP / WebSocket 服务；真实公网延迟和跨设备体验仍需部署后验收。
+2026-09-09：公网赛事服务已部署到 Render，新加坡区域、一个 `0.5c-512mb` 实例、1 GB 持久化盘。游戏入口为 <https://kartclub.xyz>，服务器为 <https://kart-club.onrender.com>，健康检查为 <https://kart-club.onrender.com/api/health>。GitHub Actions 和 Netlify 项目的 `VITE_GAME_SERVER_URL` 均已配置为该服务器地址，正式网页显示赛事服务已连接。已通过 8 个真实公网 WebSocket 客户端的房间、开赛、驾驶同步、再来一局和断线恢复检查；不同设备、不同运营商的实际体验仍需好友实测。
+
+现有服务控制台：<https://dashboard.render.com/web/srv-dagmdse7bikc73bqlv9g>。Blueprint 名称为 `kartclub-multiplayer`，已完成首次创建，无需重复创建服务器。
 
 ## kartclub.xyz 的部署步骤
 
-2026-09-09 实测：`https://kartclub.xyz` 目前由 Netlify 返回网页；同站的 `/api/health` 返回的是 HTML 网页，不是联机服务的健康检查 JSON。建议保留这个游戏入口，用 Render 承载赛事服务。玩家仍通过 `https://kartclub.xyz` 创建房间、分享邀请链接，首次部署不需要修改现有域名解析。
+`https://kartclub.xyz` 由 Netlify 提供网页，Render 承载赛事服务。玩家通过 `https://kartclub.xyz` 创建房间、分享邀请链接，现有域名解析已保留。注意：`kartclub.xyz/api/health` 返回网页，应使用上面的 Render 健康检查地址判断服务器状态。下面保留完整配置步骤，便于以后维护或迁移。
 
 ### 1. 先把部署版本上传到 GitHub
 
@@ -28,7 +30,7 @@ https://kartclub.xyz,https://www.kartclub.xyz,https://kartclubgame.netlify.app
 
 `NODE_ENV=production`、`PONS_DATA_DIR=/app/data` 已由配置提供；端口使用平台给出的 `PORT`，无需手动填构建或启动命令。
 
-核对资源清单和账单后点击 **Deploy Blueprint**。当前计算实例标价 $7/月，1 GB 磁盘 $0.25/月，二者基础费用合计约 $7.25/月；不含可能的流量超额、税费或其他付费项目，以创建页面的费用为准。参考 [Render 价格](https://render.com/pricing)。本说明没有执行购买或创建服务。
+核对资源清单和账单后点击 **Deploy Blueprint**。本次创建页确认计算实例 $7/月，1 GB 磁盘 $0.25/月，基础费用合计 $7.25/月；不含可能的流量超额、税费或其他付费项目。添加银行卡后，无需另找付款按钮：创建付费资源后开始按实际使用时间计费，通常在次月初出账并自动扣款。打开 **Billing → Unbilled Charges** 查看当月累计费用，**Invoice History** 查看历史账单。参考 [Render 价格](https://render.com/pricing)、[计费条款](https://render.com/terms)。
 
 ### 3. 确认服务器可访问
 
@@ -46,7 +48,7 @@ https://kartclub.xyz,https://www.kartclub.xyz,https://kartclubgame.netlify.app
 
 值只填写服务器根地址，不加 `/api`、`/api/health` 或房间路径。这是公开地址，放在 **Variables**。`NETLIFY_AUTH_TOKEN`、`NETLIFY_SITE_ID` 两项 Secrets 已配置，GitHub Actions 发布已验证成功。当前令牌有效期至 2026-12-08，到期前需要在 Netlify 创建替代令牌并更新同名 Secret；凭据不能放进代码或聊天。
 
-保存变量不会自动发布网页。在 **Actions → Deploy to Netlify** 中打开包含最新部署代码的 `main` 运行记录，选择 **Re-run all jobs**，等待成功。也可以在设置变量后再将部署版本推送到 `main`，由推送触发工作流。
+当前变量值已设置为 `https://kart-club.onrender.com`。保存变量不会自动发布网页。在 **Actions → Deploy to Netlify** 中打开包含最新部署代码的 `main` 运行记录，选择 **Re-run all jobs**，等待成功。也可以在设置变量后再将部署版本推送到 `main`，由推送触发工作流。
 
 如果实际使用 Netlify 自己拉取仓库并构建，则还需在 Netlify 项目环境变量中设置相同的 `VITE_GAME_SERVER_URL`，让它对生产构建生效，再触发一次重新构建部署。仅在 Netlify 设置变量不会改变 GitHub Actions 已构建并上传的网页文件。参考 [Netlify 构建环境变量](https://docs.netlify.com/build/configure-builds/environment-variables/)。
 
@@ -56,7 +58,7 @@ https://kartclub.xyz,https://www.kartclub.xyz,https://kartclubgame.netlify.app
 
 若不能连接：先检查 Render 的健康检查 JSON；再检查前端是否已重新构建、变量地址是否正确；遇到 403 时检查 `ALLOWED_ORIGINS` 是否包含浏览器实际访问的完整 origin。前后端版本不一致时，部署同一提交并刷新网页。
 
-当前配置关闭了服务的代码自动部署。后续更新在无比赛时手动发布后端，再发布对应版本的前端；服务器重启会结束仍在内存中的房间。
+当前配置关闭了服务的代码自动部署。后续更新在无比赛时打开现有 Render 服务，点击 **Manual Deploy → Deploy latest commit** 发布后端，再发布对应版本的前端；服务器重启会结束仍在内存中的房间。
 
 ## 部署后怎么玩
 
@@ -85,7 +87,7 @@ npm.cmd start
 
 ### Render
 
-仓库提供 `render.yaml` 和 `Dockerfile`。在 Render 新建 Blueprint，选择**包含这次修改的分支/提交**，查看资源清单后再创建。文件声明了一个 `0.5c-512mb` 付费服务和 1 GB 持久化磁盘，会产生平台费用，本次没有替你创建。
+仓库提供 `render.yaml` 和 `Dockerfile`。现有 Render 服务已通过 Blueprint 创建；迁移到新账户时，选择**包含完整代码的分支/提交**，查看资源清单后再创建。文件声明了一个 `0.5c-512mb` 付费服务和 1 GB 持久化磁盘，会产生平台费用。
 
 - 服务类型：Docker Web Service，实例数 **1**。
 - 健康检查：`/api/health`。
@@ -116,7 +118,7 @@ race.example.com {
 }
 ```
 
-将示例域名替换为自己的域名。当前 Dockerfile 使用非 root 用户；命名卷自动初始化权限。若改为宿主机目录挂载，需要让容器中的 `node` 用户可写。当前机器 Docker 引擎未运行，镜像构建未在本次本机验收中执行；生产 Node 启动与同端口 HTTP/WS 已单独验证。
+将示例域名替换为自己的域名。当前 Dockerfile 使用非 root 用户；命名卷自动初始化权限。若改为宿主机目录挂载，需要让容器中的 `node` 用户可写。Docker 镜像已在 Render 完成实际构建和启动，持久化目录中的账户读写及公网 HTTP/WS 已验证。
 
 ## 方案 B：保留 Netlify 网页
 
